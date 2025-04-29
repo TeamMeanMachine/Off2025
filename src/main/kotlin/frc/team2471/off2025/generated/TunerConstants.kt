@@ -109,7 +109,7 @@ object TunerConstants {
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false
 
-    private const val kPigeonId = 1
+    private const val kPigeonId = 40
 
     // These are only used for simulation
     private val kSteerInertia: MomentOfInertia = 0.004.kilogramSquareMeters

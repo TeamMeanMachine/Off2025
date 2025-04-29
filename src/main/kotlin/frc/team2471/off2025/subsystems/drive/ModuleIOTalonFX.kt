@@ -241,12 +241,15 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     override fun setCANCoderAngle(angle: Angle) {
         val initialConfigs = CANcoderConfiguration()
         cancoder.configurator.refresh(initialConfigs)
+
         val initialPosition = cancoder.absolutePosition.valueAsDouble.rotations
         val initialOffset = initialConfigs.MagnetSensor.MagnetOffset.rotations
         println("inital position $initialPosition initial offset $initialOffset")
+
         val rawPosition = initialPosition + initialOffset
         val newOffset = (rawPosition - angle)
         println("rawPosition $rawPosition new offset $newOffset")
+
         initialConfigs.MagnetSensor.MagnetOffset = newOffset.asRotations
         cancoder.configurator.apply(initialConfigs)
     }

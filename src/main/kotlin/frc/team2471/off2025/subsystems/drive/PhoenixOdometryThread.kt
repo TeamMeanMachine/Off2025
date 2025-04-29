@@ -35,7 +35,7 @@ import java.util.function.DoubleSupplier
 object PhoenixOdometryThread : Thread() {
     private val signalsLock = ReentrantLock() // Prevents conflicts when registering signals
     val odometryLock = ReentrantLock()
-    private var phoenixSignals: Array<BaseStatusSignal?> = arrayOfNulls<BaseStatusSignal>(0)
+    private var phoenixSignals: Array<BaseStatusSignal?> = arrayOfNulls(0)
     private val genericSignals: MutableList<DoubleSupplier?> = ArrayList<DoubleSupplier?>()
     private val phoenixQueues: MutableList<Queue<Double?>?> = ArrayList<Queue<Double?>?>()
     private val genericQueues: MutableList<Queue<Double?>?> = ArrayList<Queue<Double?>?>()

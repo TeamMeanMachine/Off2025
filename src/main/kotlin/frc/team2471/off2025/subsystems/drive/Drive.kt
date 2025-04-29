@@ -12,7 +12,6 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025.subsystems.drive
 
-import com.ctre.phoenix6.CANBus
 import com.pathplanner.lib.auto.AutoBuilder
 import com.pathplanner.lib.config.ModuleConfig
 import com.pathplanner.lib.config.PIDConstants
@@ -47,7 +46,7 @@ import frc.team2471.off2025.Constants
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
-import frc.team2471.off2025.subsystems.drive.gyro.GyroIONavX
+import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
 import frc.team2471.off2025.util.LocalADStarAK
 import frc.team2471.off2025.util.degrees
 import org.littletonrobotics.junction.AutoLogOutput
@@ -57,8 +56,10 @@ import kotlin.math.hypot
 import kotlin.math.max
 
 object Drive : SubsystemBase() {
+    const val ODOMETRY_FREQUENCY: Double = 100.0//if (CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD) 250.0 else 100.0
+
     private val gyroIO: GyroIO = when (Constants.currentMode) {
-        Constants.Mode.REAL -> GyroIONavX()
+        Constants.Mode.REAL -> GyroIOPigeon2()
         else -> object : GyroIO {}
     }
     private val gyroInputs: GyroIOInputsAutoLogged = GyroIOInputsAutoLogged()
@@ -359,8 +360,6 @@ object Drive : SubsystemBase() {
         get() = this.maxLinearSpeedMetersPerSec / DRIVE_BASE_RADIUS
 
     // TunerConstants doesn't include these constants, so they are declared locally
-    val ODOMETRY_FREQUENCY: Double =
-        if (CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD) 250.0 else 100.0
     val DRIVE_BASE_RADIUS: Double = max(
         max(
             hypot(TunerConstants.FrontLeft.LocationX, TunerConstants.FrontLeft.LocationY),

@@ -108,12 +108,6 @@ object Robot : LoggedRobot() {
     override fun teleopInit() {
 
 
-        println((1.0.radians + 1.degrees))
-
-
-
-
-
     }
 
     /** This function is called periodically during operator control.  */
