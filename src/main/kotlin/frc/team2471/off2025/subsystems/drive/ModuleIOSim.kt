@@ -89,7 +89,7 @@ class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFX
         // Update odometry inputs (50Hz because high-frequency odometry in sim doesn't matter)
         inputs.odometryTimestamps = doubleArrayOf(Timer.getFPGATimestamp())
         inputs.odometryDrivePositionsRad = doubleArrayOf(inputs.drivePositionRad)
-        inputs.odometryTurnPositions = arrayOf<Rotation2d?>(inputs.turnPosition)
+        inputs.odometryTurnPositions = arrayOf<Rotation2d>(inputs.turnPosition)
     }
 
     override fun setDriveOpenLoop(output: Double) {

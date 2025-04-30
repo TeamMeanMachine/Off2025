@@ -35,7 +35,7 @@ interface ModuleIO {
 
         @JvmField var odometryTimestamps: DoubleArray = doubleArrayOf()
         @JvmField var odometryDrivePositionsRad: DoubleArray = doubleArrayOf()
-        @JvmField var odometryTurnPositions: Array<Rotation2d?> = arrayOf<Rotation2d?>()
+        @JvmField var odometryTurnPositions: Array<Rotation2d> = arrayOf<Rotation2d>()
     }
 
     /** Updates the set of loggable inputs.  */

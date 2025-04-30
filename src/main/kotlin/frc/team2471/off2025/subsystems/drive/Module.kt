@@ -49,7 +49,7 @@ class Module(
         odometryPositions = arrayOfNulls(sampleCount)
         for (i in 0..<sampleCount) {
             val positionMeters: Double = inputs.odometryDrivePositionsRad[i] * constants.WheelRadius
-            val angle: Rotation2d? = inputs.odometryTurnPositions[i]
+            val angle: Rotation2d = inputs.odometryTurnPositions[i]
             odometryPositions[i] = SwerveModulePosition(positionMeters, angle)
         }
 

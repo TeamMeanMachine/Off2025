@@ -51,7 +51,7 @@ inline val LinearVelocity.asInchesPerSecond: Double get() = `in`(InchesPerSecond
 inline val LinearVelocity.asFeetPerSecond: Double get() = `in`(FeetPerSecond)
 inline val LinearVelocity.asMetersPerSecond: Double get() = `in`(MetersPerSecond)
 
-inline val Number.aschesPerSecond: LinearVelocity get() = InchesPerSecond.of(this.toDouble())
+inline val Number.asInchesPerSecond: LinearVelocity get() = InchesPerSecond.of(this.toDouble())
 inline val Number.feetPerSecond: LinearVelocity get() = FeetPerSecond.of(this.toDouble())
 inline val Number.metersPerSecond: LinearVelocity get() = MetersPerSecond.of(this.toDouble())
 
@@ -73,7 +73,7 @@ inline val LinearAcceleration.asFeetPerSecondPerSecond: Double get() = `in`(Feet
 inline val LinearAcceleration.asMetersPerSecondPerSecond: Double get() = `in`(MetersPerSecondPerSecond)
 inline val LinearAcceleration.asGs: Double get() = `in`(Gs)
 
-inline val Number.aschesPerSecondPerSecond: LinearAcceleration get() = InchesPerSecond.per(Second).of(this.toDouble())
+inline val Number.asInchesPerSecondPerSecond: LinearAcceleration get() = InchesPerSecond.per(Second).of(this.toDouble())
 inline val Number.feetPerSecondPerSecond: LinearAcceleration get() = FeetPerSecondPerSecond.of(this.toDouble())
 inline val Number.metersPerSecondPerSecond: LinearAcceleration get() = MetersPerSecondPerSecond.of(this.toDouble())
 inline val Number.Gs: LinearAcceleration get() = Units.Gs.of(this.toDouble())
@@ -145,6 +145,10 @@ inline val Velocity<VoltageUnit>.asVoltsPerSecond: Double get() = `in`(Volts.per
 //Formulas
 fun LinearVelocity.toAngular(radius: Distance) = RadiansPerSecond.of(this.asMetersPerSecond / radius.asMeters)!!
 fun AngularVelocity.toLinear(radius: Distance) = MetersPerSecond.of(this.asRadiansPerSecond * radius.asMeters)!!
+
+
+/**Converts a [Number] in hertz into an equivalent [Time] unit.*/
+fun Number.hertzToTime() = if (this == 0.0) 0.seconds else (1.0 / this.toDouble()).seconds
 
 @JvmName("sinOf")
 fun sin(angle: Angle) = sin(angle.asRadians)

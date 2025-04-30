@@ -51,7 +51,6 @@ import frc.team2471.off2025.util.LocalADStarAK
 import frc.team2471.off2025.util.degrees
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
-import java.util.function.Consumer
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -116,7 +115,7 @@ object Drive : SubsystemBase() {
 
     init {
         // Start odometry thread
-        PhoenixOdometryThread.instance.start()
+        PhoenixOdometryThread.start()
 
         // Configure AutoBuilder for PathPlanner
         AutoBuilder.configure(
@@ -128,18 +127,14 @@ object Drive : SubsystemBase() {
             },
             { this.chassisSpeeds },
             { speeds: ChassisSpeeds? -> this.runVelocity(speeds!!) },
-            PPHolonomicDriveController(
-                PIDConstants(5.0, 0.0, 0.0), PIDConstants(5.0, 0.0, 0.0)
-            ),
+            PPHolonomicDriveController(PIDConstants(5.0, 0.0, 0.0), PIDConstants(5.0, 0.0, 0.0)),
             PP_CONFIG,
             { DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red },
             this
         )
         Pathfinding.setPathfinder(LocalADStarAK())
         PathPlannerLogging.setLogActivePathCallback { activePath: MutableList<Pose2d?>? ->
-            Logger.recordOutput<Pose2d?>(
-                "Odometry/Trajectory", *activePath!!.toTypedArray<Pose2d?>()
-            )
+            Logger.recordOutput<Pose2d?>("Odometry/Trajectory", *activePath!!.toTypedArray<Pose2d?>())
         }
         PathPlannerLogging.setLogTargetPoseCallback { targetPose: Pose2d? ->
             Logger.recordOutput<Pose2d?>("Odometry/TrajectorySetpoint", targetPose)
@@ -151,16 +146,9 @@ object Drive : SubsystemBase() {
                 SysIdRoutine.Config(
                     null,
                     null,
-                    null,
-                    Consumer { state: SysIdRoutineLog.State? ->
-                        Logger.recordOutput(
-                            "Drive/SysIdState",
-                            state.toString()
-                        )
-                    }),
-                Mechanism(
-                    Consumer { voltage: Voltage? -> runCharacterization(voltage!!.`in`(Units.Volts)) }, null, this
-                )
+                    null
+                ) { state: SysIdRoutineLog.State? -> Logger.recordOutput("Drive/SysIdState", state.toString()) },
+                Mechanism({ voltage: Voltage? -> runCharacterization(voltage!!.`in`(Units.Volts)) }, null, this)
             )
     }
 
@@ -184,9 +172,8 @@ object Drive : SubsystemBase() {
         }
 
         // Update odometry
-        val sampleTimestamps = modules[0].odometryTimestamps // All signals are sampled together
-        val sampleCount = sampleTimestamps.size
-        for (i in 0..<sampleCount) {
+        val sampleTimestamps = gyroInputs.odometryYawTimestamps // All signals are sampled together
+        for (i in 0..<sampleTimestamps.size) {
             // Read wheel positions and deltas from each module
             val modulePositions = arrayOfNulls<SwerveModulePosition>(4)
             val moduleDeltas = arrayOfNulls<SwerveModulePosition>(4)

@@ -64,22 +64,22 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     private val velocityTorqueCurrentRequest = VelocityTorqueCurrentFOC(0.0)
 
     // Timestamp inputs from Phoenix thread
-    private val timestampQueue: Queue<Double?>
+    private val timestampQueue: Queue<Double>
 
     // Inputs from drive motor
-    private val drivePosition: StatusSignal<Angle?>
-    private val drivePositionQueue: Queue<Double?>
-    private val driveVelocity: StatusSignal<AngularVelocity?>
-    private val driveAppliedVoltage: StatusSignal<Voltage?>
-    private val driveCurrent: StatusSignal<Current?>
+    private val drivePosition: StatusSignal<Angle>
+    private val drivePositionQueue: Queue<Double>
+    private val driveVelocity: StatusSignal<AngularVelocity>
+    private val driveAppliedVoltage: StatusSignal<Voltage>
+    private val driveCurrent: StatusSignal<Current>
 
     // Inputs from turn motor
-    private val turnAbsolutePositionS: StatusSignal<Angle?>
-    private val turnPositionS: StatusSignal<Angle?>
-    private val turnPositionQueue: Queue<Double?>
-    private val turnVelocity: StatusSignal<AngularVelocity?>
-    private val turnAppliedVoltsS: StatusSignal<Voltage?>
-    private val turnCurrent: StatusSignal<Current?>
+    private val turnAbsolutePositionS: StatusSignal<Angle>
+    private val turnPositionS: StatusSignal<Angle>
+    private val turnPositionQueue: Queue<Double>
+    private val turnVelocity: StatusSignal<AngularVelocity>
+    private val turnAppliedVoltsS: StatusSignal<Voltage>
+    private val turnCurrent: StatusSignal<Current>
 
     // Connection debouncers
     private val driveConnectedDebounce = Debouncer(0.5)
@@ -132,11 +132,11 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
         cancoder.configurator.apply(cancoderConfig)
 
         // Create timestamp queue
-        timestampQueue = PhoenixOdometryThread.instance.makeTimestampQueue()
+        timestampQueue = PhoenixOdometryThread.makeTimestampQueue()
 
         // Create drive status signals
         drivePosition = driveTalon.position
-        drivePositionQueue = PhoenixOdometryThread.instance.registerSignal(driveTalon.position)
+        drivePositionQueue = PhoenixOdometryThread.registerSignal(driveTalon.position)
         driveVelocity = driveTalon.velocity
         driveAppliedVoltage = driveTalon.motorVoltage
         driveCurrent = driveTalon.statorCurrent
@@ -144,7 +144,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
         // Create turn status signals
         turnAbsolutePositionS = cancoder.absolutePosition
         turnPositionS = turnTalon.position
-        turnPositionQueue = PhoenixOdometryThread.instance.registerSignal(turnTalon.position)
+        turnPositionQueue = PhoenixOdometryThread.registerSignal(turnTalon.position)
         turnVelocity = turnTalon.velocity
         turnAppliedVoltsS = turnTalon.motorVoltage
         turnCurrent = turnTalon.statorCurrent
@@ -190,9 +190,9 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
             turnCurrentAmps = turnCurrent.valueAsDouble
 
             // Update odometry inputs
-            odometryTimestamps = timestampQueue.stream().mapToDouble { value: Double? -> value!! }.toArray()
-            odometryDrivePositionsRad = drivePositionQueue.stream().mapToDouble { value: Double? -> Units.rotationsToRadians(value!!) }.toArray()
-            odometryTurnPositions = turnPositionQueue.stream().toArray().map { Rotation2d.fromDegrees(it as Double) }.toTypedArray()
+            odometryTimestamps = timestampQueue.stream().mapToDouble { it }.toArray()
+            odometryDrivePositionsRad = drivePositionQueue.stream().mapToDouble { Units.rotationsToRadians(it) }.toArray()
+            odometryTurnPositions = turnPositionQueue.stream().toArray().map { Rotation2d.fromRotations(it as Double) }.toTypedArray()
         }
 
         timestampQueue.clear()
