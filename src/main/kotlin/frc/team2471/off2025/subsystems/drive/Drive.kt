@@ -47,15 +47,19 @@ import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
-import frc.team2471.off2025.util.LocalADStarAK
-import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.*
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.hypot
 import kotlin.math.max
 
-object Drive : SubsystemBase() {
+object Drive : SubsystemBase("Drive") {
     const val ODOMETRY_FREQUENCY: Double = 100.0//if (CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD) 250.0 else 100.0
+
+    // PathPlanner config constants
+    private const val ROBOT_MASS_KG = 74.088
+    private const val ROBOT_MOI = 6.883
+    private const val WHEEL_COF = 1.2
 
     private val gyroIO: GyroIO = when (Constants.currentMode) {
         Constants.Mode.REAL -> GyroIOPigeon2()
@@ -144,11 +148,13 @@ object Drive : SubsystemBase() {
         sysId =
             SysIdRoutine(
                 SysIdRoutine.Config(
-                    null,
-                    null,
-                    null
+                    0.5.voltsPerSecond,
+                    5.0.volts,
+                    5.0.seconds
                 ) { state: SysIdRoutineLog.State? -> Logger.recordOutput("Drive/SysIdState", state.toString()) },
-                Mechanism({ voltage: Voltage? -> runCharacterization(voltage!!.`in`(Units.Volts)) }, null, this)
+                Mechanism({ voltage: Voltage? -> runCharacterization(voltage!!.`in`(Units.Volts)) }, {
+                    SysIdRoutineLog("hi").motor("drive")
+                }, this)
             )
     }
 
@@ -358,10 +364,7 @@ object Drive : SubsystemBase() {
         )
     )
 
-    // PathPlanner config constants
-    private const val ROBOT_MASS_KG = 74.088
-    private const val ROBOT_MOI = 6.883
-    private const val WHEEL_COF = 1.2
+
 
 
     val moduleTranslations: Array<Translation2d?>

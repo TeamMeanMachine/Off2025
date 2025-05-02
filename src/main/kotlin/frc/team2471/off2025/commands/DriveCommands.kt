@@ -28,6 +28,8 @@ import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.subsystems.drive.Drive
+import frc.team2471.off2025.util.asDegrees
+import frc.team2471.off2025.util.radians
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.*
@@ -44,10 +46,10 @@ object DriveCommands {
     private const val ANGLE_KD = 0.4
     private const val ANGLE_MAX_VELOCITY = 8.0
     private const val ANGLE_MAX_ACCELERATION = 20.0
-    private const val FF_START_DELAY = 2.0 // Secs
+    private const val FF_START_DELAY = 0.5 // Secs
     private const val FF_RAMP_RATE = 0.1 // Volts/Sec
-    private const val WHEEL_RADIUS_MAX_VELOCITY = 0.25 // Rad/Sec
-    private const val WHEEL_RADIUS_RAMP_RATE = 0.05 // Rad/Sec^2
+    private const val WHEEL_RADIUS_MAX_VELOCITY = 2.0 // Rad/Sec
+    private const val WHEEL_RADIUS_RAMP_RATE = 0.3 // Rad/Sec^2
 
     private fun getLinearVelocityFromJoysticks(x: Double, y: Double): Translation2d {
         // Apply deadband
@@ -55,7 +57,7 @@ object DriveCommands {
         val linearDirection = Rotation2d(atan2(y, x))
 
         // Square magnitude for more precise control
-        linearMagnitude = linearMagnitude * linearMagnitude
+//        linearMagnitude = linearMagnitude * linearMagnitude
 
         // Return new linear velocity
         return Pose2d(Translation2d(), linearDirection)
@@ -141,7 +143,7 @@ object DriveCommands {
             Drive
         ) // Reset PID controller when command starts
 
-            .beforeStarting(Runnable { angleController.reset(Drive.rotation.radians) })
+            .beforeStarting({ angleController.reset(Drive.rotation.radians) })
     }
 
     /**
@@ -158,7 +160,7 @@ object DriveCommands {
 
         return Commands.sequence( // Reset data
             Commands.runOnce(
-                Runnable {
+                {
                     velocitySamples.clear()
                     voltageSamples.clear()
                 }),  // Allow modules to orient
@@ -249,8 +251,8 @@ object DriveCommands {
 
                             val formatter: NumberFormat = DecimalFormat("#0.000")
                             println("********** Wheel Radius Characterization Results **********")
-                            println("\tWheel Delta: " + formatter.format(wheelDelta) + " radians")
-                            println("\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians")
+                            println("\tWheel Delta: " + wheelDelta.radians.asDegrees + " degrees")
+                            println("\tGyro Delta: " + state.gyroDelta.radians.asDegrees + " degrees")
                             println(("\tWheel Radius: " + formatter.format(wheelRadius) + " meters, " + formatter.format(Units.metersToInches(wheelRadius)) + " inches"))
                         })
             )

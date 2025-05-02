@@ -31,7 +31,7 @@ object TunerConstants {
     // Both sets of gains need to be tuned to your individual robot.
     // The steer motor uses any SwerveModule.SteerRequestType control request with the
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
-    private val steerGains: Slot0Configs? = Slot0Configs().apply {
+    private val steerGains: Slot0Configs = Slot0Configs().apply {
         kP = 15.25
         kI = 0.0
         kD = 0.0
@@ -43,12 +43,12 @@ object TunerConstants {
 
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
-    private val driveGains: Slot0Configs? = Slot0Configs().apply {
-        kP = 1.51
+    private val driveGains: Slot0Configs = Slot0Configs().apply {
+        kP = 0.0
         kI = 0.0
         kD = 0.0
         kS = 0.0
-        kV = 0.01
+        kV = 1.04523
     }
 
     // The closed-loop output type to use for the steer motors;
@@ -102,9 +102,9 @@ object TunerConstants {
     // This may need to be tuned to your individual robot
     private const val kCoupleRatio = 1.0
 
-    private const val kDriveGearRatio = 5.9027777778
+    private const val kDriveGearRatio = 6.75
     private const val kSteerGearRatio = 18.75
-    private val kWheelRadius: Distance = Inches.of(2.0)
+    private val kWheelRadius: Distance = Inches.of(2.197)
 
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false
