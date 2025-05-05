@@ -31,8 +31,7 @@ import kotlin.math.sign
  * Physics sim implementation of module IO. The sim models are configured using a set of module
  * constants from Phoenix. Simulation is always based on voltage control.
  */
-class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>) :
-    ModuleIO {
+class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>) : ModuleIO {
     // Create drive and turn sim models
     private val driveSim: DCMotorSim = DCMotorSim(LinearSystemId.createDCMotorSystem(DRIVE_GEARBOX, constants.DriveInertia, constants.DriveMotorGearRatio), DRIVE_GEARBOX)
     private val turnSim: DCMotorSim = DCMotorSim(LinearSystemId.createDCMotorSystem(TURN_GEARBOX, constants.SteerInertia, constants.SteerMotorGearRatio), TURN_GEARBOX)
@@ -53,8 +52,7 @@ class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFX
     override fun updateInputs(inputs: ModuleIOInputs) {
         // Run closed-loop control
         if (driveClosedLoop) {
-            driveAppliedVolts =
-                driveFFVolts + driveController.calculate(driveSim.angularVelocityRadPerSec)
+            driveAppliedVolts = driveFFVolts + driveController.calculate(driveSim.angularVelocityRadPerSec)
         } else {
             driveController.reset()
         }

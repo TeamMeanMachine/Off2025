@@ -1,10 +1,10 @@
 package frc.team2471.off2025.util
 
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.Units.*
 import edu.wpi.first.units.VoltageUnit
 import edu.wpi.first.units.measure.*
-import edu.wpi.first.units.measure.Velocity
 import kotlin.math.*
 
 
@@ -124,11 +124,14 @@ inline val Number.ounceInches: Torque get() = OunceInches.of(this.toDouble())
 //MOI
 inline val Number.kilogramSquareMeters: MomentOfInertia get() = KilogramSquareMeters.of(this.toDouble())
 
+inline val MomentOfInertia.asKilogramSquareMeters: Double get() = `in`(KilogramSquareMeters)
+
 
 //Voltage
 inline val Number.volts: Voltage get() = Volts.of(this.toDouble())
 
 inline val Voltage.asVolts: Double get() = `in`(Volts)
+
 
 //Current
 inline val Current.asAmps: Double get() = `in`(Amps)
@@ -171,6 +174,8 @@ fun Angle.wrap() = asDegrees.IEEErem(360.0).degrees
 fun Angle.unWrap(nearByAngle: Angle) = nearByAngle + (this - nearByAngle).wrap()
 
 fun Angle.absoluteValue() = asDegrees.absoluteValue.degrees
+
+fun Angle.asRotation2d() = Rotation2d(this.asRadians)
 
 //String
 fun Angle.toReadableString() = "$asDegrees degrees"

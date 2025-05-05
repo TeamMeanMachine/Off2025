@@ -42,7 +42,6 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
-import frc.team2471.off2025.Constants
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
@@ -50,30 +49,31 @@ import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
 import frc.team2471.off2025.util.*
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.max
+import kotlin.math.sin
 
 object Drive : SubsystemBase("Drive") {
-    const val ODOMETRY_FREQUENCY: Double = 100.0//if (CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD) 250.0 else 100.0
 
     // PathPlanner config constants
     private const val ROBOT_MASS_KG = 74.088
     private const val ROBOT_MOI = 6.883
     private const val WHEEL_COF = 1.2
 
-    private val gyroIO: GyroIO = when (Constants.currentMode) {
-        Constants.Mode.REAL -> GyroIOPigeon2()
+    private val gyroIO: GyroIO = when (robotMode) {
+        RobotMode.REAL, RobotMode.SIM -> GyroIOPigeon2()
         else -> object : GyroIO {}
     }
     private val gyroInputs: GyroIOInputsAutoLogged = GyroIOInputsAutoLogged()
-    private val modules: Array<Module> = when (Constants.currentMode) {
-        Constants.Mode.REAL -> arrayOf(
+    private val modules: Array<Module> = when (robotMode) {
+        RobotMode.REAL -> arrayOf(
             Module(ModuleIOTalonFX(TunerConstants.FrontLeft), 0, TunerConstants.FrontLeft),
             Module(ModuleIOTalonFX(TunerConstants.FrontRight), 1, TunerConstants.FrontRight),
             Module(ModuleIOTalonFX(TunerConstants.BackLeft), 2, TunerConstants.BackLeft),
             Module(ModuleIOTalonFX(TunerConstants.BackRight), 3, TunerConstants.BackRight)
         )
-        Constants.Mode.SIM -> arrayOf(
+        RobotMode.SIM -> arrayOf(
             Module(ModuleIOSim(TunerConstants.FrontLeft), 0, TunerConstants.FrontLeft),
             Module(ModuleIOSim(TunerConstants.FrontRight), 1, TunerConstants.FrontRight),
             Module(ModuleIOSim(TunerConstants.BackLeft), 2, TunerConstants.BackLeft),
@@ -119,7 +119,7 @@ object Drive : SubsystemBase("Drive") {
 
     init {
         // Start odometry thread
-        PhoenixOdometryThread.start()
+        OdometrySignalThread.start()
 
         // Configure AutoBuilder for PathPlanner
         AutoBuilder.configure(
@@ -159,13 +159,13 @@ object Drive : SubsystemBase("Drive") {
     }
 
     override fun periodic() {
-        PhoenixOdometryThread.odometryLock.lock() // Prevents odometry updates while reading data
+        OdometrySignalThread.odometryLock.lock() // Prevents updates while reading data
         gyroIO.updateInputs(gyroInputs)
         Logger.processInputs("Drive/Gyro", gyroInputs)
         for (module in modules) {
             module.periodic()
         }
-        PhoenixOdometryThread.odometryLock.unlock()
+        OdometrySignalThread.odometryLock.unlock()
 
         if (DriverStation.isDisabled()) {
             // Stop moving when disabled
@@ -178,17 +178,17 @@ object Drive : SubsystemBase("Drive") {
         }
 
         // Update odometry
-        val sampleTimestamps = gyroInputs.odometryYawTimestamps // All signals are sampled together
-        for (i in 0..<sampleTimestamps.size) {
+        val sampleTimestamps = modules.first().odometryTimestamps // All signals are sampled together
+        for (i in sampleTimestamps.indices) {
             // Read wheel positions and deltas from each module
             val modulePositions = arrayOfNulls<SwerveModulePosition>(4)
             val moduleDeltas = arrayOfNulls<SwerveModulePosition>(4)
             for (moduleIndex in 0..3) {
                 modulePositions[moduleIndex] = modules[moduleIndex].odometryPositions[i]
                 moduleDeltas[moduleIndex] = SwerveModulePosition(
-                        modulePositions[moduleIndex]!!.distanceMeters - lastModulePositions[moduleIndex].distanceMeters,
-                        modulePositions[moduleIndex]!!.angle
-                    )
+                    modulePositions[moduleIndex]!!.distanceMeters - lastModulePositions[moduleIndex].distanceMeters,
+                    modulePositions[moduleIndex]!!.angle
+                )
                 lastModulePositions[moduleIndex] = modulePositions[moduleIndex]!!
             }
 
@@ -199,15 +199,52 @@ object Drive : SubsystemBase("Drive") {
             } else {
                 // Use the angle delta from the kinematics and module deltas
                 val twist = kinematics.toTwist2d(*moduleDeltas)
+//                println("twist: $twist")
                 rawGyroRotation = rawGyroRotation.plus(Rotation2d(twist.dtheta))
             }
 
             // Apply update
             poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions)
+
+            updateOdometry(modulePositions, if (gyroInputs.connected) gyroInputs.odometryYawPositions[i] else null, sampleTimestamps[i])
         }
 
         // Update gyro alert
-        gyroDisconnectedAlert.set(!gyroInputs.connected && Constants.currentMode != Constants.Mode.SIM)
+        gyroDisconnectedAlert.set(!gyroInputs.connected && isReal)
+    }
+
+
+    private var prevModulePositions: Array<SwerveModulePosition> = arrayOf(SwerveModulePosition(), SwerveModulePosition(), SwerveModulePosition(), SwerveModulePosition())
+    private fun updateOdometry(modulePositions: Array<SwerveModulePosition?>, gyroAngle: Rotation2d?, timestamp: Double) {
+        val moduleDeltas = Array(modulePositions.size) { i ->
+            val prevAngle = prevModulePositions[i].angle
+            val currAngle = modulePositions[i]!!.angle
+            val deltaDistanceMeters = (modulePositions[i]!!.distanceMeters - prevModulePositions[i].distanceMeters)
+            val deltaAngleRad = currAngle.radians - prevAngle.radians
+            prevModulePositions[i] = modulePositions[i]!!
+
+            if (deltaAngleRad == 0.0) {
+                return@Array SwerveModulePosition(deltaDistanceMeters, currAngle)
+            } else {
+                val radius = deltaDistanceMeters / deltaAngleRad
+
+                val centerOfArcToPrevPos = Translation2d(
+                    radius * cos(prevAngle.radians - Math.PI / 2.0),
+                    radius * sin(prevAngle.radians - Math.PI / 2.0)
+                )
+                val centerOfArcToCurrPos = centerOfArcToPrevPos.rotateBy(deltaAngleRad.radians.asRotation2d())
+                val arcDisplacement = centerOfArcToCurrPos - centerOfArcToPrevPos
+
+                SwerveModulePosition(arcDisplacement.norm, Rotation2d(atan2(arcDisplacement.y, arcDisplacement.x)))
+            }
+        }
+
+        Logger.recordOutput("Odometry/ModuleDeltas", *(moduleDeltas.map { SwerveModuleState(it.distanceMeters, it.angle) }).toTypedArray<SwerveModuleState>())
+
+        val twist = kinematics.toTwist2d(*moduleDeltas)
+        val gyroDelta = twist.dtheta.radians.asDegrees
+
+        odomPose = Pose2d(odomPose.exp(twist).translation, gyroAngle ?: (odomPose.rotation.measure.asDegrees + gyroDelta).degrees.asRotation2d())
     }
 
     /**
@@ -330,6 +367,9 @@ object Drive : SubsystemBase("Drive") {
             poseEstimator.resetPosition(rawGyroRotation, this.modulePositions, pose)
         }
 
+    @get:AutoLogOutput(key = "Odometry/odomPose")
+    var odomPose: Pose2d = Pose2d()
+
     val rotation: Rotation2d
         /** Returns the current odometry rotation.  */
         get() = this.pose.rotation
@@ -374,4 +414,15 @@ object Drive : SubsystemBase("Drive") {
         Translation2d(TunerConstants.FrontRight.LocationX, TunerConstants.FrontRight.LocationY),
         Translation2d(TunerConstants.BackLeft.LocationX, TunerConstants.BackLeft.LocationY),
         Translation2d(TunerConstants.BackRight.LocationX, TunerConstants.BackRight.LocationY))
+
+
+    fun epsilonEquals(a: Double, b: Double, epsilon: Double): Boolean {
+        return (a - epsilon <= b) && (a + epsilon >= b)
+    }
+
+    fun epsilonEquals(a: Double, b: Double): Boolean {
+        return epsilonEquals(a, b, 1e-5)
+    }
+
+    fun Double.epsonEquals(other: Double) = epsilonEquals(this, other)
 }

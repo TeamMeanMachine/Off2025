@@ -16,12 +16,7 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.units.Units.Inches
 import edu.wpi.first.units.measure.*
-import frc.team2471.off2025.util.amps
-import frc.team2471.off2025.util.inches
-import frc.team2471.off2025.util.kilogramSquareMeters
-import frc.team2471.off2025.util.metersPerSecond
-import frc.team2471.off2025.util.rotations
-import frc.team2471.off2025.util.volts
+import frc.team2471.off2025.util.*
 import org.team2471.frc2025.CANCoders
 import org.team2471.frc2025.Falcons
 
@@ -76,14 +71,12 @@ object TunerConstants {
     // Initial configs for the drive and steer motors and the azimuth encoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
     private val driveInitialConfigs = TalonFXConfiguration()
-    private val steerInitialConfigs: TalonFXConfiguration? = TalonFXConfiguration()
-        .withCurrentLimits(
-            CurrentLimitsConfigs() // Swerve azimuth does not require much torque output, so we can set a relatively
-                // low
-                // stator current limit to help avoid brownouts without impacting performance.
-                .withStatorCurrentLimit(60.0.amps)
-                .withStatorCurrentLimitEnable(true)
-        )
+    private val steerInitialConfigs = TalonFXConfiguration().apply {
+        CurrentLimits.apply{
+            StatorCurrentLimit = 60.0
+            StatorCurrentLimitEnable = true
+        }
+    }
     private val encoderInitialConfigs = CANcoderConfiguration()
 
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
@@ -100,7 +93,7 @@ object TunerConstants {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    private const val kCoupleRatio = 1.0
+    private const val kCoupleRatio = 0.0
 
     private const val kDriveGearRatio = 6.75
     private const val kSteerGearRatio = 18.75
@@ -126,27 +119,47 @@ object TunerConstants {
         .withPigeon2Configs(pigeonConfigs)
 
     private val ConstantCreator: SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
-        SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
-            .withDriveMotorGearRatio(kDriveGearRatio)
-            .withSteerMotorGearRatio(kSteerGearRatio)
-            .withCouplingGearRatio(kCoupleRatio)
-            .withWheelRadius(kWheelRadius)
-            .withSteerMotorGains(steerGains)
-            .withDriveMotorGains(driveGains)
-            .withSteerMotorClosedLoopOutput(kSteerClosedLoopOutput)
-            .withDriveMotorClosedLoopOutput(kDriveClosedLoopOutput)
-            .withSlipCurrent(kSlipCurrent)
-            .withSpeedAt12Volts(kSpeedAt12Volts)
-            .withDriveMotorType(kDriveMotorType)
-            .withSteerMotorType(kSteerMotorType)
-            .withFeedbackSource(kSteerFeedbackType)
-            .withDriveMotorInitialConfigs(driveInitialConfigs)
-            .withSteerMotorInitialConfigs(steerInitialConfigs)
-            .withEncoderInitialConfigs(encoderInitialConfigs)
-            .withSteerInertia(kSteerInertia)
-            .withDriveInertia(kDriveInertia)
-            .withSteerFrictionVoltage(kSteerFrictionVoltage)
-            .withDriveFrictionVoltage(kDriveFrictionVoltage)
+        SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>().apply {
+            DriveMotorGearRatio = kDriveGearRatio
+            SteerMotorGearRatio = kSteerGearRatio
+
+            //The ratio at which the wheel spins when the turn motor spins (driveMotorRotations/Rotations)
+            CouplingGearRatio = kCoupleRatio
+
+            WheelRadius = kWheelRadius.asMeters
+
+            //Type of closed loop output (Velocity Volts or Velocity Torque)
+            DriveMotorClosedLoopOutput = kDriveClosedLoopOutput
+            SteerMotorClosedLoopOutput = kSteerClosedLoopOutput
+
+            //PID configs
+            DriveMotorGains = driveGains
+            SteerMotorGains = steerGains
+
+            //Maximum amount of stator current the drive motors can apply without slippage.
+            SlipCurrent = kSlipCurrent.asAmps
+            //The speed at which the robot travels when driven with 12 volts.
+            SpeedAt12Volts = kSpeedAt12Volts.asMetersPerSecond
+
+            //Voltage required to overcome friction
+            DriveFrictionVoltage = kDriveFrictionVoltage.asVolts
+            SteerFrictionVoltage = kSteerFrictionVoltage.asVolts
+
+            //Type of motor controller
+            DriveMotorType = kDriveMotorType
+            SteerMotorType = kSteerMotorType
+            //How to integrate CANCoder. (Remote, Fused, or Synced)
+            FeedbackSource = kSteerFeedbackType
+
+            //Moment of Inertia. only used in simulation
+            DriveInertia = kDriveInertia.asKilogramSquareMeters
+            SteerInertia = kSteerInertia.asKilogramSquareMeters
+
+            DriveMotorInitialConfigs = driveInitialConfigs
+            SteerMotorInitialConfigs = steerInitialConfigs
+            EncoderInitialConfigs = encoderInitialConfigs
+        }
+
 
     // Front Left
     private const val kFrontLeftDriveMotorId = Falcons.FRONT_LEFT_DRIVE
@@ -249,10 +262,10 @@ object TunerConstants {
      * Creates a CommandSwerveDrivetrain instance. This should only be called once in your robot
      * program,.
      */
-    //   public static CommandSwerveDrivetrain createDrivetrain() {
-    //     return new CommandSwerveDrivetrain(
-    //         DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
-    //   }
+//    public fun createDrivetrain() {
+//        return new CommandSwerveDrivetrain(DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
+//    }
+//
     /** Swerve Drive class utilizing CTR Electronics' Phoenix 6 API with the selected device types.  */
     class TunerSwerveDrivetrain : SwerveDrivetrain<TalonFX?, TalonFX?, CANcoder?> {
         /**

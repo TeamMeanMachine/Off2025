@@ -16,15 +16,14 @@ import com.studica.frc.AHRS
 import com.studica.frc.AHRS.NavXComType
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.util.Units
-import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.subsystems.drive.PhoenixOdometryThread
+import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
 import java.util.*
 
 /** IO implementation for NavX.  */
 class GyroIONavX : GyroIO {
-    private val navX = AHRS(NavXComType.kMXP_SPI, Drive.ODOMETRY_FREQUENCY.toInt().toByte().toInt())
-    private val yawTimestampQueue: Queue<Double> = PhoenixOdometryThread.makeTimestampQueue()
-    private val yawPositionQueue: Queue<Double> = PhoenixOdometryThread.registerSignal { -navX.yaw.toDouble() }
+    private val navX = AHRS(NavXComType.kMXP_SPI, OdometrySignalThread.ODOMETRY_FREQUENCY.toInt().toByte().toInt())
+    private val yawTimestampQueue: Queue<Double> = OdometrySignalThread.makeTimestampQueue()
+    private val yawPositionQueue: Queue<Double> = OdometrySignalThread.registerSignal { -navX.yaw.toDouble() }
 
     override fun updateInputs(inputs: GyroIO.GyroIOInputs) {
         inputs.connected = navX.isConnected

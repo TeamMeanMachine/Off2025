@@ -20,18 +20,5 @@ import edu.wpi.first.wpilibj.RobotBase
  * (log replay from a file).
  */
 object Constants {
-    val simMode: Mode = Mode.SIM
-    val currentMode: Mode = if (RobotBase.isReal()) Mode.REAL else simMode
-    val isReal: Boolean get() = currentMode == Mode.REAL
 
-    enum class Mode {
-        /** Running on a real robot.  */
-        REAL,
-
-        /** Running a physics simulator.  */
-        SIM,
-
-        /** Replaying from a log file.  */
-        REPLAY
-    }
 }

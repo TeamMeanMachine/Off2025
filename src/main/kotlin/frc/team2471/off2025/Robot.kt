@@ -12,14 +12,22 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025
 
+import com.pathplanner.lib.auto.AutoBuilder
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.radians
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
+import frc.team2471.off2025.commands.DriveCommands.feedforwardCharacterization
+import frc.team2471.off2025.commands.DriveCommands.wheelRadiusCharacterization
+import frc.team2471.off2025.commands.ExampleCommand
+import frc.team2471.off2025.subsystems.drive.Drive
+import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
+import frc.team2471.off2025.util.RobotMode
+import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
+import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import org.littletonrobotics.junction.networktables.NT4Publisher
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
@@ -31,24 +39,36 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter
  * project.
  */
 object Robot : LoggedRobot() {
-    private var autonomousCommand: Command? = null
-    private var testCommand: Command? = null
-    private val robotContainer: RobotContainer
+    // Subsystems
+    val allSubsystems = arrayOf(Drive)
+
+    // Dashboard inputs
+    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
+        addOption("ExampleCommand", ExampleCommand())
+    }
+    private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
+        // Set up SysId routines
+        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
+        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
+        addOption("Drive SysId (Quasistatic Forward)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward))
+        addOption("Drive SysId (Quasistatic Reverse)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
+        addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
+        addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
+        addOption("Zero Turn Encoders", Drive.zeroTurnEncoders())
+    }
+
+    val autonomousCommand: Command? get() = autoChooser.get()
+    val testCommand: Command? get() = testChooser.get()
 
     init {
         // Set up data receivers & replay source
-        when (Constants.currentMode) {
-            Constants.Mode.REAL -> {
-                // Running on a real robot, log to a USB stick ("/U/logs")
+        when (robotMode) {
+            RobotMode.REAL -> { // Running on a real robot, log to a USB stick ("/U/logs")
                 Logger.addDataReceiver(WPILOGWriter())
                 Logger.addDataReceiver(NT4Publisher())
             }
-
-            Constants.Mode.SIM -> // Running a physics simulator, log to NT
-                Logger.addDataReceiver(NT4Publisher())
-
-            Constants.Mode.REPLAY -> {
-                // Replaying a log, set up replay source
+            RobotMode.SIM -> Logger.addDataReceiver(NT4Publisher()) // Running a physics simulator, log to NT
+            RobotMode.REPLAY -> { // Replaying a log, set up replay source
                 setUseTiming(false) // Run as fast as possible
                 val logPath = LogFileUtil.findReplayLog()
                 Logger.setReplaySource(WPILOGReader(logPath))
@@ -58,10 +78,9 @@ object Robot : LoggedRobot() {
 
         // Start AdvantageKit logger
         Logger.start()
-
-        // Instantiate our RobotContainer. This will perform all our button bindings,
-        // and put our autonomous chooser on the dashboard.
-        robotContainer = RobotContainer()
+        OdometrySignalThread
+        allSubsystems.forEach { _ -> }
+        OI
     }
 
     /** This function is called periodically during all modes.  */
@@ -93,10 +112,8 @@ object Robot : LoggedRobot() {
     /** This function is called periodically when disabled.  */
     override fun disabledPeriodic() {}
 
-    /** This autonomous runs the autonomous command selected by your [RobotContainer] class.  */
+    /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
-        autonomousCommand = robotContainer.autonomousCommand
-
         // schedule the autonomous command
         (autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
     }
@@ -117,7 +134,6 @@ object Robot : LoggedRobot() {
     override fun testInit() {
         // Cancels all running commands at the start of test mode.
         CommandScheduler.getInstance().cancelAll()
-        testCommand = robotContainer.testCommand
         (testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")})).schedule()
     }
 

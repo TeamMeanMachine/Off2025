@@ -35,15 +35,20 @@ import java.util.function.DoubleSupplier
  * This also allows Phoenix Pro users to benefit from lower latency between devices using CANivore
  * time synchronization.
  */
-object PhoenixOdometryThread : Thread() {
-    private val signalsLock = ReentrantLock() // Prevents conflicts when registering signals
+object OdometrySignalThread : Thread() {
+    private val signalsLock = ReentrantLock() //Locks for thread-safety
     val odometryLock = ReentrantLock()
-    private var signals: Array<BaseStatusSignal> = arrayOf()
-    private val genericSignals: MutableList<DoubleSupplier> = ArrayList<DoubleSupplier>()
-    private val isCANFD = CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD
-    private val phoenixQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>()
-    private val genericQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>()
-    private val timestampQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>()
+
+    private val isCANFD = CANBus(TunerConstants.DrivetrainConstants.CANBusName).isNetworkFD //CANFD protocol can run at higher frequency, are we using it?
+
+    private var phoenixSignals: Array<BaseStatusSignal> = arrayOf() //List of ctre signals to record
+    private val genericSignals: MutableList<DoubleSupplier> = ArrayList<DoubleSupplier>() //List of non-ctre signals to record
+
+    private val phoenixQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>() //List of queues that hold measurements for ctre devices (Kraken motors, Pigeon2 gyro)
+    private val genericQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>() //List of queues that hold measurements from non-ctre devices (navx gyro)
+    private val timestampQueues: MutableList<Queue<Double>> = ArrayList<Queue<Double>>() //List of queues that contains the timestamps of the measurements
+
+    const val ODOMETRY_FREQUENCY: Double = 100.0//if (isCANFD) 250.0 else 100.0
 
     init {
         setName("PhoenixOdometryThread")
@@ -62,7 +67,7 @@ object PhoenixOdometryThread : Thread() {
         signalsLock.lock()
         odometryLock.lock()
         try {
-            signals = arrayOf(*signals, signal)
+            phoenixSignals = arrayOf(*phoenixSignals, signal)
             phoenixQueues.add(queue)
         } finally {
             signalsLock.unlock()
@@ -101,17 +106,17 @@ object PhoenixOdometryThread : Thread() {
     override fun run() {
         while (true) {
             // Wait for updates from all signals
-            signalsLock.lock()
+            signalsLock.lock() //we do not want the phoenixSignals list to be modified from a separate thread while we are reading it from this thread
             try {
-                if (signals.isNotEmpty()) {
+                if (phoenixSignals.isNotEmpty()) {
                     if (isCANFD) {
-                        BaseStatusSignal.waitForAll(Drive.ODOMETRY_FREQUENCY.hertzToTime().asSeconds * 2.0, *signals)
+                        BaseStatusSignal.waitForAll(ODOMETRY_FREQUENCY.hertzToTime().asSeconds * 2.0, *phoenixSignals)
                     } else {
                         // "waitForAll" does not support blocking on multiple signals with a bus
                         // that is not CAN FD, regardless of Pro licensing. No reasoning for this
                         // behavior is provided by the documentation.
-                        sleep(Drive.ODOMETRY_FREQUENCY.hertzToTime().asMilliseconds.toLong())
-                        BaseStatusSignal.refreshAll(*signals)
+                        sleep(ODOMETRY_FREQUENCY.hertzToTime().asMilliseconds.toLong())
+                        BaseStatusSignal.refreshAll(*phoenixSignals) // update all the CAN signals
                     }
                 }
             } catch (e: InterruptedException) {
@@ -128,16 +133,16 @@ object PhoenixOdometryThread : Thread() {
                 //     FPGA timestamps, this solution is imperfect but close
                 var timestamp = RobotController.getFPGATime() / 1e6
                 var totalLatency = 0.0
-                for (signal in signals) {
+                for (signal in phoenixSignals) {
                     totalLatency += signal.timestamp.latency
                 }
-                if (signals.isNotEmpty()) {
-                    timestamp -= totalLatency / signals.size
+                if (phoenixSignals.isNotEmpty()) {
+                    timestamp -= totalLatency / phoenixSignals.size
                 }
 
                 // Add new samples to queues
-                for (i in signals.indices) {
-                    phoenixQueues[i].offer(signals[i].valueAsDouble)
+                for (i in phoenixSignals.indices) {
+                    phoenixQueues[i].offer(phoenixSignals[i].valueAsDouble)
                 }
                 for (i in genericSignals.indices) {
                     genericQueues[i].offer(genericSignals[i].asDouble)

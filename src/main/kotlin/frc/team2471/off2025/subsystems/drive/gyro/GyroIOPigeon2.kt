@@ -21,8 +21,8 @@ import edu.wpi.first.math.util.Units
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.AngularVelocity
 import frc.team2471.off2025.generated.TunerConstants
-import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.subsystems.drive.PhoenixOdometryThread
+import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
+import frc.team2471.off2025.util.isSim
 import java.util.*
 
 /** IO implementation for Pigeon 2.  */
@@ -34,16 +34,16 @@ class GyroIOPigeon2 : GyroIO {
     private val yawSignal: StatusSignal<Angle> = pigeon.yaw
     private val yawVelocitySignal: StatusSignal<AngularVelocity> = pigeon.angularVelocityZWorld
 
-    private val yawTimestampQueue: Queue<Double> = PhoenixOdometryThread.makeTimestampQueue()
-    private val yawPositionQueue: Queue<Double> = PhoenixOdometryThread.registerSignal(yawSignal)
+    private val yawTimestampQueue: Queue<Double> = OdometrySignalThread.makeTimestampQueue()
+    private val yawPositionQueue: Queue<Double> = OdometrySignalThread.registerSignal(yawSignal)
 
     init {
         pigeon.configurator.apply(Pigeon2Configuration())
         pigeon.configurator.setYaw(0.0)
 
         BaseStatusSignal.setUpdateFrequencyForAll(
-            Drive.ODOMETRY_FREQUENCY,
-            yawSignal,
+            OdometrySignalThread.ODOMETRY_FREQUENCY,
+            yawSignal
         )
         BaseStatusSignal.setUpdateFrequencyForAll( //signals not needed for odometry so ok to refresh every 50th
             50.0,
@@ -54,7 +54,7 @@ class GyroIOPigeon2 : GyroIO {
     }
 
     override fun updateInputs(inputs: GyroIO.GyroIOInputs) {
-        inputs.connected = BaseStatusSignal.refreshAll(yawSignal, yawVelocitySignal).isOK
+        inputs.connected = BaseStatusSignal.refreshAll(yawSignal, yawVelocitySignal).isOK && !isSim
         inputs.yawPosition = Rotation2d.fromDegrees(yawSignal.valueAsDouble)
         inputs.yawVelocityRadPerSec = Units.degreesToRadians(yawVelocitySignal.valueAsDouble)
 
