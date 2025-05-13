@@ -25,7 +25,7 @@ object Falcons {
     const val BACK_LEFT_DRIVE = 24
     const val BACK_LEFT_STEER = 10
 
-    const val CLIMBER_MOTOR = 13
+    const val INTAKE_MOTOR = 13
 
     const val ELEVATOR_0 = 4
     const val ELEVATOR_1 = 5
@@ -41,9 +41,6 @@ object Falcons {
     const val SIDE_MOTOR = 7
 
     const val ALGAE_MOTOR = 19
-}
-
-object Talons {
 }
 
 object CANCoders {

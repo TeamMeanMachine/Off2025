@@ -6,6 +6,7 @@ import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
+import frc.team2471.off2025.subsystems.IntakeSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 
 object OI {
@@ -16,6 +17,30 @@ object OI {
 
 
     init {
+        driverController.a().onTrue(
+            Commands.runOnce({IntakeSubsystem.setPower(0.9)})
+        )
+
+        driverController.b().onTrue(
+            Commands.runOnce({IntakeSubsystem.setPower(0.0)})
+        )
+
+        //voltage output triggers
+        driverController.leftTrigger(0.1).or(driverController.rightTrigger(0.1)).whileTrue(
+            Commands.run({ IntakeSubsystem.setVoltage((driverController.leftTriggerAxis - driverController.rightTriggerAxis) * 12.0) })
+                .finallyDo(Runnable { IntakeSubsystem.setVoltage(0.0) })
+        )
+
+        //percent output triggers
+//        driverController.leftTrigger(0.1).or(driverController.rightTrigger(0.1)).whileTrue(
+//            Commands.run({ IntakeSubsystem.setPower(driverController.leftTriggerAxis - driverController.rightTriggerAxis) })
+//                .finallyDo(Runnable { IntakeSubsystem.setPower(0.0) })
+//        )
+
+
+
+        //DRIVE TRIGGERS, FOR DRIVING REAL ROBOTS:
+
         // Default command, normal field-relative drive
         Drive.defaultCommand = DriveCommands.joystickDrive(
             { -driverController.leftY },
@@ -24,33 +49,22 @@ object OI {
 
 
 
-        // Lock to 0° when A button is held
-        driverController.a().whileTrue(
-            DriveCommands.joystickDriveAtAngle(
-                { -driverController.leftY },
-                { -driverController.leftX },
-                { Rotation2d() })
-        )
-
-        // Switch to X pattern when X button is pressed
-        driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
-
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             Commands.runOnce({
                 Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
                 Drive.odomPose = Pose2d(Drive.odomPose.translation, Rotation2d())
-                             },
-            Drive
-        ).ignoringDisable(true))
+            },
+                Drive
+            ).ignoringDisable(true))
 
         // Reset position to zero
         driverController.start().onTrue(
             Commands.runOnce({
                 Drive.pose = Pose2d(Translation2d(), Drive.pose.rotation)
                 Drive.odomPose = Pose2d(Translation2d(), Drive.odomPose.rotation)
-                             },
-            Drive
-        ).ignoringDisable(true))
+            },
+                Drive
+            ).ignoringDisable(true))
     }
 }

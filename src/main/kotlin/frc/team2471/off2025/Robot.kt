@@ -79,7 +79,7 @@ object Robot : LoggedRobot() {
         // Start AdvantageKit logger
         Logger.start()
         OdometrySignalThread
-        allSubsystems.forEach { _ -> }
+        allSubsystems.forEach { i -> i}
         OI
     }
 
