@@ -19,22 +19,12 @@ object OI {
 
     init {
 
-        driverController.rightTrigger(0.1).or(driverController.leftTrigger(0.1)).whileTrue(
-            Commands.run({Elevator.setPercentOut(MathUtil.applyDeadband(driverController.rightTriggerAxis - driverController.leftTriggerAxis, 0.1))}).finallyDo(Runnable { Elevator.setPercentOut(0.0) })
-        )
+        //TODO: Use left and right triggers to run percent output
 
-        driverController.povUp().onTrue(
-            Commands.runOnce({
-                println("going up ${Elevator.heightInches}")
-                Elevator.setMotionMagic(Elevator.heightInches + 10.0)
-            })
-        )
-        driverController.povDown().onTrue(
-            Commands.runOnce({
-                println("going down ${Elevator.heightInches}")
-                Elevator.setMotionMagic(Elevator.heightInches - 10.0)
-            })
-        )
+        //TODO: up Dpad -> move up 1 inch
+        //TODO: down Dpad -> move down 1 inch
+
+        //TODO: use motionMagic to move up/down 10 inches smoothly using left/right dPad
 
 
 
