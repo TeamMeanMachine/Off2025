@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.DriveCommands.feedforwardCharacterization
 import frc.team2471.off2025.commands.DriveCommands.wheelRadiusCharacterization
-import frc.team2471.off2025.commands.ExampleCommand
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
 import frc.team2471.off2025.util.RobotMode
@@ -44,7 +43,6 @@ object Robot : LoggedRobot() {
 
     // Dashboard inputs
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
-        addOption("ExampleCommand", ExampleCommand())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
