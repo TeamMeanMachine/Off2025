@@ -11,8 +11,10 @@ import org.team2471.frc2025.Falcons
 
 //Creates a subsystem object
 object IntakeSubsystem : SubsystemBase() {
+    /** Make an intake motor controller variable and define it's ID */
     val intakeMotor = TalonFX(Falcons.INTAKE_MOTOR)
 
+    /** Configure the motor with current limits for safety. (inside init) */
     init {
         //apply a motor configuration
         intakeMotor.configurator.apply(
@@ -31,10 +33,12 @@ object IntakeSubsystem : SubsystemBase() {
         )
     }
 
+    /** Tell motor to run at [percentage] power */
     fun setPower(percentage: Double) {
         intakeMotor.setControl(DutyCycleOut(percentage))
     }
 
+    /** Tell motor to run at [voltage] volts */
     fun setVoltage(voltage: Double) {
         intakeMotor.setControl(VoltageOut(voltage))
     }
