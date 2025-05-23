@@ -91,9 +91,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
             MotorOutput.apply {
                 NeutralMode = NeutralModeValue.Brake
             }
-            Slot0.apply {
-                constants.DriveMotorGains
-            }
+            Slot0 = constants.DriveMotorGains
             Feedback.apply {
                 SensorToMechanismRatio = constants.DriveMotorGearRatio
             }
@@ -117,9 +115,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
             MotorOutput.apply {
                 NeutralMode = NeutralModeValue.Brake
             }
-            Slot0.apply {
-                constants.SteerMotorGains
-            }
+            Slot0 = constants.SteerMotorGains
             Feedback.apply {
                 FeedbackRemoteSensorID = constants.EncoderId
                 FeedbackSensorSource = when (constants.FeedbackSource) {

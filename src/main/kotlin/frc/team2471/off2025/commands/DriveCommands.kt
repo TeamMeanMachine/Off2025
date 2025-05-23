@@ -109,7 +109,7 @@ object DriveCommands {
         xSupplier: DoubleSupplier,
         ySupplier: DoubleSupplier,
         rotationSupplier: Supplier<Rotation2d>
-    ): Command? {
+    ): Command {
         // Create PID controller
 
         val angleController = ProfiledPIDController(
