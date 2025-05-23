@@ -43,7 +43,7 @@ object Robot : LoggedRobot() {
     val allSubsystems = arrayOf(Drive)
 
     // Dashboard inputs
-    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
+    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
         addOption("ExampleCommand", ExampleCommand())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {

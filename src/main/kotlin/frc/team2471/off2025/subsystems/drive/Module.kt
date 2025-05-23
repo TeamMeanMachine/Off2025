@@ -22,14 +22,20 @@ import edu.wpi.first.math.util.Units
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
+import frc.team2471.off2025.util.RobotMode
+import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.Logger
 
 class Module(
-    private val io: ModuleIO,
     private val index: Int,
     private val constants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
 ) {
     private val inputs: ModuleIOInputsAutoLogged = ModuleIOInputsAutoLogged()
+    private val io: ModuleIO = when (robotMode) {
+        RobotMode.REAL -> ModuleIOTalonFX(constants)
+        RobotMode.SIM -> ModuleIOSim(constants)
+        RobotMode.REPLAY -> object : ModuleIO {}
+    }
 
 
     private val driveDisconnectedAlert = Alert("Disconnected drive motor on module $index.", AlertType.kError)

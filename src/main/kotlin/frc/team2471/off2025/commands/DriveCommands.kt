@@ -12,7 +12,6 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025.commands
 
-import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Pose2d
@@ -27,18 +26,17 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
+import frc.team2471.off2025.OI
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.asDegrees
 import frc.team2471.off2025.util.radians
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.*
-import java.util.function.DoubleSupplier
 import java.util.function.Supplier
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.hypot
-import kotlin.math.withSign
 
 object DriveCommands {
     private const val DEADBAND = 0.1
@@ -52,12 +50,8 @@ object DriveCommands {
     private const val WHEEL_RADIUS_RAMP_RATE = 0.3 // Rad/Sec^2
 
     private fun getLinearVelocityFromJoysticks(x: Double, y: Double): Translation2d {
-        // Apply deadband
-        var linearMagnitude = MathUtil.applyDeadband(hypot(x, y), DEADBAND)
+        val linearMagnitude = hypot(x, y)
         val linearDirection = Rotation2d(atan2(y, x))
-
-        // Square magnitude for more precise control
-//        linearMagnitude = linearMagnitude * linearMagnitude
 
         // Return new linear velocity
         return Pose2d(Translation2d(), linearDirection)
@@ -69,32 +63,23 @@ object DriveCommands {
      * Field relative drive command using two joysticks (controlling linear and angular velocities).
      */
     @JvmStatic
-    fun joystickDrive(
-        xSupplier: DoubleSupplier,
-        ySupplier: DoubleSupplier,
-        omegaSupplier: DoubleSupplier
-    ): Command {
-        return Commands.run(
-            {
-                // Get linear velocity
-                val linearVelocity = getLinearVelocityFromJoysticks(xSupplier.asDouble, ySupplier.asDouble)
+    fun joystickDrive(): Command {
+        return Commands.run({
+            // Get linear velocity
+            val linearVelocity = getLinearVelocityFromJoysticks(OI.driveTranslationX, OI.driveTranslationY)
 
-                // Apply rotation deadband
-                var omega = MathUtil.applyDeadband(omegaSupplier.asDouble, DEADBAND)
+            val omega = OI.driveRotation
 
-                // Square rotation value for more precise control
-                omega = (omega * omega).withSign(omega)
+            // Convert to field relative speeds & send command
+            val speeds =
+                ChassisSpeeds(
+                    linearVelocity.x * Drive.maxLinearSpeedMetersPerSec,
+                    linearVelocity.y * Drive.maxLinearSpeedMetersPerSec,
+                    omega * Drive.maxAngularSpeedRadPerSec
+                )
+            val isFlipped = DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
 
-                // Convert to field relative speeds & send command
-                val speeds =
-                    ChassisSpeeds(
-                        linearVelocity.x * Drive.maxLinearSpeedMetersPerSec,
-                        linearVelocity.y * Drive.maxLinearSpeedMetersPerSec,
-                        omega * Drive.maxAngularSpeedRadPerSec
-                    )
-                val isFlipped = DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
-
-                Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
+            Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
             },
             Drive
         )
@@ -105,11 +90,7 @@ object DriveCommands {
      * Possible use cases include snapping to an angle, aiming at a vision target, or controlling
      * absolute rotation with a joystick.
      */
-    fun joystickDriveAtAngle(
-        xSupplier: DoubleSupplier,
-        ySupplier: DoubleSupplier,
-        rotationSupplier: Supplier<Rotation2d>
-    ): Command? {
+    fun joystickDriveAtAngle(goalAngle: Supplier<Rotation2d>): Command {
         // Create PID controller
 
         val angleController = ProfiledPIDController(
@@ -124,10 +105,10 @@ object DriveCommands {
         return Commands.run(
              {
                 // Get linear velocity
-                val linearVelocity = getLinearVelocityFromJoysticks(xSupplier.asDouble, ySupplier.asDouble)
+                val linearVelocity = getLinearVelocityFromJoysticks(OI.driveTranslationX, OI.driveTranslationY)
 
                 // Calculate angular speed
-                val omega = angleController.calculate(Drive.rotation.radians, rotationSupplier.get().radians)
+                val omega = angleController.calculate(Drive.rotation.radians, goalAngle.get().radians)
 
                 // Convert to field relative speeds & send command
                 val speeds = ChassisSpeeds(
@@ -142,7 +123,6 @@ object DriveCommands {
             },
             Drive
         ) // Reset PID controller when command starts
-
             .beforeStarting({ angleController.reset(Drive.rotation.radians) })
     }
 

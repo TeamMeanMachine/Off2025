@@ -68,22 +68,22 @@ object Drive : SubsystemBase("Drive") {
     private val gyroInputs: GyroIOInputsAutoLogged = GyroIOInputsAutoLogged()
     private val modules: Array<Module> = when (robotMode) {
         RobotMode.REAL -> arrayOf(
-            Module(ModuleIOTalonFX(TunerConstants.FrontLeft), 0, TunerConstants.FrontLeft),
-            Module(ModuleIOTalonFX(TunerConstants.FrontRight), 1, TunerConstants.FrontRight),
-            Module(ModuleIOTalonFX(TunerConstants.BackLeft), 2, TunerConstants.BackLeft),
-            Module(ModuleIOTalonFX(TunerConstants.BackRight), 3, TunerConstants.BackRight)
+            Module(0, TunerConstants.FrontLeft),
+            Module(1, TunerConstants.FrontRight),
+            Module(2, TunerConstants.BackLeft),
+            Module(3, TunerConstants.BackRight)
         )
         RobotMode.SIM -> arrayOf(
-            Module(ModuleIOSim(TunerConstants.FrontLeft), 0, TunerConstants.FrontLeft),
-            Module(ModuleIOSim(TunerConstants.FrontRight), 1, TunerConstants.FrontRight),
-            Module(ModuleIOSim(TunerConstants.BackLeft), 2, TunerConstants.BackLeft),
-            Module(ModuleIOSim(TunerConstants.BackRight), 3, TunerConstants.BackRight)
+            Module(0, TunerConstants.FrontLeft),
+            Module(1, TunerConstants.FrontRight),
+            Module(2, TunerConstants.BackLeft),
+            Module(3, TunerConstants.BackRight)
         )
         else -> arrayOf(
-            Module(object : ModuleIO {}, 0, TunerConstants.FrontLeft),
-            Module(object : ModuleIO {}, 1, TunerConstants.FrontRight),
-            Module(object : ModuleIO {}, 2, TunerConstants.BackLeft),
-            Module(object : ModuleIO {}, 3, TunerConstants.BackRight)
+            Module(0, TunerConstants.FrontLeft),
+            Module(1, TunerConstants.FrontRight),
+            Module(2, TunerConstants.BackLeft),
+            Module(3, TunerConstants.BackRight)
         )
     } // FL, FR, BL, BR
     private val sysId: SysIdRoutine
@@ -306,7 +306,7 @@ object Drive : SubsystemBase("Drive") {
         return run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.dynamic(direction))
     }
 
-    fun zeroTurnEncoders(): Command = run {
+    fun zeroTurnEncoders(): Command = runOnce {
         modules.forEach {
             it.setCANCoderAngle(0.0.degrees)
         }
@@ -415,14 +415,4 @@ object Drive : SubsystemBase("Drive") {
         Translation2d(TunerConstants.BackLeft.LocationX, TunerConstants.BackLeft.LocationY),
         Translation2d(TunerConstants.BackRight.LocationX, TunerConstants.BackRight.LocationY))
 
-
-    fun epsilonEquals(a: Double, b: Double, epsilon: Double): Boolean {
-        return (a - epsilon <= b) && (a + epsilon >= b)
-    }
-
-    fun epsilonEquals(a: Double, b: Double): Boolean {
-        return epsilonEquals(a, b, 1e-5)
-    }
-
-    fun Double.epsonEquals(other: Double) = epsilonEquals(this, other)
 }
