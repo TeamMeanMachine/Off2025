@@ -1,14 +1,7 @@
 package frc.team2471.off2025.util
 
-import edu.wpi.first.math.MathUtil
-import kotlin.math.abs
-import kotlin.math.floor
-import kotlin.math.log10
-import kotlin.math.pow
-import kotlin.math.roundToInt
-import kotlin.math.sign
-import kotlin.math.sqrt
-import kotlin.math.withSign
+import edu.wpi.first.math.geometry.Twist2d
+import kotlin.math.*
 
 fun square(x: Double): Double = x.square()
 
@@ -84,5 +77,13 @@ fun epsilonEquals(a: Double, b: Double, epsilon: Double): Boolean {
 fun epsilonEquals(a: Double, b: Double): Boolean {
     return epsilonEquals(a, b, 1e-5)
 }
+
+fun epsilonEquals(twist: Twist2d, other: Twist2d): Boolean {
+    return epsilonEquals(twist.dx, other.dx) &&
+            epsilonEquals(twist.dy, other.dy) &&
+            epsilonEquals(twist.dtheta, other.dtheta)
+}
+
+fun Twist2d.epsilonEquals(other: Twist2d) = epsilonEquals(this, other)
 
 fun Double.epsonEquals(other: Double) = epsilonEquals(this, other)

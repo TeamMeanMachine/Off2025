@@ -13,7 +13,6 @@ import frc.team2471.off2025.util.runOnceCommand
 import frc.team2471.off2025.util.squareWithSign
 
 object OI {
-    // Controller
     val driverController = CommandXboxController(0)
     val operatorController = CommandXboxController(1)
 
@@ -79,7 +78,7 @@ object OI {
         driverController.back().onTrue(
             runOnceCommand({
                 Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
-                Drive.odomPose = Pose2d(Drive.odomPose.translation, Rotation2d())
+                Drive.arcPose = Pose2d(Drive.arcPose.translation, Rotation2d())
                              },
             Drive
         ).ignoringDisable(true))
@@ -88,7 +87,7 @@ object OI {
         driverController.start().onTrue(
             runOnceCommand({
                 Drive.pose = Pose2d(Translation2d(), Drive.pose.rotation)
-                Drive.odomPose = Pose2d(Translation2d(), Drive.odomPose.rotation)
+                Drive.arcPose = Pose2d(Translation2d(), Drive.arcPose.rotation)
                              },
             Drive
         ).ignoringDisable(true))
