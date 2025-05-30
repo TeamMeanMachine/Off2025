@@ -27,6 +27,7 @@ import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
+import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.asDegrees
 import frc.team2471.off2025.util.radians
@@ -227,7 +228,7 @@ object DriveCommands {
                             for (i in 0..3) {
                                 wheelDelta += abs(positions[i] - state.positions[i]) / 4.0
                             }
-                            val wheelRadius = (state.gyroDelta * Drive.DRIVE_BASE_RADIUS) / wheelDelta
+                            val wheelRadius = (state.gyroDelta * TunerConstants.DRIVE_BASE_RADIUS) / wheelDelta
 
                             val formatter: NumberFormat = DecimalFormat("#0.000")
                             println("********** Wheel Radius Characterization Results **********")

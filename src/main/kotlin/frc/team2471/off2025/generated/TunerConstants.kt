@@ -91,15 +91,15 @@ object TunerConstants {
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
     @JvmField
-    val kSpeedAt12Volts: LinearVelocity = 4.69.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = 4.73.metersPerSecond
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    private const val kCoupleRatio = 0.0
+    private const val kCoupleRatio = 3.5714285714285716
 
-    private const val kDriveGearRatio = 6.75
-    private const val kSteerGearRatio = 18.75
-    private val kWheelRadius: Distance = Inches.of(2.197)
+    private const val kDriveGearRatio = 6.746031746031747
+    private const val kSteerGearRatio = 21.428571428571427
+    private val kWheelRadius: Distance = 2.197.inches
 
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false

@@ -3,6 +3,7 @@ package frc.team2471.off2025.util
 import edu.wpi.first.math.geometry.Twist2d
 import kotlin.math.*
 
+@JvmName("squareOf")
 fun square(x: Double): Double = x.square()
 
 fun Double.square(): Double = this * this
@@ -84,6 +85,7 @@ fun epsilonEquals(twist: Twist2d, other: Twist2d): Boolean {
             epsilonEquals(twist.dtheta, other.dtheta)
 }
 
+@JvmName("epsilonEqualsOf")
 fun Twist2d.epsilonEquals(other: Twist2d) = epsilonEquals(this, other)
 
 fun Double.epsonEquals(other: Double) = epsilonEquals(this, other)

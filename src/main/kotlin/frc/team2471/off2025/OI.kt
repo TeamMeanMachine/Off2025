@@ -23,10 +23,10 @@ object OI {
         get() = -driverController.leftY.deadband(deadbandDriver).squareWithSign()
 
     val driveTranslationY: Double
-        get() = -driverController.rightY.deadband(deadbandDriver).squareWithSign()
+        get() = -driverController.leftX.deadband(deadbandDriver).squareWithSign()
 
     val driveRotation: Double
-        get() = driverController.rightX.deadband(deadbandDriver).cube()
+        get() = -driverController.rightX.deadband(deadbandDriver).cube()
 
     val driveLeftTrigger: Double
         get() = driverController.leftTriggerAxis

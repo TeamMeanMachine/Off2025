@@ -228,8 +228,8 @@ object Drive : SubsystemBase("Drive") {
 
     val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations, SwerveSetpointGenerator.ModuleLimits(
         TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-        25.0.feetPerSecondPerSecond.asMetersPerSecondPerSecond,
-        1.5.rotationsPerSecond.asRadiansPerSecond)
+        45.0.feetPerSecondPerSecond.asMetersPerSecondPerSecond,
+        5.0.rotationsPerSecond.asRadiansPerSecond)
     )
     var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
     /**
@@ -259,7 +259,7 @@ object Drive : SubsystemBase("Drive") {
 
         // Send setpoints to modules
         for (i in 0..3) {
-            modules[i].runSetpoint(setpointStates[i])
+            modules[i].runSetpoint(generatedSetpoints.moduleStates[i])
         }
 
         // Log optimized setpoints (runSetpoint mutates each state)
