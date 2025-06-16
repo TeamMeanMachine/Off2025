@@ -41,6 +41,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
+import frc.team2471.off2025.OI
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
@@ -50,6 +51,7 @@ import frc.team2471.off2025.util.swerve.SwerveSetpointGenerator
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.sin
 
 object Drive : SubsystemBase("Drive") {
@@ -110,6 +112,77 @@ object Drive : SubsystemBase("Drive") {
     )
 
     private val gyroDisconnectedAlert = Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError)
+
+    val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations,
+        SwerveSetpointGenerator.ModuleLimits(
+            TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
+            45.0.feetPerSecondPerSecond.asMetersPerSecondPerSecond,
+            5.0.rotationsPerSecond.asRadiansPerSecond
+        )
+    )
+    var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
+
+    @get:AutoLogOutput(key = "SwerveStates/Measured")
+    private val moduleStates: Array<SwerveModuleState?>
+        /** Returns the module states (turn angles and drive velocities) for all the modules.  */
+        get() {
+            val states = arrayOfNulls<SwerveModuleState>(4)
+            for (i in 0..3) {
+                states[i] = modules[i].state
+            }
+            return states
+        }
+
+    private val modulePositions: Array<SwerveModulePosition?>
+        /** Returns the module positions (turn angles and drive positions) for all the modules.  */
+        get() {
+            val states = arrayOfNulls<SwerveModulePosition>(4)
+            for (i in 0..3) {
+                states[i] = modules[i].position
+            }
+            return states
+        }
+
+    @get:AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
+    private val chassisSpeeds: ChassisSpeeds
+        /** Returns the measured chassis speeds of the robot.  */
+        get() = kinematics.toChassisSpeeds(*this.moduleStates)
+
+    val wheelRadiusCharacterizationPositions: DoubleArray
+        /** Returns the position of each module in radians.  */
+        get() {
+            val values = DoubleArray(4)
+            for (i in 0..3) {
+                values[i] = modules[i].wheelRadiusCharacterizationPosition
+            }
+            return values
+        }
+
+    val fFCharacterizationVelocity: Double
+        /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
+        get() {
+            var output = 0.0
+            for (i in 0..3) {
+                output += modules[i].fFCharacterizationVelocity / 4.0
+            }
+            return output
+        }
+
+    @get:AutoLogOutput(key = "Odometry/Robot")
+    var pose: Pose2d
+        /** Returns the current odometry pose.  */
+        get() = poseEstimator.estimatedPosition
+        /** Resets the current odometry pose.  */
+        set(pose) {
+            poseEstimator.resetPosition(rawGyroRotation, this.modulePositions, pose)
+        }
+
+    @get:AutoLogOutput(key = "Odometry/arcPose")
+    var arcPose: Pose2d = Pose2d()
+
+    val rotation: Rotation2d
+        /** Returns the current odometry rotation.  */
+        get() = this.pose.rotation
 
     init {
         // Start odometry thread
@@ -226,15 +299,29 @@ object Drive : SubsystemBase("Drive") {
         arcPose = Pose2d(arcPose.exp(twist).translation, gyroAngle ?: (arcPose.rotation.measure.asDegrees + gyroDelta).degrees.asRotation2d())
     }
 
-    val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations, SwerveSetpointGenerator.ModuleLimits(
-        TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-        45.0.feetPerSecondPerSecond.asMetersPerSecondPerSecond,
-        5.0.rotationsPerSecond.asRadiansPerSecond)
-    )
-    var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
+    fun getChassisSpeedsFromJoystick(): ChassisSpeeds {
+        val (sx, sy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+        val mult = hypot(sx, sy).square() //square drive input
+        val (mx, my) = Pair(sx * mult, sy * mult)
+
+        val x = mx
+        val y = my
+
+        val omega = OI.driveRotation.cube()
+
+        val chassisSpeeds = ChassisSpeeds(
+            x * maxLinearSpeedMetersPerSec,
+            y * maxLinearSpeedMetersPerSec,
+            omega * maxAngularSpeedRadPerSec
+        )
+
+//        println("linearVelocity = ${chassisSpeeds.translation.norm}")
+
+        return chassisSpeeds
+    }
+
     /**
      * Runs the drive at the desired velocity.
-     *
      * @param speeds Speeds in meters/sec
      */
     fun runVelocity(speeds: ChassisSpeeds) {
@@ -306,68 +393,6 @@ object Drive : SubsystemBase("Drive") {
             it.setCANCoderAngle(0.0.degrees)
         }
     }
-
-    @get:AutoLogOutput(key = "SwerveStates/Measured")
-    private val moduleStates: Array<SwerveModuleState?>
-        /** Returns the module states (turn angles and drive velocities) for all the modules.  */
-        get() {
-            val states = arrayOfNulls<SwerveModuleState>(4)
-            for (i in 0..3) {
-                states[i] = modules[i].state
-            }
-            return states
-        }
-
-    private val modulePositions: Array<SwerveModulePosition?>
-        /** Returns the module positions (turn angles and drive positions) for all the modules.  */
-        get() {
-            val states = arrayOfNulls<SwerveModulePosition>(4)
-            for (i in 0..3) {
-                states[i] = modules[i].position
-            }
-            return states
-        }
-
-    @get:AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-    private val chassisSpeeds: ChassisSpeeds
-        /** Returns the measured chassis speeds of the robot.  */
-        get() = kinematics.toChassisSpeeds(*this.moduleStates)
-
-    val wheelRadiusCharacterizationPositions: DoubleArray
-        /** Returns the position of each module in radians.  */
-        get() {
-            val values = DoubleArray(4)
-            for (i in 0..3) {
-                values[i] = modules[i].wheelRadiusCharacterizationPosition
-            }
-            return values
-        }
-
-    val fFCharacterizationVelocity: Double
-        /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
-        get() {
-            var output = 0.0
-            for (i in 0..3) {
-                output += modules[i].fFCharacterizationVelocity / 4.0
-            }
-            return output
-        }
-
-    @get:AutoLogOutput(key = "Odometry/Robot")
-    var pose: Pose2d
-        /** Returns the current odometry pose.  */
-        get() = poseEstimator.estimatedPosition
-        /** Resets the current odometry pose.  */
-        set(pose) {
-            poseEstimator.resetPosition(rawGyroRotation, this.modulePositions, pose)
-        }
-
-    @get:AutoLogOutput(key = "Odometry/arcPose")
-    var arcPose: Pose2d = Pose2d()
-
-    val rotation: Rotation2d
-        /** Returns the current odometry rotation.  */
-        get() = this.pose.rotation
 
     /** Adds a new timestamped vision measurement.  */
     fun addVisionMeasurement(

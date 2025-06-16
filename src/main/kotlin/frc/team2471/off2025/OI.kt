@@ -7,10 +7,11 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.util.cube
-import frc.team2471.off2025.util.deadband
-import frc.team2471.off2025.util.runOnceCommand
-import frc.team2471.off2025.util.squareWithSign
+import frc.team2471.off2025.util.*
+import kotlin.math.absoluteValue
+import kotlin.math.hypot
+import kotlin.math.sqrt
+import kotlin.math.withSign
 
 object OI {
     val driverController = CommandXboxController(0)
@@ -20,13 +21,13 @@ object OI {
     val deadbandOperator = 0.1
 
     val driveTranslationX: Double
-        get() = -driverController.leftY.deadband(deadbandDriver).squareWithSign()
+        get() = -driverController.leftY.deadband(deadbandDriver)
 
     val driveTranslationY: Double
-        get() = -driverController.leftX.deadband(deadbandDriver).squareWithSign()
+        get() = -driverController.leftX.deadband(deadbandDriver)
 
     val driveRotation: Double
-        get() = -driverController.rightX.deadband(deadbandDriver).cube()
+        get() = -driverController.rightX
 
     val driveLeftTrigger: Double
         get() = driverController.leftTriggerAxis
@@ -91,5 +92,35 @@ object OI {
                              },
             Drive
         ).ignoringDisable(true))
+    }
+
+    /**
+     * Removes the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1
+     */
+    fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Pair<Double, Double> {
+        return if (hypot(rawX, rawY) > 1.0) {
+            //magnitude is > 1, something is being "snapped" or is inaccurate
+            if (rawX.absoluteValue > 1.0) {
+                //x not trustworthy
+                Pair(sqrt(1 - rawY.square()).withSign(rawX), rawY)
+            } else if (rawY.absoluteValue > 1.0) {
+                //y not trustworthy
+                Pair(rawX, sqrt(1 - rawX.square()).withSign(rawY))
+            } else {
+                //both kinda trustworthy so perform weighted average for smooth motion. larger values are more untrustworthy
+                val xCalc = sqrt(1 - rawY.square()).withSign(rawX)
+                val yCalc = sqrt(1 - rawX.square()).withSign(rawY)
+                val yConfidence = rawX.absoluteValue
+                val xConfidence = rawY.absoluteValue
+                val totalWeight = (yConfidence + xConfidence)
+                val x = (rawX * xConfidence + xCalc * yConfidence) / totalWeight
+                val y = (rawY * yConfidence + yCalc * xConfidence) / totalWeight
+
+//                println(hypot(x, y))
+                Pair(x, y)
+            }
+        } else {
+            Pair(rawX, rawY)
+        }
     }
 }

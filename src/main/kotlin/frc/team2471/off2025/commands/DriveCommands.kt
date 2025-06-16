@@ -14,10 +14,7 @@ package frc.team2471.off2025.commands
 
 import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.filter.SlewRateLimiter
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
-import edu.wpi.first.math.geometry.Transform2d
-import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
 import edu.wpi.first.math.util.Units
@@ -26,21 +23,16 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.OI
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.util.asDegrees
-import frc.team2471.off2025.util.radians
+import frc.team2471.off2025.util.*
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.*
 import java.util.function.Supplier
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.hypot
+import kotlin.math.*
 
 object DriveCommands {
-    private const val DEADBAND = 0.1
     private const val ANGLE_KP = 5.0
     private const val ANGLE_KD = 0.4
     private const val ANGLE_MAX_VELOCITY = 8.0
@@ -50,16 +42,6 @@ object DriveCommands {
     private const val WHEEL_RADIUS_MAX_VELOCITY = 2.0 // Rad/Sec
     private const val WHEEL_RADIUS_RAMP_RATE = 0.3 // Rad/Sec^2
 
-    private fun getLinearVelocityFromJoysticks(x: Double, y: Double): Translation2d {
-        val linearMagnitude = hypot(x, y)
-        val linearDirection = Rotation2d(atan2(y, x))
-
-        // Return new linear velocity
-        return Pose2d(Translation2d(), linearDirection)
-            .transformBy(Transform2d(linearMagnitude, 0.0, Rotation2d()))
-            .translation
-    }
-
     /**
      * Field relative drive command using two joysticks (controlling linear and angular velocities).
      */
@@ -67,20 +49,12 @@ object DriveCommands {
     fun joystickDrive(): Command {
         return Commands.run({
             // Get linear velocity
-            val linearVelocity = getLinearVelocityFromJoysticks(OI.driveTranslationX, OI.driveTranslationY)
-
-            val omega = OI.driveRotation
+            val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()
 
             // Convert to field relative speeds & send command
-            val speeds =
-                ChassisSpeeds(
-                    linearVelocity.x * Drive.maxLinearSpeedMetersPerSec,
-                    linearVelocity.y * Drive.maxLinearSpeedMetersPerSec,
-                    omega * Drive.maxAngularSpeedRadPerSec
-                )
             val isFlipped = DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
 
-            Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
+            Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(chassisSpeeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
             },
             Drive
         )
@@ -105,22 +79,16 @@ object DriveCommands {
         // Construct command
         return Commands.run(
              {
-                // Get linear velocity
-                val linearVelocity = getLinearVelocityFromJoysticks(OI.driveTranslationX, OI.driveTranslationY)
+                 // Get linear velocity from joysticks
+                 val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()
 
-                // Calculate angular speed
-                val omega = angleController.calculate(Drive.rotation.radians, goalAngle.get().radians)
+                 // Calculate angular speed
+                 chassisSpeeds.omegaRadiansPerSecond = angleController.calculate(Drive.rotation.radians, goalAngle.get().radians)
 
-                // Convert to field relative speeds & send command
-                val speeds = ChassisSpeeds(
-                        linearVelocity.x * Drive.maxLinearSpeedMetersPerSec,
-                        linearVelocity.y * Drive.maxLinearSpeedMetersPerSec,
-                        omega
-                    )
 
-                val isFlipped = DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
+                 val isFlipped = DriverStation.getAlliance().isPresent && DriverStation.getAlliance().get() == Alliance.Red
 
-                Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(speeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
+                 Drive.runVelocity(ChassisSpeeds.fromFieldRelativeSpeeds(chassisSpeeds, if (isFlipped) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
             },
             Drive
         ) // Reset PID controller when command starts

@@ -29,6 +29,7 @@ inline val Double.millimeters: Distance get() = Millimeters.of(this)
 inline val Angle.asDegrees: Double get() = `in`(Degrees)
 inline val Angle.asRotations: Double get() = `in`(Rotations)
 inline val Angle.asRadians: Double get() = `in`(Radians)
+inline val Angle.asRotation2d: Rotation2d get() = Rotation2d(this)
 
 inline val Double.degrees: Angle get() = Degrees.of(this)
 inline val Double.rotations: Angle get() = Rotations.of(this)
