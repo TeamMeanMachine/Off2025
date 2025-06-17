@@ -45,6 +45,7 @@ import frc.team2471.off2025.OI
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
+import frc.team2471.off2025.subsystems.drive.gyro.GyroIONavX
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.swerve.SwerveSetpointGenerator
@@ -223,8 +224,8 @@ object Drive : SubsystemBase("Drive") {
 
         if (DriverStation.isDisabled()) {
             // Stop moving when disabled
-            for (module in modules) {
-                module.stop()
+            modules.forEach {
+                it.runSetpoint(it.state.apply { speedMetersPerSecond = 0.0 })
             }
             // Log empty setpoint states when disabled
             Logger.recordOutput("SwerveStates/Setpoints", *arrayOf<SwerveModuleState>())

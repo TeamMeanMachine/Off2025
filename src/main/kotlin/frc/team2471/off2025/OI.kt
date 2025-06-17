@@ -100,10 +100,10 @@ object OI {
     fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Pair<Double, Double> {
         return if (hypot(rawX, rawY) > 1.0) {
             //magnitude is > 1, something is being "snapped" or is inaccurate
-            if (rawX.absoluteValue > 1.0) {
+            if (rawX.absoluteValue >= 1.0) {
                 //x not trustworthy
                 Pair(sqrt(1 - rawY.square()).withSign(rawX), rawY)
-            } else if (rawY.absoluteValue > 1.0) {
+            } else if (rawY.absoluteValue >= 1.0) {
                 //y not trustworthy
                 Pair(rawX, sqrt(1 - rawX.square()).withSign(rawY))
             } else {

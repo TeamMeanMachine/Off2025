@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.DriveCommands.feedforwardCharacterization
 import frc.team2471.off2025.commands.DriveCommands.wheelRadiusCharacterization
 import frc.team2471.off2025.commands.ExampleCommand
+import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
 import frc.team2471.off2025.util.RobotMode
@@ -55,6 +56,7 @@ object Robot : LoggedRobot() {
         addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
         addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
         addOption("Zero Turn Encoders", Drive.zeroTurnEncoders())
+        addOption("JoystickTest", joystickTest())
     }
 
     val autonomousCommand: Command? get() = autoChooser.get()

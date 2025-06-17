@@ -23,6 +23,7 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
 import frc.team2471.off2025.util.RobotMode
+import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.Logger
 
@@ -36,6 +37,38 @@ class Module(
         RobotMode.SIM -> ModuleIOSim(constants)
         RobotMode.REPLAY -> object : ModuleIO {}
     }
+
+    val angle: Rotation2d
+        /** Returns the current turn angle of the module.  */
+        get() = inputs.turnPosition
+
+    val positionMeters: Double
+        /** Returns the current drive position of the module in meters.  */
+        get() = inputs.drivePositionRad * constants.WheelRadius
+
+    val velocityMetersPerSec: Double
+        /** Returns the current drive velocity of the module in meters per second.  */
+        get() = inputs.driveVelocityRadPerSec * constants.WheelRadius
+
+    val position: SwerveModulePosition
+        /** Returns the module position (turn angle and drive position).  */
+        get() = SwerveModulePosition(this.positionMeters, this.angle)
+
+    val state: SwerveModuleState
+        /** Returns the module state (turn angle and drive velocity).  */
+        get() = SwerveModuleState(this.velocityMetersPerSec, this.angle)
+
+    val odometryTimestamps: DoubleArray
+        /** Returns the timestamps of the samples received this cycle.  */
+        get() = inputs.odometryTimestamps
+
+    val wheelRadiusCharacterizationPosition: Double
+        /** Returns the module position in radians.  */
+        get() = inputs.drivePositionRad
+
+    val fFCharacterizationVelocity: Double
+        /** Returns the module velocity in rotations/sec (Phoenix native units).  */
+        get() = Units.radiansToRotations(inputs.driveVelocityRadPerSec)
 
 
     private val driveDisconnectedAlert = Alert("Disconnected drive motor on module $index.", AlertType.kError)
@@ -89,38 +122,7 @@ class Module(
     }
 
     fun setCANCoderAngle(angle: Angle) {
+        io.setTurnPosition(angle.asRotation2d)
         io.setCANCoderAngle(angle)
     }
-
-    val angle: Rotation2d
-        /** Returns the current turn angle of the module.  */
-        get() = inputs.turnPosition
-
-    val positionMeters: Double
-        /** Returns the current drive position of the module in meters.  */
-        get() = inputs.drivePositionRad * constants.WheelRadius
-
-    val velocityMetersPerSec: Double
-        /** Returns the current drive velocity of the module in meters per second.  */
-        get() = inputs.driveVelocityRadPerSec * constants.WheelRadius
-
-    val position: SwerveModulePosition
-        /** Returns the module position (turn angle and drive position).  */
-        get() = SwerveModulePosition(this.positionMeters, this.angle)
-
-    val state: SwerveModuleState
-        /** Returns the module state (turn angle and drive velocity).  */
-        get() = SwerveModuleState(this.velocityMetersPerSec, this.angle)
-
-    val odometryTimestamps: DoubleArray
-        /** Returns the timestamps of the samples received this cycle.  */
-        get() = inputs.odometryTimestamps
-
-    val wheelRadiusCharacterizationPosition: Double
-        /** Returns the module position in radians.  */
-        get() = inputs.drivePositionRad
-
-    val fFCharacterizationVelocity: Double
-        /** Returns the module velocity in rotations/sec (Phoenix native units).  */
-        get() = Units.radiansToRotations(inputs.driveVelocityRadPerSec)
 }
