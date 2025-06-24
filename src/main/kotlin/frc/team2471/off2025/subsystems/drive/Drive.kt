@@ -42,6 +42,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.OI
+import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
@@ -65,7 +66,8 @@ object Drive : SubsystemBase("Drive") {
 
     private val gyroInputs: GyroIOInputsAutoLogged = GyroIOInputsAutoLogged()
     private val gyroIO: GyroIO = when (robotMode) {
-        RobotMode.REAL, RobotMode.SIM -> GyroIOPigeon2()
+        RobotMode.REAL -> if (Robot.isCompBot) GyroIONavX() else GyroIOPigeon2()
+        RobotMode.SIM -> GyroIOPigeon2()
         else -> object : GyroIO {}
     }
 
@@ -347,7 +349,7 @@ object Drive : SubsystemBase("Drive") {
 
         // Send setpoints to modules
         for (i in 0..3) {
-            modules[i].runSetpoint(generatedSetpoints.moduleStates[i])
+            modules[i].runSetpoint(setpointStates[i])
         }
 
         // Log optimized setpoints (runSetpoint mutates each state)

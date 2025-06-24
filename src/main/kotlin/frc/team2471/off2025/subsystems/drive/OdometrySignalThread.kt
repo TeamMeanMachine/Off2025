@@ -93,7 +93,7 @@ object OdometrySignalThread : Thread() {
 
     /** Returns a new queue that returns timestamp values for each sample.  */
     fun makeTimestampQueue(): Queue<Double> {
-        val queue: Queue<Double> = ArrayBlockingQueue<Double>(20)
+        val queue: Queue<Double> = ArrayBlockingQueue(20)
         odometryLock.lock()
         try {
             timestampQueues.add(queue)

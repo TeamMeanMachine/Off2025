@@ -32,6 +32,8 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import org.littletonrobotics.junction.networktables.NT4Publisher
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
+import java.net.NetworkInterface
+import kotlin.collections.iterator
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -42,6 +44,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter
 object Robot : LoggedRobot() {
     // Subsystems
     val allSubsystems = arrayOf(Drive)
+    val isCompBot = getCompBotBoolean()
 
     // Dashboard inputs
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
@@ -147,4 +150,28 @@ object Robot : LoggedRobot() {
 
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {}
+
+
+    private fun getCompBotBoolean(): Boolean {
+        var compBot = true
+        if (robotMode == RobotMode.REAL) {
+            val networkInterfaces =  NetworkInterface.getNetworkInterfaces()
+            println("retrieving network interfaces")
+            for (iFace in networkInterfaces) {
+                println(iFace.name)
+                if (iFace.name == "eth0") {
+                    println("NETWORK NAME--->${iFace.name}<----")
+                    var macString = ""
+                    for (byteVal in iFace.hardwareAddress){
+                        macString += String.format("%s", byteVal)
+                    }
+                    println("FORMATTED---->$macString<-----")
+
+                    compBot = (macString == "0-128475710531")
+                }
+            }
+        } else { println("Not real so I am compbot") }
+        println("I am compbot = $compBot")
+        return compBot
+    }
 }

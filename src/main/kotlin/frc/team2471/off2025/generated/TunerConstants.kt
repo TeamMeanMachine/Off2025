@@ -4,6 +4,7 @@ import com.ctre.phoenix6.CANBus
 import com.ctre.phoenix6.configs.*
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.TalonFX
+import com.ctre.phoenix6.signals.NeutralModeValue
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import com.ctre.phoenix6.swerve.SwerveDrivetrain
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants
@@ -82,6 +83,7 @@ object TunerConstants {
             StatorCurrentLimit = 60.0
             StatorCurrentLimitEnable = true
         }
+        MotorOutput.NeutralMode = NeutralModeValue.Coast
     }
     private val encoderInitialConfigs = CANcoderConfiguration()
 
