@@ -70,6 +70,13 @@ class Module(
         /** Returns the module velocity in rotations/sec (Phoenix native units).  */
         get() = Units.radiansToRotations(inputs.driveVelocityRadPerSec)
 
+    val isEncoderConnected: Boolean get() = inputs.turnEncoderConnected
+    val isDriveConnected: Boolean get() = inputs.driveConnected
+    val isTurnConnected: Boolean get() = inputs.turnConnected
+
+    val cancoderOffset: Angle
+        get() = io.getCANCoderOffset()
+
 
     private val driveDisconnectedAlert = Alert("Disconnected drive motor on module $index.", AlertType.kError)
     private val turnDisconnectedAlert = Alert("Disconnected turn motor on module $index.", AlertType.kError)
@@ -93,9 +100,9 @@ class Module(
         }
 
         // Update alerts
-        driveDisconnectedAlert.set(!inputs.driveConnected)
-        turnDisconnectedAlert.set(!inputs.turnConnected)
-        turnEncoderDisconnectedAlert.set(!inputs.turnEncoderConnected)
+        driveDisconnectedAlert.set(!isDriveConnected)
+        turnDisconnectedAlert.set(!isTurnConnected)
+        turnEncoderDisconnectedAlert.set(!isEncoderConnected)
     }
 
     /** Runs the module with the specified setpoint state. Mutates the state to optimize it.  */
@@ -121,8 +128,13 @@ class Module(
         io.setTurnOpenLoop(0.0)
     }
 
-    fun setCANCoderAngle(angle: Angle) {
+    fun setCANCoderAngle(angle: Angle): Angle {
         io.setTurnPosition(angle.asRotation2d)
-        io.setCANCoderAngle(angle)
+        return io.setCANCoderAngle(angle)
     }
+
+    fun setCANCoderOffset(offset: Angle) = io.setCANCoderOffset(offset)
+
+    fun brakeMode() = io.brakeMode()
+    fun coastMode() = io.coastMode()
 }

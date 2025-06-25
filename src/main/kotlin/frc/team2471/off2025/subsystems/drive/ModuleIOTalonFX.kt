@@ -48,9 +48,20 @@ import java.util.*
  */
 class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>) : ModuleIO {
     // Hardware objects
-    private val driveTalon: TalonFX = TalonFX(constants.DriveMotorId, TunerConstants.DrivetrainConstants.CANBusName)
-    private val turnTalon: TalonFX = TalonFX(constants.SteerMotorId, TunerConstants.DrivetrainConstants.CANBusName)
+    private val driveMotor: TalonFX = TalonFX(constants.DriveMotorId, TunerConstants.DrivetrainConstants.CANBusName)
+    private val steerMotor: TalonFX = TalonFX(constants.SteerMotorId, TunerConstants.DrivetrainConstants.CANBusName)
     private val cancoder: CANcoder = CANcoder(constants.EncoderId, TunerConstants.DrivetrainConstants.CANBusName)
+
+    private var cancoderOffset: Angle = constants.EncoderOffset.rotations
+        set(value) {
+            val initialConfigs = CANcoderConfiguration()
+            cancoder.configurator.refresh(initialConfigs)
+
+            initialConfigs.MagnetSensor.MagnetOffset = value.asRotations
+
+            cancoder.configurator.apply(initialConfigs, 0.0)
+            field = value
+        }
 
     // Voltage control requests
     private val voltageRequest = VoltageOut(0.0)
@@ -66,19 +77,19 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     private val timestampQueue: Queue<Double> = OdometrySignalThread.makeTimestampQueue()
 
     // Inputs from drive motor
-    private val drivePosition: StatusSignal<Angle> = driveTalon.position
-    private val drivePositionQueue: Queue<Double> = OdometrySignalThread.registerSignal(driveTalon.position)
-    private val driveVelocity: StatusSignal<AngularVelocity> = driveTalon.velocity
-    private val driveAppliedVoltage: StatusSignal<Voltage> = driveTalon.motorVoltage
-    private val driveCurrent: StatusSignal<Current> = driveTalon.statorCurrent
+    private val drivePosition: StatusSignal<Angle> = driveMotor.position
+    private val drivePositionQueue: Queue<Double> = OdometrySignalThread.registerSignal(driveMotor.position)
+    private val driveVelocity: StatusSignal<AngularVelocity> = driveMotor.velocity
+    private val driveAppliedVoltage: StatusSignal<Voltage> = driveMotor.motorVoltage
+    private val driveCurrent: StatusSignal<Current> = driveMotor.statorCurrent
 
     // Inputs from turn motor
     private val turnAbsolutePositionS: StatusSignal<Angle> = cancoder.absolutePosition
-    private val turnPositionS: StatusSignal<Angle> = turnTalon.position
-    private val turnPositionQueue: Queue<Double> = OdometrySignalThread.registerSignal(turnTalon.position)
-    private val turnVelocity: StatusSignal<AngularVelocity> = turnTalon.velocity
-    private val turnAppliedVoltsS: StatusSignal<Voltage> = turnTalon.motorVoltage
-    private val turnCurrent: StatusSignal<Current> = turnTalon.statorCurrent
+    private val turnPositionS: StatusSignal<Angle> = steerMotor.position
+    private val turnPositionQueue: Queue<Double> = OdometrySignalThread.registerSignal(steerMotor.position)
+    private val turnVelocity: StatusSignal<AngularVelocity> = steerMotor.velocity
+    private val turnAppliedVoltsS: StatusSignal<Voltage> = steerMotor.motorVoltage
+    private val turnCurrent: StatusSignal<Current> = steerMotor.statorCurrent
 
     // Connection debouncers
     private val driveConnectedDebounce = Debouncer(0.5)
@@ -107,8 +118,8 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
                 Inverted = if (constants.DriveMotorInverted) InvertedValue.Clockwise_Positive else InvertedValue.CounterClockwise_Positive
             }
         }
-        PhoenixUtil.tryUntilOk(5) { driveTalon.configurator.apply(driveConfig, 0.25) }
-        PhoenixUtil.tryUntilOk(5) { driveTalon.setPosition(0.0, 0.25) }
+        PhoenixUtil.tryUntilOk(5) { driveMotor.configurator.apply(driveConfig, 0.25) }
+        PhoenixUtil.tryUntilOk(5) { driveMotor.setPosition(0.0, 0.25) }
 
         // Configure turn motor
         val turnConfig = constants.SteerMotorInitialConfigs.apply {
@@ -141,12 +152,12 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
                 Inverted = if (constants.SteerMotorInverted) InvertedValue.Clockwise_Positive else InvertedValue.CounterClockwise_Positive
             }
         }
-        PhoenixUtil.tryUntilOk(5) { turnTalon.configurator.apply(turnConfig, 0.25) }
+        PhoenixUtil.tryUntilOk(5) { steerMotor.configurator.apply(turnConfig, 0.25) }
 
         // Configure CANCoder
         val cancoderConfig = constants.EncoderInitialConfigs.apply {
             MagnetSensor.apply {
-                MagnetOffset = constants.EncoderOffset
+                MagnetOffset = cancoderOffset.asRotations
                 SensorDirection = if (constants.EncoderInverted) SensorDirectionValue.Clockwise_Positive else SensorDirectionValue.CounterClockwise_Positive
             }
         }
@@ -168,7 +179,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
             turnAppliedVoltsS,
             turnCurrent
         )
-        ParentDevice.optimizeBusUtilizationForAll(driveTalon, turnTalon) //Only publish data if an update frequency has been set for it
+        ParentDevice.optimizeBusUtilizationForAll(driveMotor, steerMotor) //Only publish data if an update frequency has been set for it
     }
 
     override fun updateInputs(inputs: ModuleIOInputs) {
@@ -206,7 +217,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     }
 
     override fun setDriveOpenLoop(output: Double) {
-        driveTalon.setControl(
+        driveMotor.setControl(
             when (constants.DriveMotorClosedLoopOutput!!) {
                 SwerveModuleConstants.ClosedLoopOutputType.Voltage -> voltageRequest.withOutput(output)
                 SwerveModuleConstants.ClosedLoopOutputType.TorqueCurrentFOC -> torqueCurrentRequest.withOutput(output)
@@ -215,7 +226,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     }
 
     override fun setTurnOpenLoop(output: Double) {
-        turnTalon.setControl(
+        steerMotor.setControl(
             when (constants.SteerMotorClosedLoopOutput!!) {
                 SwerveModuleConstants.ClosedLoopOutputType.Voltage -> voltageRequest.withOutput(output)
                 SwerveModuleConstants.ClosedLoopOutputType.TorqueCurrentFOC -> torqueCurrentRequest.withOutput(output)
@@ -225,7 +236,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
 
     override fun setDriveVelocity(velocityRadPerSec: Double) {
         val velocityRotPerSec = Units.radiansToRotations(velocityRadPerSec)
-        driveTalon.setControl(
+        driveMotor.setControl(
             when (constants.DriveMotorClosedLoopOutput!!) {
                 SwerveModuleConstants.ClosedLoopOutputType.Voltage -> velocityVoltageRequest.withVelocity(velocityRotPerSec)
                 SwerveModuleConstants.ClosedLoopOutputType.TorqueCurrentFOC -> velocityTorqueCurrentRequest.withVelocity(velocityRotPerSec)
@@ -234,7 +245,7 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     }
 
     override fun setTurnPosition(rotation: Rotation2d) {
-        turnTalon.setControl(
+        steerMotor.setControl(
             when (constants.SteerMotorClosedLoopOutput!!) {
                 SwerveModuleConstants.ClosedLoopOutputType.Voltage -> positionVoltageRequest.withPosition(rotation.rotations)
                 SwerveModuleConstants.ClosedLoopOutputType.TorqueCurrentFOC -> positionTorqueCurrentRequest.withPosition(rotation.rotations)
@@ -242,21 +253,36 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
         )
     }
 
-
-    override fun setCANCoderAngle(angle: Angle) {
+    override fun setCANCoderAngle(angle: Angle): Angle {
         val initialConfigs = CANcoderConfiguration()
-        cancoder.configurator.refresh(initialConfigs)
+        PhoenixUtil.tryUntilOk(5) { cancoder.configurator.refresh(initialConfigs) }
 
         val initialPosition = cancoder.absolutePosition.valueAsDouble.rotations
         val initialOffset = initialConfigs.MagnetSensor.MagnetOffset.rotations
-        println("inital position $initialPosition initial offset $initialOffset")
+        println("initial position $initialPosition initial offset $initialOffset")
 
-        val rawPosition = initialPosition + initialOffset
-        val newOffset = (rawPosition - angle)
+        val rawPosition = initialPosition - initialOffset
+        val newOffset = (angle - rawPosition)
         println("rawPosition $rawPosition new offset $newOffset")
 
-        initialConfigs.MagnetSensor.MagnetOffset = newOffset.asRotations
-        cancoder.configurator.apply(initialConfigs)
+        setCANCoderOffset(newOffset)
+        return cancoderOffset
+    }
+
+    override fun setCANCoderOffset(offset: Angle) {
+        cancoderOffset = offset
+    }
+
+    override fun getCANCoderOffset(): Angle = cancoderOffset
+
+    override fun brakeMode() {
+        driveMotor.setNeutralMode(NeutralModeValue.Brake, 0.0)
+        steerMotor.setNeutralMode(NeutralModeValue.Brake, 0.0)
+    }
+
+    override fun coastMode() {
+        driveMotor.setNeutralMode(NeutralModeValue.Coast, 0.0)
+        steerMotor.setNeutralMode(NeutralModeValue.Coast, 0.0)
     }
 
 }

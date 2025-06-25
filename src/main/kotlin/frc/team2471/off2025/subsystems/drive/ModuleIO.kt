@@ -14,6 +14,7 @@ package frc.team2471.off2025.subsystems.drive
 
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.units.measure.Angle
+import frc.team2471.off2025.util.degrees
 import org.littletonrobotics.junction.AutoLog
 
 interface ModuleIO {
@@ -54,5 +55,12 @@ interface ModuleIO {
     fun setTurnPosition(rotation: Rotation2d) {}
 
     /** Set encoder offset angle to a specified angle.  */
-    fun setCANCoderAngle(angle: Angle) {}
+    fun setCANCoderAngle(angle: Angle): Angle = Double.NaN.degrees
+
+    fun setCANCoderOffset(offset: Angle) {}
+
+    fun getCANCoderOffset(): Angle = Double.NaN.degrees
+
+    fun brakeMode() {}
+    fun coastMode() {}
 }

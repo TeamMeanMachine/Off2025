@@ -81,3 +81,5 @@ simgui-window.json
 logs
 /.kotlin/sessions/kotlin-compiler-9737211552374389927.salive
 /gradle/wrapper/gradle-wrapper.jar
+/src/main/java/frc/robot/BuildConstants.java
+/.kotlin/

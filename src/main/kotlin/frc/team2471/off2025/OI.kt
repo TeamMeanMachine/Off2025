@@ -1,9 +1,12 @@
 package frc.team2471.off2025
 
+import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
+import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
+import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.drive.Drive
@@ -13,7 +16,7 @@ import kotlin.math.hypot
 import kotlin.math.sqrt
 import kotlin.math.withSign
 
-object OI {
+object OI: Subsystem {
     val driverController = CommandXboxController(0)
     val operatorController = CommandXboxController(1)
 
@@ -59,7 +62,10 @@ object OI {
     val operatorRightY: Double
         get() = operatorController.rightY.deadband(deadbandOperator)
 
-
+    private val driverNotConnectedAlert: Alert = Alert("DRIVER JOYSTICK DISCONNECTED", Alert.AlertType.kError)
+    private val operatorNotConnectedAlert: Alert = Alert("OPERATOR JOYSTICK DISCONNECTED", Alert.AlertType.kError)
+    private val driverDebouncer = Debouncer(0.05)
+    private val operatorDebouncer = Debouncer(0.05)
 
 
 
@@ -70,7 +76,7 @@ object OI {
 
 
         // Lock to 0° when A button is held
-        driverController.a().whileTrue(DriveCommands.joystickDriveAtAngle({ Rotation2d() }))
+        driverController.a().whileTrue(DriveCommands.joystickDriveAtAngle { Rotation2d() })
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
@@ -92,6 +98,11 @@ object OI {
                              },
             Drive
         ).ignoringDisable(true))
+    }
+
+    override fun periodic() {
+        driverNotConnectedAlert.set(driverDebouncer.calculate(driverController.isConnected))
+        operatorNotConnectedAlert.set(operatorDebouncer.calculate(operatorController.isConnected))
     }
 
     /**

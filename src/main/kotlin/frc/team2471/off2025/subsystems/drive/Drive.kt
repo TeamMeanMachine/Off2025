@@ -36,6 +36,7 @@ import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.Preferences
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
@@ -54,6 +55,7 @@ import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 object Drive : SubsystemBase("Drive") {
@@ -74,7 +76,7 @@ object Drive : SubsystemBase("Drive") {
     private var rawGyroRotation = Rotation2d()
 
     private val kinematics = SwerveDriveKinematics(*TunerConstants.moduleTranslations)
-    private val lastModulePositions = Array(4) {SwerveModulePosition()}// For delta tracking
+    private val lastModulePositions = Array(4) { SwerveModulePosition() }// For delta tracking
     private var lastModulePositionsArc = Array(4) { SwerveModulePosition() }
 
     private val poseEstimator = SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, Pose2d())
@@ -126,50 +128,26 @@ object Drive : SubsystemBase("Drive") {
     var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
 
     @get:AutoLogOutput(key = "SwerveStates/Measured")
-    private val moduleStates: Array<SwerveModuleState?>
+    private val moduleStates: Array<SwerveModuleState>
         /** Returns the module states (turn angles and drive velocities) for all the modules.  */
-        get() {
-            val states = arrayOfNulls<SwerveModuleState>(4)
-            for (i in 0..3) {
-                states[i] = modules[i].state
-            }
-            return states
-        }
+        get() = Array(4) { modules[it].state }
 
-    private val modulePositions: Array<SwerveModulePosition?>
+    private val modulePositions: Array<SwerveModulePosition>
         /** Returns the module positions (turn angles and drive positions) for all the modules.  */
-        get() {
-            val states = arrayOfNulls<SwerveModulePosition>(4)
-            for (i in 0..3) {
-                states[i] = modules[i].position
-            }
-            return states
-        }
+        get() = Array(4) { modules[it].position}
 
     @get:AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
     private val chassisSpeeds: ChassisSpeeds
         /** Returns the measured chassis speeds of the robot.  */
-        get() = kinematics.toChassisSpeeds(*this.moduleStates)
+        get() = kinematics.toChassisSpeedsK(this.moduleStates)
 
     val wheelRadiusCharacterizationPositions: DoubleArray
         /** Returns the position of each module in radians.  */
-        get() {
-            val values = DoubleArray(4)
-            for (i in 0..3) {
-                values[i] = modules[i].wheelRadiusCharacterizationPosition
-            }
-            return values
-        }
+        get() = DoubleArray(4) { modules[it].wheelRadiusCharacterizationPosition }
 
     val fFCharacterizationVelocity: Double
         /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
-        get() {
-            var output = 0.0
-            for (i in 0..3) {
-                output += modules[i].fFCharacterizationVelocity / 4.0
-            }
-            return output
-        }
+        get() = modules.sumOf { it.fFCharacterizationVelocity / 4.0 }
 
     @get:AutoLogOutput(key = "Odometry/Robot")
     var pose: Pose2d
@@ -213,15 +191,34 @@ object Drive : SubsystemBase("Drive") {
         PathPlannerLogging.setLogTargetPoseCallback { targetPose: Pose2d? ->
             Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose)
         }
+
+        val missingPrefsModules = arrayListOf<Int>()
+        val conflictingOffsets = arrayListOf<Int>()
+        modules.filter { it.isEncoderConnected }.forEachIndexed { i, module ->
+            val prefsOffset = Preferences.getDouble("Module $i Offset", Double.NaN).degrees
+            val encoderOffset = module.cancoderOffset
+            if (prefsOffset.asDegrees.isNaN()) {
+                //couldn't find prefs
+                println("module $i has missing Preferences, setting to encoders Offset: ${encoderOffset.asDegrees.roundToInt()}")
+                Preferences.setDouble("Module $i Offset", encoderOffset.asDegrees)
+                missingPrefsModules.add(i)
+            } else if (prefsOffset.asDegrees.roundToInt() != encoderOffset.asDegrees.roundToInt()) {
+                //offsets are different, default to prefs
+                println("module $i has conflicting offsets. prefsOffset: ${prefsOffset.asDegrees.round(2)} encoders Offset: ${encoderOffset.asDegrees.round(2)}")
+                module.setCANCoderOffset(prefsOffset)
+                conflictingOffsets.add(i)
+            }
+        }
+
+        missingPrefsModules.forEach { Alert("Module $it had missing prefs", AlertType.kWarning).set(true) }
+        conflictingOffsets.forEach { Alert("Module $it had conflicting offsets", AlertType.kWarning).set(true) }
     }
 
     override fun periodic() {
         OdometrySignalThread.odometryLock.lock() // Prevents updates while reading data
         gyroIO.updateInputs(gyroInputs)
         Logger.processInputs("Drive/Gyro", gyroInputs)
-        for (module in modules) {
-            module.periodic()
-        }
+        modules.forEach { it.periodic() }
         OdometrySignalThread.odometryLock.unlock()
 
         if (DriverStation.isDisabled()) {
@@ -357,43 +354,36 @@ object Drive : SubsystemBase("Drive") {
     }
 
     /** Runs the drive in a straight line with the specified drive output.  */
-    fun runCharacterization(output: Double) {
-        for (i in 0..3) {
-            modules[i].runCharacterization(output)
-        }
-    }
+    fun runCharacterization(output: Double) = modules.forEach { it.runCharacterization(output) }
 
-    /** Stops the drive.  */
-    fun stop() {
-        runVelocity(ChassisSpeeds())
-    }
+    fun stop() = runVelocity(ChassisSpeeds())
 
     /**
      * Stops the drive and turns the modules to an X arrangement to resist movement. The modules will
      * return to their normal orientations the next time a nonzero velocity is requested.
      */
     fun xPose() {
-        val headings = arrayOfNulls<Rotation2d>(4)
-        for (i in 0..3) {
-            headings[i] = TunerConstants.moduleTranslations[i].angle
-        }
-        kinematics.resetHeadings(*headings)
+        kinematics.resetHeadings(*Array<Rotation2d>(4) { TunerConstants.moduleTranslations[it].angle })
         stop()
     }
 
+    fun brakeMode() = modules.forEach { it.brakeMode() }
+    fun coastMode() = modules.forEach { it.coastMode() }
+
     /** Returns a command to run a quasistatic test in the specified direction.  */
-    fun sysIdQuasistatic(direction: SysIdRoutine.Direction?): Command {
-        return run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.quasistatic(direction))
-    }
+    fun sysIdQuasistatic(direction: SysIdRoutine.Direction?): Command =
+        run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.quasistatic(direction))
+
 
     /** Returns a command to run a dynamic test in the specified direction.  */
-    fun sysIdDynamic(direction: SysIdRoutine.Direction?): Command {
-        return run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.dynamic(direction))
-    }
+    fun sysIdDynamic(direction: SysIdRoutine.Direction?): Command =
+        run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.dynamic(direction))
 
-    fun zeroTurnEncoders(): Command = runOnce {
-        modules.forEach {
-            it.setCANCoderAngle(0.0.degrees)
+
+    fun setAngleOffsets(): Command = runOnce {
+        val offsets = modules.map { it.setCANCoderAngle(0.0.degrees) }
+        offsets.forEachIndexed { i, offset ->
+            Preferences.setDouble("Module $i Offset", offset.asDegrees)
         }
     }
 

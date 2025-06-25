@@ -20,13 +20,14 @@ fun average(vararg x: Double) = x.sum() / x.size
 
 fun lerp(min: Double, max: Double, k: Double) = min + (max - min) * k
 
-fun Double.deadband(tolerance: Double): Double = if (abs(this) < tolerance) {
-    0.0
-} else {
-    (this - tolerance.withSign(this)) / (1.0 - tolerance)
-}
+fun Double.deadband(tolerance: Double): Double =
+    if (abs(this) < tolerance) {
+        0.0
+    } else {
+        (this - tolerance.withSign(this)) / (1.0 - tolerance)
+    }
 
-// doesn't work with negative values of n
+/** doesn't work with negative values of n */
 infix fun Double.mod(n: Double) = if (this < 0) {
     (this % n + n) % n
 } else {

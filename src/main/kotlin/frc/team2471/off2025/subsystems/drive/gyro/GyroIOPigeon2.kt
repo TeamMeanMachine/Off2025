@@ -27,10 +27,7 @@ import java.util.*
 
 /** IO implementation for Pigeon 2.  */
 class GyroIOPigeon2 : GyroIO {
-    private val pigeon = Pigeon2(
-        TunerConstants.DrivetrainConstants.Pigeon2Id,
-        TunerConstants.DrivetrainConstants.CANBusName
-    )
+    private val pigeon = Pigeon2(TunerConstants.DrivetrainConstants.Pigeon2Id, TunerConstants.DrivetrainConstants.CANBusName)
     private val yawSignal: StatusSignal<Angle> = pigeon.yaw
     private val yawVelocitySignal: StatusSignal<AngularVelocity> = pigeon.angularVelocityZWorld
 

@@ -4,7 +4,6 @@ import com.ctre.phoenix6.CANBus
 import com.ctre.phoenix6.configs.*
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.TalonFX
-import com.ctre.phoenix6.signals.NeutralModeValue
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import com.ctre.phoenix6.swerve.SwerveDrivetrain
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants
@@ -83,7 +82,6 @@ object TunerConstants {
             StatorCurrentLimit = 60.0
             StatorCurrentLimitEnable = true
         }
-        MotorOutput.NeutralMode = NeutralModeValue.Coast
     }
     private val encoderInitialConfigs = CANcoderConfiguration()
 
@@ -105,7 +103,7 @@ object TunerConstants {
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
 //    @JvmField
-    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * kWheelRadius.asFeet).feetPerSecond  //4.73.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * kWheelRadius.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
 
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false
