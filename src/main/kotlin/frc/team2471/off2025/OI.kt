@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
+import java.lang.IllegalStateException
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
 import kotlin.math.sqrt
@@ -83,21 +84,17 @@ object OI: Subsystem {
 
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
-            runOnceCommand({
+            runOnceCommand(Drive) {
                 Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
                 Drive.arcPose = Pose2d(Drive.arcPose.translation, Rotation2d())
-                             },
-            Drive
-        ).ignoringDisable(true))
+            }.ignoringDisable(true))
 
         // Reset position to zero
         driverController.start().onTrue(
-            runOnceCommand({
+            runOnceCommand(Drive) {
                 Drive.pose = Pose2d(Translation2d(), Drive.pose.rotation)
                 Drive.arcPose = Pose2d(Translation2d(), Drive.arcPose.rotation)
-                             },
-            Drive
-        ).ignoringDisable(true))
+            }.ignoringDisable(true))
     }
 
     override fun periodic() {
@@ -134,4 +131,30 @@ object OI: Subsystem {
             Pair(rawX, rawY)
         }
     }
+
+    inline val CommandXboxController.a: Boolean get() = this.hid.aButton
+    inline val CommandXboxController.b: Boolean get() = this.hid.bButton
+    inline val CommandXboxController.x: Boolean get() = this.hid.xButton
+    inline val CommandXboxController.y: Boolean get() = this.hid.yButton
+
+    inline val CommandXboxController.rightBumper: Boolean get() = this.hid.rightBumperButton
+    inline val CommandXboxController.leftBumper: Boolean get() = this.hid.leftBumperButton
+
+    inline val CommandXboxController.start: Boolean get() = this.hid.startButton
+    inline val CommandXboxController.back: Boolean get() = this.hid.backButton
+
+    inline val CommandXboxController.dPad: Direction get() = when (this.hid.pov) {
+            -1 -> Direction.IDLE
+            0 -> Direction.UP
+            45 -> Direction.UP_RIGHT
+            90 -> Direction.RIGHT
+            135 -> Direction.DOWN_RIGHT
+            180 -> Direction.DOWN
+            225 -> Direction.DOWN_LEFT
+            270 -> Direction.LEFT
+            315 -> Direction.UP_LEFT
+            else -> throw IllegalStateException("Invalid DPAD value ${this.hid.pov}")
+    }
+
+    enum class Direction { IDLE, UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT }
 }

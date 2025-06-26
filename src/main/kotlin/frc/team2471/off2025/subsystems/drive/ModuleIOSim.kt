@@ -18,11 +18,13 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.math.system.plant.LinearSystemId
 import edu.wpi.first.math.util.Units
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
+import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.ModuleIO.ModuleIOInputs
 import kotlin.math.abs
 import kotlin.math.sign
@@ -87,26 +89,45 @@ class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFX
         // Update odometry inputs (50Hz because high-frequency odometry in sim doesn't matter)
         inputs.odometryTimestamps = doubleArrayOf(Timer.getFPGATimestamp())
         inputs.odometryDrivePositionsRad = doubleArrayOf(inputs.drivePositionRad)
-        inputs.odometryTurnPositions = arrayOf<Rotation2d>(inputs.turnPosition)
+        inputs.odometryTurnPositions = arrayOf(inputs.turnPosition)
     }
 
-    override fun setDriveOpenLoop(output: Double) {
+    override fun setVelocity(state: SwerveModuleState) {
+        setTurnPosition(state.angle)
+        setDriveVelocity(state.speedMetersPerSecond)
+    }
+
+    override fun setVoltage(state: SwerveModuleState) {
+        setTurnPosition(state.angle)
+        setDriveVoltage(state.speedMetersPerSecond)
+    }
+
+    override fun setPercentage(state: SwerveModuleState) {
+        setTurnPosition(state.angle)
+        setDrivePercentage(state.speedMetersPerSecond)
+    }
+
+    private fun setDrivePercentage(output: Double) {
+        setDriveVoltage(output * 12.0)
+    }
+
+    private fun setDriveVoltage(output: Double) {
         driveClosedLoop = false
         driveAppliedVolts = output
     }
 
-    override fun setTurnOpenLoop(output: Double) {
+    private fun setTurnOpenLoop(output: Double) {
         turnClosedLoop = false
         turnAppliedVolts = output
     }
 
-    override fun setDriveVelocity(velocityRadPerSec: Double) {
+    private fun setDriveVelocity(velocityRadPerSec: Double) {
         driveClosedLoop = true
         driveFFVolts = DRIVE_KS * sign(velocityRadPerSec) + DRIVE_KV * velocityRadPerSec
         driveController.setSetpoint(velocityRadPerSec)
     }
 
-    override fun setTurnPosition(rotation: Rotation2d) {
+    private fun setTurnPosition(rotation: Rotation2d) {
         turnClosedLoop = true
         turnController.setSetpoint(rotation.radians)
     }
@@ -120,7 +141,7 @@ class ModuleIOSim(constants: SwerveModuleConstants<TalonFXConfiguration, TalonFX
         private val DRIVE_KV = 1.0 / Units.rotationsToRadians(1.0 / DRIVE_KV_ROT)
         private const val TURN_KP = 8.0
         private const val TURN_KD = 0.0
-        private val DRIVE_GEARBOX: DCMotor = DCMotor.getKrakenX60Foc(1)
-        private val TURN_GEARBOX: DCMotor = DCMotor.getKrakenX60Foc(1)
+        private val DRIVE_GEARBOX: DCMotor = TunerConstants.driveMotor
+        private val TURN_GEARBOX: DCMotor = TunerConstants.steerMotor
     }
 }

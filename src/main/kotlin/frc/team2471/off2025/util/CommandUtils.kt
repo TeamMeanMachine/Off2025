@@ -21,7 +21,7 @@ fun Command.finallyRun(run: (Boolean) -> Unit): WrapperCommand =
  * @return the command
  * @see edu.wpi.first.wpilibj2.command.InstantCommand
  */
-fun runOnceCommand(action: () -> Unit, vararg requirements: Subsystem): Command = Commands.runOnce(action, *requirements)
+fun runOnceCommand(vararg requirements: Subsystem, action: () -> Unit): Command = Commands.runOnce(action, *requirements)
 
 /**
  * Constructs a command that runs an action every iteration until interrupted.
@@ -30,7 +30,7 @@ fun runOnceCommand(action: () -> Unit, vararg requirements: Subsystem): Command 
  * @return the command
  * @see edu.wpi.first.wpilibj2.command.RunCommand
  */
-fun runCommand(action: () -> Unit, vararg requirements: Subsystem): Command = Commands.run(action, *requirements)
+fun runCommand(vararg requirements: Subsystem, action: () -> Unit): Command = Commands.run(action, *requirements)
 
 /**
  * Runs a group of commands in series, one after the other.
@@ -122,7 +122,7 @@ fun eitherCommand(onTrue: Command, onFalse: Command, selector: () -> Boolean): C
  * @param requirements – subsystems the action requires
  * @return the command
  */
-fun startRunCommand(start: () -> Unit, run: () -> Unit, vararg requirements: Subsystem): Command = Commands.startRun(start, run, *requirements)
+fun startRunCommand(vararg requirements: Subsystem, start: () -> Unit, run: () -> Unit): Command = Commands.startRun(start, run, *requirements)
 
 /**
  * Constructs a command that runs an action once and another action when the command is interrupted.
@@ -132,7 +132,7 @@ fun startRunCommand(start: () -> Unit, run: () -> Unit, vararg requirements: Sub
  * @return the command
  * @see edu.wpi.first.wpilibj2.command.StartEndCommand
  */
-fun startEndCommand(start: () -> Unit, end: () -> Unit, vararg requirements: Subsystem): Command = Commands.startEnd(start, end, *requirements)
+fun startEndCommand(vararg requirements: Subsystem, start: () -> Unit, end: () -> Unit): Command = Commands.startEnd(start, end, *requirements)
 
 /**
  * Constructs a command that runs an action every iteration until interrupted, and then runs a second action.
@@ -141,7 +141,7 @@ fun startEndCommand(start: () -> Unit, end: () -> Unit, vararg requirements: Sub
  * @param requirements – subsystems the action requires
  * @return the command
  */
-fun runEndCommand(run: () -> Unit, end: () -> Unit, vararg requirements: Subsystem): Command = Commands.runEnd(run, end, *requirements)
+fun runEndCommand(vararg requirements: Subsystem, run: () -> Unit, end: () -> Unit): Command = Commands.runEnd(run, end, *requirements)
 
 /**
  * Runs one of several commands, based on the selector function.

@@ -106,35 +106,37 @@ class Module(
     }
 
     /** Runs the module with the specified setpoint state. Mutates the state to optimize it.  */
-    fun runSetpoint(state: SwerveModuleState) {
-        // Optimize velocity setpoint
-        state.optimize(this.angle)
-        state.cosineScale(inputs.turnPosition)
+    fun runVelocitySetpoint(state: SwerveModuleState) {
+        state.optimizeAndCosineScale()
 
-        // Apply setpoints
-        io.setDriveVelocity(state.speedMetersPerSecond / constants.WheelRadius)
-        io.setTurnPosition(state.angle)
+        //convert from mps to radians per second
+        state.speedMetersPerSecond /= constants.WheelRadius
+
+        io.setVelocity(state)
+    }
+
+    fun runVoltageSetpoint(state: SwerveModuleState) {
+        state.optimizeAndCosineScale()
+        io.setVoltage(state)
+    }
+
+    fun runPercentageSetpoint(state: SwerveModuleState) {
+        state.optimizeAndCosineScale()
+        io.setPercentage(state)
     }
 
     /** Runs the module with the specified output while controlling to zero degrees.  */
-    fun runCharacterization(output: Double) {
-        io.setDriveOpenLoop(output)
-        io.setTurnPosition(Rotation2d())
-    }
+    fun runStraight(output: Double) = io.setVoltage(SwerveModuleState(output, Rotation2d()))
 
-    /** Disables all outputs to motors.  */
-    fun stop() {
-        io.setDriveOpenLoop(0.0)
-        io.setTurnOpenLoop(0.0)
-    }
-
-    fun setCANCoderAngle(angle: Angle): Angle {
-        io.setTurnPosition(angle.asRotation2d)
-        return io.setCANCoderAngle(angle)
-    }
+    fun setCANCoderAngle(angle: Angle): Angle = io.setCANCoderAngle(angle)
 
     fun setCANCoderOffset(offset: Angle) = io.setCANCoderOffset(offset)
 
     fun brakeMode() = io.brakeMode()
     fun coastMode() = io.coastMode()
+
+    private fun SwerveModuleState.optimizeAndCosineScale(): SwerveModuleState = this.apply {
+        optimize(this.angle)
+        cosineScale(inputs.turnPosition)
+    }
 }

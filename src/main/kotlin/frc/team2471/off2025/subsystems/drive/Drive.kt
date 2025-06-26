@@ -137,7 +137,7 @@ object Drive : SubsystemBase("Drive") {
         get() = Array(4) { modules[it].position}
 
     @get:AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-    private val chassisSpeeds: ChassisSpeeds
+    val chassisSpeeds: ChassisSpeeds
         /** Returns the measured chassis speeds of the robot.  */
         get() = kinematics.toChassisSpeedsK(this.moduleStates)
 
@@ -178,7 +178,7 @@ object Drive : SubsystemBase("Drive") {
                 }
             },
             { this.chassisSpeeds },
-            { speeds: ChassisSpeeds? -> this.runVelocity(speeds!!) },
+            { speeds: ChassisSpeeds? -> this.driveVelocity(speeds!!) },
             PPHolonomicDriveController(PIDConstants(5.0, 0.0, 0.0), PIDConstants(5.0, 0.0, 0.0)),
             pathPlannerConfig,
             { isRedAlliance },
@@ -224,7 +224,7 @@ object Drive : SubsystemBase("Drive") {
         if (DriverStation.isDisabled()) {
             // Stop moving when disabled
             modules.forEach {
-                it.runSetpoint(it.state.apply { speedMetersPerSecond = 0.0 })
+                it.runVelocitySetpoint(it.state.apply { speedMetersPerSecond = 0.0 })
             }
             // Log empty setpoint states when disabled
             Logger.recordOutput("SwerveStates/Setpoints", *arrayOf<SwerveModuleState>())
@@ -300,12 +300,12 @@ object Drive : SubsystemBase("Drive") {
     }
 
     fun getChassisSpeedsFromJoystick(): ChassisSpeeds {
-        val (sx, sy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
-        val mult = hypot(sx, sy).square() //square drive input
-        val (mx, my) = Pair(sx * mult, sy * mult)
+        //make joystick pure circle
+        val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
 
-        val x = mx
-        val y = my
+        //square drive input
+        val mult = hypot(cx, cy).square()
+        val (x, y) = Pair(cx * mult, cy * mult)
 
         val omega = OI.driveRotation.cube()
 
@@ -324,7 +324,7 @@ object Drive : SubsystemBase("Drive") {
      * Runs the drive at the desired velocity.
      * @param speeds Speeds in meters/sec
      */
-    fun runVelocity(speeds: ChassisSpeeds) {
+    fun driveVelocity(speeds: ChassisSpeeds) {
         // Calculate module setpoints
         val discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02)
 
@@ -345,18 +345,28 @@ object Drive : SubsystemBase("Drive") {
         Logger.recordOutput("SwerveChassisSpeeds/GeneratedSetpoints", generatedSetpoints.chassisSpeeds)
 
         // Send setpoints to modules
-        for (i in 0..3) {
-            modules[i].runSetpoint(setpointStates[i])
+        modules.forEachIndexed { i, module ->
+            module.runVelocitySetpoint(setpointStates[i])
         }
 
         // Log optimized setpoints (runSetpoint mutates each state)
         Logger.recordOutput("SwerveStates/SetpointsOptimized", *setpointStates)
     }
 
-    /** Runs the drive in a straight line with the specified drive output.  */
-    fun runCharacterization(output: Double) = modules.forEach { it.runCharacterization(output) }
+    fun driveVoltage(speedsInVolts: ChassisSpeeds) {
+        val discreteSpeeds = ChassisSpeeds.discretize(speedsInVolts, 0.02)
+        val setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds)
 
-    fun stop() = runVelocity(ChassisSpeeds())
+        modules.forEachIndexed { i, module ->
+            module.runVoltageSetpoint(setpointStates[i])
+        }
+    }
+
+
+    /** Runs the drive in a straight line with the specified drive output.  */
+    fun runCharacterization(output: Double) = modules.forEach { it.runStraight(output) }
+
+    fun stop() = driveVelocity(ChassisSpeeds())
 
     /**
      * Stops the drive and turns the modules to an X arrangement to resist movement. The modules will

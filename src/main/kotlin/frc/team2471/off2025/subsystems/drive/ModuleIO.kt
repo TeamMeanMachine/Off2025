@@ -13,6 +13,7 @@
 package frc.team2471.off2025.subsystems.drive
 
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Angle
 import frc.team2471.off2025.util.degrees
 import org.littletonrobotics.junction.AutoLog
@@ -42,17 +43,14 @@ interface ModuleIO {
     /** Updates the set of loggable inputs.  */
     fun updateInputs(inputs: ModuleIOInputs) {}
 
-    /** Run the drive motor at the specified open loop value.  */
-    fun setDriveOpenLoop(output: Double) {}
+    /** Runs the module to the specified state in velocity units.  */
+    fun setVelocity(state: SwerveModuleState) {}
 
-    /** Run the turn motor at the specified open loop value.  */
-    fun setTurnOpenLoop(output: Double) {}
+    /** Runs the module to the specified state in voltage units.  */
+    fun setVoltage(state: SwerveModuleState) {}
 
-    /** Run the drive motor at the specified velocity.  */
-    fun setDriveVelocity(velocityRadPerSec: Double) {}
-
-    /** Run the turn motor to the specified rotation.  */
-    fun setTurnPosition(rotation: Rotation2d) {}
+    /** Runs the module to the specified state in percent out units.  */
+    fun setPercentage(state: SwerveModuleState) {}
 
     /** Set encoder offset angle to a specified angle.  */
     fun setCANCoderAngle(angle: Angle): Angle = Double.NaN.degrees
