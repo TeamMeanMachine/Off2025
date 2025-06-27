@@ -295,13 +295,13 @@ class ModuleIOTalonFX(private val constants: SwerveModuleConstants<TalonFXConfig
     override fun getCANCoderOffset(): Angle = cancoderOffset
 
     override fun brakeMode() {
-        driveMotor.setNeutralMode(NeutralModeValue.Brake, 0.0)
-        steerMotor.setNeutralMode(NeutralModeValue.Brake, 0.0)
+        driveMotor.setNeutralMode(NeutralModeValue.Brake)
+        steerMotor.setNeutralMode(NeutralModeValue.Brake)
     }
 
     override fun coastMode() {
-        driveMotor.setNeutralMode(NeutralModeValue.Coast, 0.0)
-        steerMotor.setNeutralMode(NeutralModeValue.Coast, 0.0)
+        driveMotor.setNeutralMode(NeutralModeValue.Coast)
+        steerMotor.setNeutralMode(NeutralModeValue.Coast)
     }
 
 }

@@ -194,7 +194,7 @@ object Robot : LoggedRobot() {
  * See the [Package Level Functions](https://kotlinlang.org/docs/java-to-kotlin-interop.html#package-level-functions)
  * section on the *Calling Kotlin from Java* page of the Kotlin Docs.
  *
- * If you change your main Robot object (name), change the parameter of the
+ * If you change your main frc.team2471.off2025.Robot object (name), change the parameter of the
  * `RobotBase.startRobot` call below to the new name. (If you use the IDE's
  * Rename * Refactoring when renaming the object, it will get changed everywhere
  * including here.)

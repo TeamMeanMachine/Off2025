@@ -120,9 +120,9 @@ object Drive : SubsystemBase("Drive") {
 
     val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations,
         SwerveSetpointGenerator.ModuleLimits(
-            TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-            45.0.feetPerSecondPerSecond.asMetersPerSecondPerSecond,
-            5.0.rotationsPerSecond.asRadiansPerSecond
+            4.75,//TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
+            22.0,
+            60.0.rotationsPerSecond.asRadiansPerSecond
         )
     )
     var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
@@ -149,7 +149,7 @@ object Drive : SubsystemBase("Drive") {
         /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
         get() = modules.sumOf { it.fFCharacterizationVelocity / 4.0 }
 
-    @get:AutoLogOutput(key = "Odometry/Robot")
+    @get:AutoLogOutput(key = "Odometry/frc.team2471.off2025.Robot")
     var pose: Pose2d
         /** Returns the current odometry pose.  */
         get() = poseEstimator.estimatedPosition
@@ -223,9 +223,7 @@ object Drive : SubsystemBase("Drive") {
 
         if (DriverStation.isDisabled()) {
             // Stop moving when disabled
-            modules.forEach {
-                it.runVelocitySetpoint(it.state.apply { speedMetersPerSecond = 0.0 })
-            }
+            driveVelocity(ChassisSpeeds())
             // Log empty setpoint states when disabled
             Logger.recordOutput("SwerveStates/Setpoints", *arrayOf<SwerveModuleState>())
             Logger.recordOutput("SwerveStates/SetpointsOptimized", *arrayOf<SwerveModuleState>())
