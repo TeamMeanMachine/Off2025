@@ -16,6 +16,7 @@ import frc.team2471.off2025.commands.wheelRadiusCharacterization
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
+import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.LogFileUtil
@@ -96,6 +97,7 @@ object Robot : LoggedRobot() {
 
     /** This function is called periodically during all modes.  */
     override fun robotPeriodic() {
+        LoopLogger.reset()
         // Optionally switch the thread to high priority to improve loop
         // timing (see the template project documentation for details)
 //         Threads.setCurrentThreadPriority(true, 99);
@@ -120,6 +122,7 @@ object Robot : LoggedRobot() {
 
         // Return to non-RT thread priority (do not modify the first argument)
 //         Threads.setCurrentThreadPriority(false, 10);
+        LoopLogger.record("Robot periodic()")
     }
 
     fun enabledInit() {

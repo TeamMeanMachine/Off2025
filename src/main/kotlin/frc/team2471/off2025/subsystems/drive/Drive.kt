@@ -263,6 +263,7 @@ object Drive : SubsystemBase("Drive") {
 
         // Update gyro alert
         gyroDisconnectedAlert.set(!gyroInputs.connected && isReal)
+        LoopLogger.record("Drive periodic()")
     }
 
     private fun updateArcOdometry(modulePositions: Array<SwerveModulePosition?>, gyroAngle: Rotation2d?, timestamp: Double) {
@@ -347,8 +348,10 @@ object Drive : SubsystemBase("Drive") {
             module.runVelocitySetpoint(setpointStates[i])
         }
 
+
         // Log optimized setpoints (runSetpoint mutates each state)
         Logger.recordOutput("SwerveStates/SetpointsOptimized", *setpointStates)
+        LoopLogger.record("driveVelocity")
     }
 
     fun driveVoltage(speedsInVolts: ChassisSpeeds) {
