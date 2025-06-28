@@ -149,7 +149,7 @@ object Drive : SubsystemBase("Drive") {
         /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
         get() = modules.sumOf { it.fFCharacterizationVelocity / 4.0 }
 
-    @get:AutoLogOutput(key = "Odometry/frc.team2471.off2025.Robot")
+    @get:AutoLogOutput(key = "Odometry/Robot")
     var pose: Pose2d
         /** Returns the current odometry pose.  */
         get() = poseEstimator.estimatedPosition
