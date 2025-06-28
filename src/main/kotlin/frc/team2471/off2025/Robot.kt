@@ -13,6 +13,7 @@
 package frc.team2471.off2025
 
 import com.pathplanner.lib.auto.AutoBuilder
+import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
@@ -21,6 +22,7 @@ import frc.team2471.off2025.commands.ExampleCommand
 import frc.team2471.off2025.commands.feedforwardCharacterization
 import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.commands.wheelRadiusCharacterization
+import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
 import frc.team2471.off2025.util.RobotMode
@@ -42,12 +44,23 @@ import kotlin.collections.iterator
  * project.
  */
 object Robot : LoggedRobot() {
-    // Subsystems
-    val allSubsystems = arrayOf(Drive)
     val isCompBot = getCompBotBoolean()
 
+
+    // Subsystems:
+    // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
+    val drive = Drive
+    val oi = OI
+    val exampleSubsystem = ExampleSubsystem
+
+
+    var allSubsystems = arrayOf(drive, oi, exampleSubsystem)
+
+
+    private var wasDisabled = true
+
     // Dashboard inputs
-    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
+    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
         addOption("ExampleCommand", ExampleCommand())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
@@ -58,7 +71,7 @@ object Robot : LoggedRobot() {
         addOption("Drive SysId (Quasistatic Reverse)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
         addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
         addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
-        addOption("Zero Turn Encoders", Drive.setAngleOffsets())
+        addOption("Set Angle Offsets", Drive.setAngleOffsets())
         addOption("JoystickTest", joystickTest())
     }
 
@@ -81,11 +94,13 @@ object Robot : LoggedRobot() {
             }
         }
 
+        DriverStation.silenceJoystickConnectionWarning(true)
+
+
         // Start AdvantageKit logger
         Logger.start()
         OdometrySignalThread
-        allSubsystems.forEach { _ -> }
-        OI
+        allSubsystems.forEach { println("activating subsystem ${it.name}") }
     }
 
     /** This function is called periodically during all modes.  */
@@ -100,10 +115,24 @@ object Robot : LoggedRobot() {
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
 
+        if (Robot.isEnabled) {
+            if (wasDisabled) {
+                enabledInit()
+                wasDisabled = false
+            }
+        } else {
+            wasDisabled = true
+        }
+
+
         CommandScheduler.getInstance().run()
 
         // Return to non-RT thread priority (do not modify the first argument)
 //         Threads.setCurrentThreadPriority(false, 10);
+    }
+
+    fun enabledInit() {
+        Drive.brakeMode()
     }
 
     /** This function is called once when the robot is disabled.  */
