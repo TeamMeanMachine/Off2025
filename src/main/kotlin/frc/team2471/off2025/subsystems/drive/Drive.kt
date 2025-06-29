@@ -50,13 +50,11 @@ import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIONavX
 import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
 import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.atan2
 import frc.team2471.off2025.util.swerve.SwerveSetpointGenerator
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
-import kotlin.math.cos
-import kotlin.math.hypot
-import kotlin.math.roundToInt
-import kotlin.math.sin
+import kotlin.math.*
 
 object Drive : SubsystemBase("Drive") {
     private val modules =  arrayOf(
@@ -118,14 +116,14 @@ object Drive : SubsystemBase("Drive") {
 
     private val gyroDisconnectedAlert = Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError)
 
+    var prevGeneratedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState() })
     val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations,
         SwerveSetpointGenerator.ModuleLimits(
             4.75,//TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
             22.0,
-            60.0.rotationsPerSecond.asRadiansPerSecond
+            4.0.rotationsPerSecond.asRadiansPerSecond
         )
     )
-    var prevOptimizedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState()})
 
     @get:AutoLogOutput(key = "SwerveStates/Measured")
     private val moduleStates: Array<SwerveModuleState>
@@ -327,31 +325,35 @@ object Drive : SubsystemBase("Drive") {
         // Calculate module setpoints
         val discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02)
 
-        val generatedSetpoints = setpointGenerator.generateSetpoint(
-            prevOptimizedSetpoint,
+        val generatedSetpoint = setpointGenerator.generateSetpoint(
+            prevGeneratedSetpoint,
             discreteSpeeds,
             0.02
         )
-        prevOptimizedSetpoint = generatedSetpoints
+        //must use .copy inside of generatedSetpints.moduleStates or else they will change if modified by another function
+        prevGeneratedSetpoint = generatedSetpoint.copy(moduleStates = generatedSetpoint.moduleStates.map { SwerveModuleState(it.speedMetersPerSecond, it.angle) }.toTypedArray())
 
         val setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds)
         SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, TunerConstants.kSpeedAt12Volts)
 
         // Log unoptimized setpoints and setpoint speeds
+        Logger.recordOutput("SwerveStates/WantedVelocity", hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond))
+        Logger.recordOutput("SwerveStates/Velocity", generatedSetpoint.moduleStates.first().speedMetersPerSecond.absoluteValue)
         Logger.recordOutput("SwerveStates/Setpoints", *setpointStates)
-        Logger.recordOutput("SwerveStates/GeneratedSetpoints", *generatedSetpoints.moduleStates)
+        Logger.recordOutput("SwerveStates/GeneratedSetpoints", *generatedSetpoint.moduleStates)
+        Logger.recordOutput("SwerveChassisSpeeds/WantedSetpoint", speeds)
         Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds)
-        Logger.recordOutput("SwerveChassisSpeeds/GeneratedSetpoints", generatedSetpoints.chassisSpeeds)
+        Logger.recordOutput("SwerveChassisSpeeds/GeneratedSetpoints", generatedSetpoint.chassisSpeeds)
 
         // Send setpoints to modules
         modules.forEachIndexed { i, module ->
-            module.runVelocitySetpoint(setpointStates[i])
+            module.runVelocitySetpoint(generatedSetpoint.moduleStates[i])
         }
 
 
         // Log optimized setpoints (runSetpoint mutates each state)
-        Logger.recordOutput("SwerveStates/SetpointsOptimized", *setpointStates)
-        LoopLogger.record("driveVelocity")
+//        Logger.recordOutput("SwerveStates/SetpointsOptimized", *setpointStates)
+        LoopLogger.record("driveVelocity()")
     }
 
     fun driveVoltage(speedsInVolts: ChassisSpeeds) {

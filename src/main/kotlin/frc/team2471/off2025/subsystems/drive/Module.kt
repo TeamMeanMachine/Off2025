@@ -23,7 +23,6 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Alert.AlertType
 import frc.team2471.off2025.util.RobotMode
-import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.Logger
 
@@ -107,7 +106,7 @@ class Module(
 
     /** Runs the module with the specified setpoint state. Mutates the state to optimize it.  */
     fun runVelocitySetpoint(state: SwerveModuleState) {
-        state.optimizeAndCosineScale()
+//        state.optimizeAndCosineScale()
 
         //convert from mps to radians per second
         state.speedMetersPerSecond /= constants.WheelRadius
