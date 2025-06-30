@@ -66,7 +66,7 @@ object Drive: SubsystemBase("Drive") {
     }
 
     //sysID
-    private val translationSysId = SysIdRoutine(
+    private val translationSysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             null,
             7.0.volts,
@@ -75,7 +75,7 @@ object Drive: SubsystemBase("Drive") {
         Mechanism({ output: Voltage -> io.setDriveRequest(SysIdSwerveTranslation().withVolts(output))}, null, this)
     )
     //used to find driveAtAngleRequest PID
-    private val rotationSysId = SysIdRoutine(
+    private val rotationSysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             Units.Volts.of(Math.PI / 6).per(Units.Second),
             Math.PI.volts,
@@ -195,4 +195,13 @@ object Drive: SubsystemBase("Drive") {
     fun setAngleOffsets() = runOnce {
         io.setAngleOffsets()
     }
+
+
+    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.dynamic(direction)
+    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.quasistatic(direction)
+    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.dynamic(direction)
+    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.quasistatic(direction)
+    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.dynamic(direction)
+    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.quasistatic(direction)
+
 }

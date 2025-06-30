@@ -31,7 +31,7 @@ interface DriveIO {
     fun setAngleOffsets()
 
 
-    open class DriveIOInputs: LoggableInputs, Cloneable {
+    open class DriveIOInputs: LoggableInputs {
         @JvmField var pose = Pose2d()
         @JvmField var speeds = ChassisSpeeds()
         @JvmField var moduleStates = arrayOf<SwerveModuleState>()
@@ -47,6 +47,7 @@ interface DriveIO {
         @JvmField var gyroInputs = GyroInput()
 
         override fun toLog(table: LogTable) {
+            //Swerve
             table.put("Pose", pose)
             table.put("Speeds", speeds)
             table.put("ModuleStates", *moduleStates)
@@ -58,6 +59,7 @@ interface DriveIO {
             table.put("SuccessfulDaqs", successfulDaqs)
             table.put("FailedDaqs", failedDaqs)
 
+            //modules
             moduleInputs.forEachIndexed { i, input ->
                 val prefix = "Module $i/"
                 table.put(prefix + "driveConnected", input.driveConnected)
@@ -73,6 +75,18 @@ interface DriveIO {
                 table.put(prefix + "encoderConnected", input.encoderConnected)
                 table.put(prefix + "encoderAbsoluteAngle", input.encoderAbsoluteAngle)
             }
+
+            //gyro
+            table.put("Gyro/gyroConnected", gyroInputs.gyroConnected)
+            table.put("Gyro/yaw", gyroInputs.yaw)
+            table.put("Gyro/yawRate", gyroInputs.yawRate)
+            table.put("Gyro/pitch", gyroInputs.pitch)
+            table.put("Gyro/pitchRate", gyroInputs.pitchRate)
+            table.put("Gyro/roll", gyroInputs.roll)
+            table.put("Gyro/rollRate", gyroInputs.rollRate)
+            table.put("Gyro/xAccel", gyroInputs.xAccel)
+            table.put("Gyro/yAccel", gyroInputs.yAccel)
+
             LoopLogger.record("DriveIOInputs.toLog()")
         }
 
@@ -103,6 +117,17 @@ interface DriveIO {
                     encoderConnected = table[prefix + "encoderConnected", encoderConnected]
                     encoderAbsoluteAngle = table[prefix + "encoderAbsoluteAngle", encoderAbsoluteAngle]
                 }
+            }
+            gyroInputs = GyroInput().apply {
+                gyroConnected = table["Gyro/gyroConnected", gyroConnected]
+                yaw = table["Gyro/yaw", yaw]
+                yawRate = table["Gyro/yawRate", yawRate]
+                pitch = table["Gyro/pitch", pitch]
+                pitchRate = table["Gyro/pitchRate", pitchRate]
+                roll = table["Gyro/roll", roll]
+                rollRate = table["Gyro/rollRate", rollRate]
+                xAccel = table["Gyro/xAccel", xAccel]
+                yAccel = table["Gyro/yAccel", yAccel]
             }
         }
     }

@@ -1,12 +1,14 @@
 @file:JvmName("Main") // set the compiled Java class name to "Main" rather than "MainKt"
 package frc.team2471.off2025
 
+import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.ExampleCommand
 import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.ExampleSubsystem
@@ -14,6 +16,7 @@ import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
+import frc.team2471.off2025.util.sequenceCommand
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -54,10 +57,16 @@ object Robot : LoggedRobot() {
         // Set up SysId routines
 //        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
 //        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
-//        addOption("Drive SysId (Quasistatic Forward)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward))
-//        addOption("Drive SysId (Quasistatic Reverse)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
-//        addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
-//        addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
+        addOption("Drive Translation SysId ALL", sequenceCommand(
+            Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
+            Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
+        ))
+        addOption("Drive Translation SysId (Quasistatic Forward)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward))
+        addOption("Drive Translation SysId (Quasistatic Reverse)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse))
+        addOption("Drive Translation SysId (Dynamic Forward)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward))
+        addOption("Drive Translation SysId (Dynamic Reverse)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse))
         addOption("Set Angle Offsets", Drive.setAngleOffsets())
         addOption("JoystickTest", joystickTest())
     }
@@ -83,6 +92,7 @@ object Robot : LoggedRobot() {
 
         DriverStation.silenceJoystickConnectionWarning(true)
 
+        SignalLogger.start()
 
         // Start AdvantageKit logger
         Logger.start()
