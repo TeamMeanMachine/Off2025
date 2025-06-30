@@ -12,288 +12,125 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025.subsystems.drive
 
-import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.config.ModuleConfig
-import com.pathplanner.lib.config.PIDConstants
-import com.pathplanner.lib.config.RobotConfig
-import com.pathplanner.lib.controllers.PPHolonomicDriveController
-import com.pathplanner.lib.pathfinding.Pathfinding
-import com.pathplanner.lib.util.PathPlannerLogging
-import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator
+import com.ctre.phoenix6.SignalLogger
+import com.ctre.phoenix6.swerve.SwerveModule
+import com.ctre.phoenix6.swerve.SwerveRequest.*
+import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
+import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
-import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics
-import edu.wpi.first.math.kinematics.SwerveModulePosition
-import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.math.numbers.N1
-import edu.wpi.first.math.numbers.N3
-import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Alert
-import edu.wpi.first.wpilibj.Alert.AlertType
-import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.Preferences
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
-import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
-import frc.team2471.off2025.subsystems.drive.gyro.GyroIO
-import frc.team2471.off2025.subsystems.drive.gyro.GyroIOInputsAutoLogged
-import frc.team2471.off2025.subsystems.drive.gyro.GyroIONavX
-import frc.team2471.off2025.subsystems.drive.gyro.GyroIOPigeon2
+import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
-import frc.team2471.off2025.util.atan2
-import frc.team2471.off2025.util.swerve.SwerveSetpointGenerator
-import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
 
-object Drive : SubsystemBase("Drive") {
-    private val modules =  arrayOf(
-        Module(0, TunerConstants.FrontLeft),
-        Module(1, TunerConstants.FrontRight),
-        Module(2, TunerConstants.BackLeft),
-        Module(3, TunerConstants.BackRight)
-    ) // FL, FR, BL, BR
+object Drive: SubsystemBase("Drive") {
+    val io: DriveIO = DriveIOCTRE(TunerConstants.DrivetrainConstants, TunerConstants.FrontLeft, TunerConstants.FrontRight, TunerConstants.BackLeft, TunerConstants.BackRight)
+    val driveInputs = DriveIO.DriveIOInputs()
 
-    private val gyroInputs: GyroIOInputsAutoLogged = GyroIOInputsAutoLogged()
-    private val gyroIO: GyroIO = when (robotMode) {
-        RobotMode.REAL -> if (Robot.isCompBot) GyroIONavX() else GyroIOPigeon2()
-        RobotMode.SIM -> GyroIOPigeon2()
-        else -> object : GyroIO {}
+    var pose: Pose2d
+        get() = driveInputs.pose
+        set(value) = io.resetPose(value)
+
+    var rotation: Rotation2d
+        get() = pose.rotation
+        set(value) = io.resetHeading(value.measure)
+
+    val speeds: ChassisSpeeds
+        get() = driveInputs.speeds
+
+    private val pathXController = PIDController(0.0, 0.0, 0.0)
+    private val pathYController = PIDController(0.0, 0.0, 0.0)
+    private val pathThetaController = PIDController(0.0, 0.0, 0.0).apply {
+        enableContinuousInput(-Math.PI, Math.PI)
     }
 
-    private var rawGyroRotation = Rotation2d()
+    private val autoDriveToPointController = PIDController(0.0, 0.0, 0.0)
+    private val teleopDriveToPointController = PIDController(0.0, 0.0, 0.0)
 
-    private val kinematics = SwerveDriveKinematics(*TunerConstants.moduleTranslations)
-    private val lastModulePositions = Array(4) { SwerveModulePosition() }// For delta tracking
-    private var lastModulePositionsArc = Array(4) { SwerveModulePosition() }
-
-    private val poseEstimator = SwerveDrivePoseEstimator(kinematics, rawGyroRotation, lastModulePositions, Pose2d())
-
-    /** Returns the maximum linear speed in meters per sec.  */
-    val maxLinearSpeedMetersPerSec: Double = TunerConstants.kSpeedAt12Volts.asMetersPerSecond
-    /** Returns the maximum angular speed in radians per sec.  */
-    val maxAngularSpeedRadPerSec: Double = this.maxLinearSpeedMetersPerSec / TunerConstants.DRIVE_BASE_RADIUS
-
-    // PathPlanner config constants
-    private val ROBOT_MASS_KG = 135.0.pounds.asKilograms
-    private const val ROBOT_MOI = 6.883 //3KG m^2
-    private const val WHEEL_COF = 1.2
-
-    private val pathPlannerConfig: RobotConfig = RobotConfig(
-        ROBOT_MASS_KG,
-        ROBOT_MOI,
-        ModuleConfig(
-            TunerConstants.FrontLeft.WheelRadius,
-            TunerConstants.kSpeedAt12Volts.`in`(Units.MetersPerSecond),
-            WHEEL_COF,
-            DCMotor.getKrakenX60Foc(1).withReduction(TunerConstants.FrontLeft.DriveMotorGearRatio),
-            TunerConstants.FrontLeft.SlipCurrent,
-            1
-        ),
-        *TunerConstants.moduleTranslations
-    )
-
-    private val sysId: SysIdRoutine = SysIdRoutine(
-        SysIdRoutine.Config(
-            0.5.voltsPerSecond,
-            5.0.volts,
-            5.0.seconds
-        ) { state: SysIdRoutineLog.State? -> Logger.recordOutput("Drive/SysIdState", state.toString()) },
-        Mechanism({ voltage: Voltage? -> runCharacterization(voltage!!.`in`(Units.Volts)) }, {
-            SysIdRoutineLog("hi").motor("drive")
-        }, this)
-    )
-
-    private val gyroDisconnectedAlert = Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError)
-
-    var prevGeneratedSetpoint = SwerveSetpointGenerator.SwerveSetpoint(ChassisSpeeds(), Array(4) { SwerveModuleState() })
-    val setpointGenerator = SwerveSetpointGenerator(kinematics, TunerConstants.moduleTranslations,
-        SwerveSetpointGenerator.ModuleLimits(
-            4.75,//TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-            22.0,
-            4.0.rotationsPerSecond.asRadiansPerSecond
-        )
-    )
-
-    @get:AutoLogOutput(key = "SwerveStates/Measured")
-    private val moduleStates: Array<SwerveModuleState>
-        /** Returns the module states (turn angles and drive velocities) for all the modules.  */
-        get() = Array(4) { modules[it].state }
-
-    private val modulePositions: Array<SwerveModulePosition>
-        /** Returns the module positions (turn angles and drive positions) for all the modules.  */
-        get() = Array(4) { modules[it].position}
-
-    @get:AutoLogOutput(key = "SwerveChassisSpeeds/Measured")
-    val chassisSpeeds: ChassisSpeeds
-        /** Returns the measured chassis speeds of the robot.  */
-        get() = kinematics.toChassisSpeedsK(this.moduleStates)
-
-    val wheelRadiusCharacterizationPositions: DoubleArray
-        /** Returns the position of each module in radians.  */
-        get() = DoubleArray(4) { modules[it].wheelRadiusCharacterizationPosition }
-
-    val fFCharacterizationVelocity: Double
-        /** Returns the average velocity of the modules in rotations/sec (Phoenix native units).  */
-        get() = modules.sumOf { it.fFCharacterizationVelocity / 4.0 }
-
-    @get:AutoLogOutput(key = "Odometry/Robot")
-    var pose: Pose2d
-        /** Returns the current odometry pose.  */
-        get() = poseEstimator.estimatedPosition
-        /** Resets the current odometry pose.  */
-        set(pose) {
-            poseEstimator.resetPosition(rawGyroRotation, this.modulePositions, pose)
+    private val driveAtAngleRequest = FieldCentricFacingAngle().withDriveRequestType(SwerveModule.DriveRequestType.Velocity).apply {
+        HeadingController = PhoenixPIDController(0.0, 0.0, 0.0).apply {
+            enableContinuousInput(-Math.PI, Math.PI)
         }
+    }
 
-    @get:AutoLogOutput(key = "Odometry/arcPose")
-    var arcPose: Pose2d = Pose2d()
+    //sysID
+    private val translationSysId = SysIdRoutine(
+        SysIdRoutine.Config(
+            null,
+            7.0.volts,
+            5.0.seconds
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdTranslation_State", state.toString())},
+        Mechanism({ output: Voltage -> io.setDriveRequest(SysIdSwerveTranslation().withVolts(output))}, null, this)
+    )
+    //used to find driveAtAngleRequest PID
+    private val rotationSysId = SysIdRoutine(
+        SysIdRoutine.Config(
+            Units.Volts.of(Math.PI / 6).per(Units.Second),
+            Math.PI.volts,
+            5.0.seconds
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdRotation_State", state.toString())},
+        Mechanism({ output: Voltage ->
+            /* output is actually radians per second, but SysId only supports "volts" */
+            io.setDriveRequest(SysIdSwerveRotation().withRotationalRate(output.asVolts))
+            /* also log the requested output for SysId */
+            SignalLogger.writeDouble("Rotational_Rate", output.asVolts)
+        }, null, this)
+    )
+    private val steerSysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            null,
+            7.0.volts,
+            null
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdSteer_State", state.toString()) },
+        Mechanism({ volts: Voltage? -> io.setDriveRequest(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
+    )
 
-    val rotation: Rotation2d
-        /** Returns the current odometry rotation.  */
-        get() = this.pose.rotation
+    val gyroDisconnectedAlert = Alert("Gyro Disconnected", Alert.AlertType.kError)
+    val moduleDisconnectedAlerts = Array<Triple<Alert, Alert, Alert>>(4) {
+        Triple(
+            Alert("Module $it Drive Motor Disconnected", Alert.AlertType.kError),
+            Alert("Module $it Steer Motor Disconnected", Alert.AlertType.kError),
+            Alert("Module $it Encoder Disconnected", Alert.AlertType.kError),
+        )
+    }
+
 
     init {
-        // Start odometry thread
-        OdometrySignalThread.start()
-
-        // Configure AutoBuilder for PathPlanner
-        AutoBuilder.configure(
-            { this.pose },
-            { pose: Pose2d? ->
-                if (pose != null) {
-                    this.pose = pose
-                }
-            },
-            { this.chassisSpeeds },
-            { speeds: ChassisSpeeds? -> this.driveVelocity(speeds!!) },
-            PPHolonomicDriveController(PIDConstants(5.0, 0.0, 0.0), PIDConstants(5.0, 0.0, 0.0)),
-            pathPlannerConfig,
-            { isRedAlliance },
-            this
-        )
-        Pathfinding.setPathfinder(LocalADStarAK())
-        PathPlannerLogging.setLogActivePathCallback { activePath: MutableList<Pose2d> ->
-            Logger.recordOutput("Odometry/Trajectory", *activePath.toTypedArray<Pose2d>())
-        }
-        PathPlannerLogging.setLogTargetPoseCallback { targetPose: Pose2d? ->
-            Logger.recordOutput("Odometry/TrajectorySetpoint", targetPose)
-        }
-
-        val missingPrefsModules = arrayListOf<Int>()
-        val conflictingOffsets = arrayListOf<Int>()
-        modules.filter { it.isEncoderConnected }.forEachIndexed { i, module ->
-            val prefsOffset = Preferences.getDouble("Module $i Offset", Double.NaN).degrees
-            val encoderOffset = module.cancoderOffset
-            if (prefsOffset.asDegrees.isNaN()) {
-                //couldn't find prefs
-                println("module $i has missing Preferences, setting to encoders Offset: ${encoderOffset.asDegrees.roundToInt()}")
-                Preferences.setDouble("Module $i Offset", encoderOffset.asDegrees)
-                missingPrefsModules.add(i)
-            } else if (prefsOffset.asDegrees.roundToInt() != encoderOffset.asDegrees.roundToInt()) {
-                //offsets are different, default to prefs
-                println("module $i has conflicting offsets. prefsOffset: ${prefsOffset.asDegrees.round(2)} encoders Offset: ${encoderOffset.asDegrees.round(2)}")
-                module.setCANCoderOffset(prefsOffset)
-                conflictingOffsets.add(i)
-            }
-        }
-
-        missingPrefsModules.forEach { Alert("Module $it had missing prefs", AlertType.kWarning).set(true) }
-        conflictingOffsets.forEach { Alert("Module $it had conflicting offsets", AlertType.kWarning).set(true) }
+        println("inside Drive init")
+        coastMode()
     }
 
     override fun periodic() {
-        OdometrySignalThread.odometryLock.lock() // Prevents updates while reading data
-        gyroIO.updateInputs(gyroInputs)
-        Logger.processInputs("Drive/Gyro", gyroInputs)
-        modules.forEach { it.periodic() }
-        OdometrySignalThread.odometryLock.unlock()
+        io.updateInputs(driveInputs)
+        Logger.processInputs("Drive", driveInputs)
 
-        if (DriverStation.isDisabled()) {
-            // Stop moving when disabled
-            driveVelocity(ChassisSpeeds())
-            // Log empty setpoint states when disabled
-            Logger.recordOutput("SwerveStates/Setpoints", *arrayOf<SwerveModuleState>())
-            Logger.recordOutput("SwerveStates/SetpointsOptimized", *arrayOf<SwerveModuleState>())
+        gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
+        driveInputs.moduleInputs.forEachIndexed { i, mInput ->
+            val moduleAlert = moduleDisconnectedAlerts[i]
+            moduleAlert.first.set(!mInput.driveConnected)
+            moduleAlert.second.set(!mInput.steerConnected)
+            moduleAlert.third.set(!mInput.encoderConnected)
         }
 
-        // Update odometry
-        val sampleTimestamps = modules.first().odometryTimestamps // All signals are sampled together
-        for (i in sampleTimestamps.indices) {
-            // Read wheel positions and deltas from each module
-            val modulePositions = arrayOfNulls<SwerveModulePosition>(4)
-            val moduleDeltas = arrayOfNulls<SwerveModulePosition>(4)
-            for (moduleIndex in 0..3) {
-                modulePositions[moduleIndex] = modules[moduleIndex].odometryPositions[i]
-                moduleDeltas[moduleIndex] = SwerveModulePosition(
-                    modulePositions[moduleIndex]!!.distanceMeters - lastModulePositions[moduleIndex].distanceMeters,
-                    modulePositions[moduleIndex]!!.angle
-                )
-                lastModulePositions[moduleIndex] = modulePositions[moduleIndex]!!
-            }
 
-            // Update gyro angle
-            if (gyroInputs.connected) {
-                // Use the real gyro angle
-                rawGyroRotation = gyroInputs.odometryYawPositions[i]
-            } else {
-                // Use the angle delta from the kinematics and module deltas
-                val twist = kinematics.toTwist2d(*moduleDeltas)
-//                println("twist: $twist")
-                rawGyroRotation = rawGyroRotation.plus(Rotation2d(twist.dtheta))
-            }
-
-            // Apply update
-            poseEstimator.updateWithTime(sampleTimestamps[i], rawGyroRotation, modulePositions)
-
-            updateArcOdometry(modulePositions, if (gyroInputs.connected) gyroInputs.odometryYawPositions[i] else null, sampleTimestamps[i])
+        if (Robot.isDisabled) {
+            driveVoltage(ChassisSpeeds())
         }
 
-        // Update gyro alert
-        gyroDisconnectedAlert.set(!gyroInputs.connected && isReal)
+
         LoopLogger.record("Drive periodic()")
-    }
-
-    private fun updateArcOdometry(modulePositions: Array<SwerveModulePosition?>, gyroAngle: Rotation2d?, timestamp: Double) {
-        val moduleDeltas = Array(modulePositions.size) { i ->
-            val prevAngle = lastModulePositionsArc[i].angle
-            val currAngle = modulePositions[i]!!.angle
-            val deltaDistanceMeters = (modulePositions[i]!!.distanceMeters - lastModulePositionsArc[i].distanceMeters)
-            val deltaAngleRad = currAngle.radians - prevAngle.radians
-            lastModulePositionsArc[i] = modulePositions[i]!!
-
-            if (deltaAngleRad == 0.0) {
-                SwerveModulePosition(deltaDistanceMeters, currAngle)
-            } else {
-                val radius = deltaDistanceMeters / deltaAngleRad
-
-                val centerOfArcToPrevPos = Translation2d(
-                    radius * cos(prevAngle.radians - Math.PI / 2.0),
-                    radius * sin(prevAngle.radians - Math.PI / 2.0)
-                )
-                val centerOfArcToCurrPos = centerOfArcToPrevPos.rotateBy(deltaAngleRad.radians.asRotation2d())
-                val arcDisplacement = centerOfArcToCurrPos - centerOfArcToPrevPos
-
-                SwerveModulePosition(arcDisplacement.norm, Rotation2d(atan2(arcDisplacement.y, arcDisplacement.x)))
-            }
-        }
-
-        Logger.recordOutput("Odometry/ModuleDeltas", *(moduleDeltas.map { SwerveModuleState(it.distanceMeters, it.angle) }).toTypedArray<SwerveModuleState>())
-
-        val twist = kinematics.toTwist2d(*moduleDeltas)
-        val gyroDelta = twist.dtheta.radians.asDegrees
-
-        arcPose = Pose2d(arcPose.exp(twist).translation, gyroAngle ?: (arcPose.rotation.measure.asDegrees + gyroDelta).degrees.asRotation2d())
     }
 
     fun getChassisSpeedsFromJoystick(): ChassisSpeeds {
@@ -307,9 +144,9 @@ object Drive : SubsystemBase("Drive") {
         val omega = OI.driveRotation.cube()
 
         val chassisSpeeds = ChassisSpeeds(
-            x * maxLinearSpeedMetersPerSec,
-            y * maxLinearSpeedMetersPerSec,
-            omega * maxAngularSpeedRadPerSec
+            x * TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
+            y * TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
+            omega * maxAngularSpeedRadPerSec.asRadiansPerSecond
         )
 
 //        println("linearVelocity = ${chassisSpeeds.translation.norm}")
@@ -322,92 +159,40 @@ object Drive : SubsystemBase("Drive") {
      * @param speeds Speeds in meters/sec
      */
     fun driveVelocity(speeds: ChassisSpeeds) {
-        // Calculate module setpoints
-        val discreteSpeeds = ChassisSpeeds.discretize(speeds, 0.02)
-
-        val generatedSetpoint = setpointGenerator.generateSetpoint(
-            prevGeneratedSetpoint,
-            discreteSpeeds,
-            0.02
+        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(rotation))
+        io.setDriveRequest(
+            ApplyFieldSpeeds().apply{
+                Speeds = speeds
+                DriveRequestType = SwerveModule.DriveRequestType.Velocity
+            }
         )
-        //must use .copy inside of generatedSetpints.moduleStates or else they will change if modified by another function
-        prevGeneratedSetpoint = generatedSetpoint.copy(moduleStates = generatedSetpoint.moduleStates.map { SwerveModuleState(it.speedMetersPerSecond, it.angle) }.toTypedArray())
-
-        val setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds)
-        SwerveDriveKinematics.desaturateWheelSpeeds(setpointStates, TunerConstants.kSpeedAt12Volts)
-
-        // Log unoptimized setpoints and setpoint speeds
-        Logger.recordOutput("SwerveStates/WantedVelocity", hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond))
-        Logger.recordOutput("SwerveStates/Velocity", generatedSetpoint.moduleStates.first().speedMetersPerSecond.absoluteValue)
-        Logger.recordOutput("SwerveStates/Setpoints", *setpointStates)
-        Logger.recordOutput("SwerveStates/GeneratedSetpoints", *generatedSetpoint.moduleStates)
-        Logger.recordOutput("SwerveChassisSpeeds/WantedSetpoint", speeds)
-        Logger.recordOutput("SwerveChassisSpeeds/Setpoints", discreteSpeeds)
-        Logger.recordOutput("SwerveChassisSpeeds/GeneratedSetpoints", generatedSetpoint.chassisSpeeds)
-
-        // Send setpoints to modules
-        modules.forEachIndexed { i, module ->
-            module.runVelocitySetpoint(generatedSetpoint.moduleStates[i])
-        }
-
-
-        // Log optimized setpoints (runSetpoint mutates each state)
-//        Logger.recordOutput("SwerveStates/SetpointsOptimized", *setpointStates)
-        LoopLogger.record("driveVelocity()")
     }
 
     fun driveVoltage(speedsInVolts: ChassisSpeeds) {
-        val discreteSpeeds = ChassisSpeeds.discretize(speedsInVolts, 0.02)
-        val setpointStates = kinematics.toSwerveModuleStates(discreteSpeeds)
-
-        modules.forEachIndexed { i, module ->
-            module.runVoltageSetpoint(setpointStates[i])
-        }
+        io.setDriveRequest(
+            ApplyFieldSpeeds().apply {
+                Speeds = speedsInVolts
+                DriveRequestType = SwerveModule.DriveRequestType.OpenLoopVoltage
+            }
+        )
     }
 
-
-    /** Runs the drive in a straight line with the specified drive output.  */
-    fun runCharacterization(output: Double) = modules.forEach { it.runStraight(output) }
 
     fun stop() = driveVelocity(ChassisSpeeds())
 
-    /**
-     * Stops the drive and turns the modules to an X arrangement to resist movement. The modules will
-     * return to their normal orientations the next time a nonzero velocity is requested.
-     */
-    fun xPose() {
-        kinematics.resetHeadings(*Array<Rotation2d>(4) { TunerConstants.moduleTranslations[it].angle })
-        stop()
+    fun xPose() = io.setDriveRequest(SwerveDriveBrake())
+
+    fun zeroGyro() = io.resetHeading()
+
+    fun updateSim() {
+        if (isSim) io.updateSim()
     }
 
-    fun brakeMode() = modules.forEach { it.brakeMode() }
-    fun coastMode() = modules.forEach { it.coastMode() }
-
-    /** Returns a command to run a quasistatic test in the specified direction.  */
-    fun sysIdQuasistatic(direction: SysIdRoutine.Direction?): Command =
-        run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.quasistatic(direction))
+    fun brakeMode() = io.brakeMode()
+    fun coastMode() = io.coastMode()
 
 
-    /** Returns a command to run a dynamic test in the specified direction.  */
-    fun sysIdDynamic(direction: SysIdRoutine.Direction?): Command =
-        run { runCharacterization(0.0) }.withTimeout(1.0).andThen(sysId.dynamic(direction))
-
-
-    fun setAngleOffsets(): Command = runOnce {
-        val offsets = modules.map { it.setCANCoderAngle(0.0.degrees) }
-        offsets.forEachIndexed { i, offset ->
-            Preferences.setDouble("Module $i Offset", offset.asDegrees)
-        }
-    }
-
-    /** Adds a new timestamped vision measurement.  */
-    fun addVisionMeasurement(
-        visionRobotPoseMeters: Pose2d?,
-        timestampSeconds: Double,
-        visionMeasurementStdDevs: Matrix<N3?, N1?>?
-    ) {
-        poseEstimator.addVisionMeasurement(
-            visionRobotPoseMeters, timestampSeconds, visionMeasurementStdDevs
-        )
+    fun setAngleOffsets() = runOnce {
+        io.setAngleOffsets()
     }
 }

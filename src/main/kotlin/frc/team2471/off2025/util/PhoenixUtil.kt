@@ -13,6 +13,9 @@
 package frc.team2471.off2025.util
 
 import com.ctre.phoenix6.StatusCode
+import com.ctre.phoenix6.configs.CANcoderConfiguration
+import com.ctre.phoenix6.hardware.CANcoder
+import edu.wpi.first.units.measure.Angle
 import java.util.function.Supplier
 
 object PhoenixUtil {
@@ -23,4 +26,30 @@ object PhoenixUtil {
             if (error.isOK) break
         }
     }
+}
+/** Sets the [CANcoder]s MagnetOffset config so its current position equals the specified angle. */
+fun CANcoder.setCANCoderAngle(angle: Angle): Angle {
+    val initialConfigs = CANcoderConfiguration()
+    PhoenixUtil.tryUntilOk(5) { this.configurator.refresh(initialConfigs) }
+
+    val initialPosition = this.absolutePosition.valueAsDouble.rotations
+    val initialOffset = initialConfigs.MagnetSensor.MagnetOffset.rotations
+    println("initial position $initialPosition initial offset $initialOffset")
+
+    val rawPosition = initialPosition - initialOffset
+    val newOffset = (angle - rawPosition)
+    println("rawPosition $rawPosition new offset $newOffset")
+
+    this.setMagnetSensorOffset(newOffset)
+    return newOffset
+}
+
+/** Applies the MagnetOffset config to the [CANcoder] while not changing other configuration values. */
+fun CANcoder.setMagnetSensorOffset(offset: Angle) {
+    val initialConfigs = CANcoderConfiguration()
+    this.configurator.refresh(initialConfigs)
+
+    initialConfigs.MagnetSensor.MagnetOffset = offset.asRotations
+
+    this.configurator.apply(initialConfigs, 0.0)
 }

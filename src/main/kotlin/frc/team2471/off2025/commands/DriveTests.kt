@@ -1,30 +1,16 @@
 package frc.team2471.off2025.commands
 
-import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
-import edu.wpi.first.math.util.Units
-import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.OI.dPad
-import frc.team2471.off2025.commands.DriveCommands.FF_RAMP_RATE
-import frc.team2471.off2025.commands.DriveCommands.FF_START_DELAY
-import frc.team2471.off2025.commands.DriveCommands.WHEEL_RADIUS_MAX_VELOCITY
-import frc.team2471.off2025.commands.DriveCommands.WHEEL_RADIUS_RAMP_RATE
-import frc.team2471.off2025.commands.DriveCommands.WheelRadiusCharacterizationState
-import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.util.asDegrees
-import frc.team2471.off2025.util.radians
 import frc.team2471.off2025.util.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger
-import java.text.DecimalFormat
-import java.text.NumberFormat
 import java.util.*
-import kotlin.math.abs
 
 
 fun joystickTest(): Command {
@@ -63,12 +49,12 @@ fun velocityVoltTest(): Command {
             downPressed = false
             v -= 0.005
         }
-        println("v: $v velocity: ${Drive.chassisSpeeds.translation.norm}")
+        println("v: $v velocity: ${Drive.speeds.translation.norm}")
         Drive.driveVoltage(ChassisSpeeds(v, 0.0, 0.0))
     }
 }
 
-/** Measures the robot's wheel radius by spinning in a circle.  */
+/** Measures the robot's wheel radius by spinning in a circle.
 fun wheelRadiusCharacterization(): Command {
     val limiter = SlewRateLimiter(WHEEL_RADIUS_RAMP_RATE)
     val state = WheelRadiusCharacterizationState()
@@ -122,14 +108,14 @@ fun wheelRadiusCharacterization(): Command {
                     })
         )
     )
-}
+}*/
 
-/**
+/*
+*
  * Measures the velocity feedforward constants for the drive motors.
  *
  *
  * This command should only be used in voltage control mode.
- */
 fun feedforwardCharacterization(): Command {
     val velocitySamples: MutableList<Double> = LinkedList<Double>()
     val voltageSamples: MutableList<Double> = LinkedList<Double>()
@@ -178,4 +164,4 @@ fun feedforwardCharacterization(): Command {
                     println("\tkV: " + formatter.format(kV))
                 })
     )
-}
+}*/

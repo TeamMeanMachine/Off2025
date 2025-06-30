@@ -86,14 +86,13 @@ object OI: Subsystem {
         driverController.back().onTrue(
             runOnceCommand(Drive) {
                 Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
-                Drive.arcPose = Pose2d(Drive.arcPose.translation, Rotation2d())
             }.ignoringDisable(true))
 
         // Reset position to zero
         driverController.start().onTrue(
             runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Translation2d(), Drive.pose.rotation)
-                Drive.arcPose = Pose2d(Translation2d(), Drive.arcPose.rotation)
+                Drive.zeroGyro()
+                Drive.pose = Pose2d(Translation2d(), Drive.rotation)
             }.ignoringDisable(true))
     }
 

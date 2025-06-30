@@ -12,11 +12,14 @@ object LoopLogger {
     }
 
     /** Log the period and the time of the function.  */
-    fun record(loopName: String) {
+    fun record(loopName: String): Pair<Double, Double> {
         val now = Timer.getFPGATimestamp()
         val prevTime = prevTimes[loopName] ?: now
-        Logger.recordOutput("LoopLogger/$loopName/Period", (now - prevTime))
-        Logger.recordOutput("LoopLogger/$loopName/SinceReset", (now - startTime))
+        val period = now - prevTime
+        val sinceReset = now - startTime
         prevTimes[loopName] = now
+        Logger.recordOutput("LoopLogger/$loopName/Period", period)
+        Logger.recordOutput("LoopLogger/$loopName/SinceReset", sinceReset)
+        return Pair(period, sinceReset)
     }
 }

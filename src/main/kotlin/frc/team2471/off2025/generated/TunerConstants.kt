@@ -2,19 +2,13 @@ package frc.team2471.off2025.generated
 
 import com.ctre.phoenix6.CANBus
 import com.ctre.phoenix6.configs.*
-import com.ctre.phoenix6.hardware.CANcoder
-import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
-import com.ctre.phoenix6.swerve.SwerveDrivetrain
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
-import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.geometry.Translation2d
-import edu.wpi.first.math.numbers.N1
-import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.units.measure.*
 import frc.team2471.off2025.util.*
@@ -33,10 +27,10 @@ object TunerConstants {
     // The steer motor uses any SwerveModule.SteerRequestType control request with the
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
     private val steerGains: Slot0Configs = Slot0Configs().apply {
-        kP = 15.25
+        kP = 50.25
         kI = 0.0
         kD = 0.0
-        kS = 0.0
+        kS = 0.15
         kV = 0.0
         kA = 0.0
         StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign
@@ -68,7 +62,7 @@ object TunerConstants {
 
     // The remote sensor feedback type to use for the steer motors;
     // When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically fall back to RemoteCANcoder
-    private val kSteerFeedbackType = SwerveModuleConstants.SteerFeedbackType.SyncCANcoder
+    private val kSteerFeedbackType = SwerveModuleConstants.SteerFeedbackType.FusedCANcoder
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
@@ -100,23 +94,22 @@ object TunerConstants {
     private const val kSteerGearRatio = 21.428571428571427
     private val kWheelRadius: Distance = 2.197.inches
 
-    // Theoretical free speed (m/s) at 12 V applied output;
-    // This needs to be tuned to your individual robot
-//    @JvmField
-    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * kWheelRadius.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
-
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false
 
     private const val kPigeonId = 40
 
     // These are only used for simulation
-    private val kSteerInertia: MomentOfInertia = 0.004.kilogramSquareMeters
+    private val kSteerInertia: MomentOfInertia = 0.0000000004.kilogramSquareMeters
     private val kDriveInertia: MomentOfInertia = 0.025.kilogramSquareMeters
 
     // Simulated voltage necessary to overcome friction
     private val kSteerFrictionVoltage: Voltage = 0.2.volts
     private val kDriveFrictionVoltage: Voltage = 0.2.volts
+
+    // Theoretical free speed (m/s) at 12 V applied output;
+    // This needs to be tuned to your individual robot
+    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * kWheelRadius.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
 
     @JvmField
     val DrivetrainConstants: SwerveDrivetrainConstants = SwerveDrivetrainConstants()
@@ -272,6 +265,8 @@ object TunerConstants {
         hypot(BackLeft.LocationX, BackLeft.LocationY),
         hypot(BackRight.LocationX, BackRight.LocationY)
     )
+    /** Returns the maximum angular speed in radians per sec.  */
+    val maxAngularSpeedRadPerSec: AngularVelocity = (kSpeedAt12Volts.asMetersPerSecond / DRIVE_BASE_RADIUS).radiansPerSecond
 
     /** Returns an array of module translations. */
     val moduleTranslations = arrayOf(
@@ -280,94 +275,4 @@ object TunerConstants {
         Translation2d(BackLeft.LocationX, BackLeft.LocationY),
         Translation2d(BackRight.LocationX, BackRight.LocationY)
     )
-
-    /**
-     * Creates a CommandSwerveDrivetrain instance. This should only be called once in your robot
-     * program,.
-     */
-//    public fun createDrivetrain() {
-//        return new CommandSwerveDrivetrain(DrivetrainConstants, FrontLeft, FrontRight, BackLeft, BackRight);
-//    }
-//
-    /** Swerve Drive class utilizing CTR Electronics' Phoenix 6 API with the selected device types.  */
-    class TunerSwerveDrivetrain : SwerveDrivetrain<TalonFX?, TalonFX?, CANcoder?> {
-        /**
-         * Constructs a CTRE SwerveDrivetrain using the specified constants.
-         *
-         *
-         * This constructs the underlying hardware devices, so users should not construct the devices
-         * themselves. If they need the devices, they can access them through getters in the classes.
-         *
-         * @param drivetrainConstants Drivetrain-wide constants for the swerve drive
-         * @param modules Constants for each specific module
-         */
-        constructor(
-            drivetrainConstants: SwerveDrivetrainConstants,
-            vararg modules: SwerveModuleConstants<*, *, *>?
-        ) : super(
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
-            drivetrainConstants,
-            *modules
-        )
-
-        /**
-         * Constructs a CTRE SwerveDrivetrain using the specified constants.
-         *
-         *
-         * This constructs the underlying hardware devices, so users should not construct the devices
-         * themselves. If they need the devices, they can access them through getters in the classes.
-         *
-         * @param drivetrainConstants Drivetrain-wide constants for the swerve drive
-         * @param odometryUpdateFrequency The frequency to run the odometry loop. If unspecified or set
-         * to 0 Hz, this is 250 Hz on CAN FD, and 100 Hz on CAN 2.0.
-         * @param modules Constants for each specific module
-         */
-        constructor(
-            drivetrainConstants: SwerveDrivetrainConstants,
-            odometryUpdateFrequency: Double,
-            vararg modules: SwerveModuleConstants<*, *, *>?
-        ) : super(
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
-            drivetrainConstants,
-            odometryUpdateFrequency,
-            *modules
-        )
-
-        /**
-         * Constructs a CTRE SwerveDrivetrain using the specified constants.
-         *
-         *
-         * This constructs the underlying hardware devices, so users should not construct the devices
-         * themselves. If they need the devices, they can access them through getters in the classes.
-         *
-         * @param drivetrainConstants Drivetrain-wide constants for the swerve drive
-         * @param odometryUpdateFrequency The frequency to run the odometry loop. If unspecified or set
-         * to 0 Hz, this is 250 Hz on CAN FD, and 100 Hz on CAN 2.0.
-         * @param odometryStandardDeviation The standard deviation for odometry calculation in the form
-         * [x, y, theta]ᵀ, with units in meters and radians
-         * @param visionStandardDeviation The standard deviation for vision calculation in the form [x,
-         * y, theta]ᵀ, with units in meters and radians
-         * @param modules Constants for each specific module
-         */
-        constructor(
-            drivetrainConstants: SwerveDrivetrainConstants,
-            odometryUpdateFrequency: Double,
-            odometryStandardDeviation: Matrix<N3?, N1?>,
-            visionStandardDeviation: Matrix<N3?, N1?>,
-            vararg modules: SwerveModuleConstants<*, *, *>?
-        ) : super(
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-            DeviceConstructor { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
-            drivetrainConstants,
-            odometryUpdateFrequency,
-            odometryStandardDeviation,
-            visionStandardDeviation,
-            *modules
-        )
-    }
 }
