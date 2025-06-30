@@ -13,24 +13,13 @@
 package frc.team2471.off2025.commands
 
 import edu.wpi.first.math.controller.ProfiledPIDController
-import edu.wpi.first.math.filter.SlewRateLimiter
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.trajectory.TrapezoidProfile
-import edu.wpi.first.math.util.Units
-import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.DriverStation.Alliance
-import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.util.*
-import java.text.DecimalFormat
-import java.text.NumberFormat
-import java.util.*
 import java.util.function.Supplier
-import kotlin.math.*
 
 object DriveCommands {
     private const val ANGLE_KP = 5.0
@@ -49,7 +38,7 @@ object DriveCommands {
     fun joystickDrive(): Command {
         return Commands.run({
             // Get linear velocity
-            val chassisSpeeds = Drive.getChassisSpeedsFromJoystick().fieldToRobotCentric(if (isRedAlliance) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation)
+            val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()//.fieldToRobotCentric(if (isRedAlliance) -Drive.rotation.plus(Rotation2d(Math.PI)) else -Drive.rotation)
 
             // Convert to field relative speeds & send command
             Drive.driveVelocity(chassisSpeeds)
@@ -84,7 +73,7 @@ object DriveCommands {
                  // Calculate angular speed
                  chassisSpeeds.omegaRadiansPerSecond = angleController.calculate(Drive.rotation.radians, goalAngle.get().radians)
 
-                 Drive.driveVelocity(chassisSpeeds.fieldToRobotCentric(if (isRedAlliance) Drive.rotation.plus(Rotation2d(Math.PI)) else Drive.rotation))
+                 Drive.driveVelocity(chassisSpeeds)
             },
             Drive
         ) // Reset PID controller when command starts

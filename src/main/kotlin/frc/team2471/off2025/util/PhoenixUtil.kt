@@ -23,7 +23,7 @@ object PhoenixUtil {
     fun tryUntilOk(maxAttempts: Int, command: Supplier<StatusCode>) {
         for (i in 0..<maxAttempts) {
             val error = command.get()
-            if (error.isOK) break
+            if (error.isOK || isSim) break
         }
     }
 }

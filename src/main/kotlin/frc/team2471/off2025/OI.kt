@@ -18,17 +18,17 @@ import kotlin.math.sqrt
 import kotlin.math.withSign
 
 object OI: Subsystem {
-    val driverController = CommandXboxController(0)
-    val operatorController = CommandXboxController(1)
+    val driverController = MeanCommandXboxController(0, false)
+    val operatorController = MeanCommandXboxController(1)
 
     val deadbandDriver = 0.08
     val deadbandOperator = 0.1
 
     val driveTranslationX: Double
-        get() = -driverController.leftY.deadband(deadbandDriver)
+        get() = driverController.leftY.deadband(deadbandDriver)
 
     val driveTranslationY: Double
-        get() = -driverController.leftX.deadband(deadbandDriver)
+        get() = driverController.leftX.deadband(deadbandDriver)
 
     val driveRotation: Double
         get() = -driverController.rightX

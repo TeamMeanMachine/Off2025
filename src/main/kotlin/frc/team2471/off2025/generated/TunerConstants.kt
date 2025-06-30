@@ -39,11 +39,11 @@ object TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private val driveGains: Slot0Configs = Slot0Configs().apply {
-        kP = 0.0
+        kP = 0.3
         kI = 0.0
         kD = 0.0
         kS = 0.0
-        kV = 1.04523
+        kV = 0.15
     }
 
     // The closed-loop output type to use for the steer motors;
