@@ -23,6 +23,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
@@ -106,10 +107,12 @@ object Drive: SubsystemBase("Drive") {
         )
     }
 
+    val coastModeTimer = Timer()
+
 
     init {
         println("inside Drive init")
-        coastMode()
+        coastModeTimer.start()
     }
 
     override fun periodic() {
@@ -127,6 +130,16 @@ object Drive: SubsystemBase("Drive") {
 
         if (Robot.isDisabled) {
             driveVoltage(ChassisSpeeds())
+
+            driveInputs.moduleInputs.forEach {
+                if (it.steerVelocity.absoluteValue() > 0.1.degrees.perSecond) {
+                    coastModeTimer.reset()
+                    coastMode()
+                }
+            }
+        }
+        if (coastModeTimer.get() > 3.0) {
+            brakeMode()
         }
 
 

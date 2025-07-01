@@ -8,6 +8,9 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Angle
+import edu.wpi.first.units.measure.AngularAcceleration
+import edu.wpi.first.units.measure.AngularVelocity
+import edu.wpi.first.units.measure.LinearAcceleration
 import frc.team2471.off2025.util.*
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.inputs.LoggableInputs
@@ -43,8 +46,8 @@ interface DriveIO {
         @JvmField var successfulDaqs = 0
         @JvmField var failedDaqs = 0
 
-        @JvmField var moduleInputs: Array<ModuleInput> = Array(4) { ModuleInput() }
-        @JvmField var gyroInputs = GyroInput()
+        @JvmField var moduleInputs: Array<ModuleInput> = Array(4) { ModuleInput.Empty }
+        @JvmField var gyroInputs = GyroInput.Empty
 
         override fun toLog(table: LogTable) {
             //Swerve
@@ -63,11 +66,15 @@ interface DriveIO {
             moduleInputs.forEachIndexed { i, input ->
                 val prefix = "Module $i/"
                 table.put(prefix + "driveConnected", input.driveConnected)
+                table.put(prefix + "driveVelocity", input.driveVelocity)
+                table.put(prefix + "driveAccel", input.driveAccel)
                 table.put(prefix + "driveSupplyCurrentAmps", input.driveSupplyCurrentAmps)
                 table.put(prefix + "driveStatorCurrentAmps", input.driveStatorCurrentAmps)
                 table.put(prefix + "driveAppliedVolts", input.driveAppliedVolts)
                 table.put(prefix + "driveTemp", input.driveTemp)
                 table.put(prefix + "steerConnected", input.steerConnected)
+                table.put(prefix + "steerVelocity", input.steerVelocity)
+                table.put(prefix + "steerAccel", input.steerAccel)
                 table.put(prefix + "steerSupplyCurrentAmps", input.steerSupplyCurrentAmps)
                 table.put(prefix + "steerStatorCurrentAmps", input.steerStatorCurrentAmps)
                 table.put(prefix + "steerAppliedVolts", input.steerAppliedVolts)
@@ -102,62 +109,106 @@ interface DriveIO {
             successfulDaqs = table["SuccessfulDaqs", successfulDaqs]
             failedDaqs = table["FailedDaqs", failedDaqs]
             moduleInputs = Array(4) {
+                val m = moduleInputs[it]
                 val prefix = "Module $it/"
-                ModuleInput().apply {
-                    driveConnected = table[prefix + "driveConnected", driveConnected]
-                    driveSupplyCurrentAmps = table[prefix + "driveSupplyCurrentAmps", driveSupplyCurrentAmps]
-                    driveStatorCurrentAmps = table[prefix + "driveStatorCurrentAmps", driveStatorCurrentAmps]
-                    driveAppliedVolts = table[prefix + "driveAppliedVolts", driveAppliedVolts]
-                    driveTemp = table[prefix + "driveTemp", driveTemp]
-                    steerConnected = table[prefix + "steerConnected", steerConnected]
-                    steerSupplyCurrentAmps = table[prefix + "steerSupplyCurrentAmps", steerSupplyCurrentAmps]
-                    steerStatorCurrentAmps = table[prefix + "steerStatorCurrentAmps", steerStatorCurrentAmps]
-                    steerAppliedVolts = table[prefix + "steerAppliedVolts", steerAppliedVolts]
-                    steerTemp = table[prefix + "steerTemp", steerTemp]
-                    encoderConnected = table[prefix + "encoderConnected", encoderConnected]
-                    encoderAbsoluteAngle = table[prefix + "encoderAbsoluteAngle", encoderAbsoluteAngle]
-                }
+                ModuleInput(
+                    driveConnected = table[prefix + "driveConnected", m.driveConnected],
+                    driveVelocity = table[prefix + "driveVelocityRot", m.driveVelocity],
+                    driveAccel = table[prefix + "driveAccelRot", m.driveAccel],
+                    driveSupplyCurrentAmps = table[prefix + "driveSupplyCurrentAmps", m.driveSupplyCurrentAmps],
+                    driveStatorCurrentAmps = table[prefix + "driveStatorCurrentAmps", m.driveStatorCurrentAmps],
+                    driveAppliedVolts = table[prefix + "driveAppliedVolts", m.driveAppliedVolts],
+                    driveTemp = table[prefix + "driveTemp", m.driveTemp],
+                    steerConnected = table[prefix + "steerConnected", m.steerConnected],
+                    steerVelocity = table[prefix + "steerVelocityRot", m.steerVelocity],
+                    steerAccel = table[prefix + "steerAccelRot", m.steerAccel],
+                    steerSupplyCurrentAmps = table[prefix + "steerSupplyCurrentAmps", m.steerSupplyCurrentAmps],
+                    steerStatorCurrentAmps = table[prefix + "steerStatorCurrentAmps", m.steerStatorCurrentAmps],
+                    steerAppliedVolts = table[prefix + "steerAppliedVolts", m.steerAppliedVolts],
+                    steerTemp = table[prefix + "steerTemp", m.steerTemp],
+                    encoderConnected = table[prefix + "encoderConnected", m.encoderConnected],
+                    encoderAbsoluteAngle = table[prefix + "encoderAbsoluteAngle", m.encoderAbsoluteAngle]
+                )
             }
-            gyroInputs = GyroInput().apply {
-                gyroConnected = table["Gyro/gyroConnected", gyroConnected]
-                yaw = table["Gyro/yaw", yaw]
-                yawRate = table["Gyro/yawRate", yawRate]
-                pitch = table["Gyro/pitch", pitch]
-                pitchRate = table["Gyro/pitchRate", pitchRate]
-                roll = table["Gyro/roll", roll]
-                rollRate = table["Gyro/rollRate", rollRate]
-                xAccel = table["Gyro/xAccel", xAccel]
-                yAccel = table["Gyro/yAccel", yAccel]
-            }
+            gyroInputs = GyroInput(
+                gyroConnected =  table["Gyro/gyroConnected", gyroInputs.gyroConnected],
+                yaw = table["Gyro/yaw", gyroInputs.yaw],
+                yawRate = table["Gyro/yawRate", gyroInputs.yawRate],
+                pitch = table["Gyro/pitch", gyroInputs.pitch],
+                pitchRate = table["Gyro/pitchRate", gyroInputs.pitchRate],
+                roll = table["Gyro/roll", gyroInputs.roll],
+                rollRate = table["Gyro/rollRate", gyroInputs.rollRate],
+                xAccel = table["Gyro/xAccel", gyroInputs.xAccel],
+                yAccel = table["Gyro/yAccel", gyroInputs.yAccel]
+            )
         }
     }
 
-    class ModuleInput {
-        var driveConnected = false
-        var driveSupplyCurrentAmps = 0.0
-        var driveStatorCurrentAmps = 0.0
-        var driveAppliedVolts = 0.0
-        var driveTemp = 0.0
+    class ModuleInput (
+        var driveConnected: Boolean,
+        var driveVelocity: AngularVelocity,
+        var driveAccel: AngularAcceleration,
+        var driveSupplyCurrentAmps: Double,
+        var driveStatorCurrentAmps: Double,
+        var driveAppliedVolts: Double,
+        var driveTemp: Double,
 
-        var steerConnected = false
-        var steerSupplyCurrentAmps = 0.0
-        var steerStatorCurrentAmps = 0.0
-        var steerAppliedVolts = 0.0
-        var steerTemp = 0.0
+        var steerConnected: Boolean,
+        var steerVelocity: AngularVelocity,
+        var steerAccel: AngularAcceleration,
+        var steerSupplyCurrentAmps: Double,
+        var steerStatorCurrentAmps: Double,
+        var steerAppliedVolts: Double,
+        var steerTemp: Double,
 
-        var encoderConnected = false
-        var encoderAbsoluteAngle = 0.0.degrees
+        var encoderConnected: Boolean,
+        var encoderAbsoluteAngle: Angle
+    ) {
+        companion object{
+            val Empty = ModuleInput(
+                false,
+                0.0.degreesPerSecond,
+                0.0.degreesPerSecondPerSecond,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                0.0.degreesPerSecond,
+                0.0.degreesPerSecondPerSecond,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                false,
+                0.0.degrees
+            )
+        }
     }
 
-    class GyroInput {
-        var gyroConnected = false
-        var yaw = 0.0.degrees
-        var yawRate = 0.0.degrees.perSecond
-        var pitch = 0.0.degrees
-        var pitchRate = 0.0.degrees.perSecond
-        var roll = 0.0.degrees
-        var rollRate = 0.0.degrees.perSecond
-        var xAccel = 0.0.feet.perSecondPerSecond
-        var yAccel = 0.0.feet.perSecondPerSecond
+    class GyroInput (
+        var gyroConnected: Boolean,
+        var yaw: Angle,
+        var yawRate: AngularVelocity,
+        var pitch: Angle,
+        var pitchRate: AngularVelocity,
+        var roll: Angle,
+        var rollRate: AngularVelocity,
+        var xAccel: LinearAcceleration,
+        var yAccel: LinearAcceleration,
+    ) {
+        companion object {
+            val Empty = GyroInput(
+                false,
+                0.0.degrees,
+                0.0.degrees.perSecond,
+                0.0.degrees,
+                0.0.degrees.perSecond,
+                0.0.degrees,
+                0.0.degrees.perSecond,
+                0.0.feet.perSecondPerSecond,
+                0.0.feet.perSecondPerSecond
+            )
+        }
     }
 }

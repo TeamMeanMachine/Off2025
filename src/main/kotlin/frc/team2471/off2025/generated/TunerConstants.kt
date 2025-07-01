@@ -92,7 +92,6 @@ object TunerConstants {
 
     private const val kDriveGearRatio = 6.746031746031747
     private const val kSteerGearRatio = 21.428571428571427
-    private val kWheelRadius: Distance = 2.197.inches
 
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = false
@@ -109,13 +108,14 @@ object TunerConstants {
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot
-    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * kWheelRadius.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / kDriveGearRatio * 2.0.inches.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
 
     @JvmField
-    val DrivetrainConstants: SwerveDrivetrainConstants = SwerveDrivetrainConstants()
-        .withCANBusName(kCANBus.name)
-        .withPigeon2Id(kPigeonId)
-        .withPigeon2Configs(pigeonConfigs)
+    val DrivetrainConstants: SwerveDrivetrainConstants = SwerveDrivetrainConstants().apply {
+        CANBusName = kCANBus.name
+        Pigeon2Id = kPigeonId
+        Pigeon2Configs = pigeonConfigs
+    }
 
     private val ConstantCreator: SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
         SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>().apply {
@@ -125,7 +125,7 @@ object TunerConstants {
             //The ratio at which the wheel spins when the turn motor spins (driveMotorRotations/Rotations)
             CouplingGearRatio = kCoupleRatio
 
-            WheelRadius = kWheelRadius.asMeters
+//            WheelRadius = 2.0.inches.asMeters
 
             //Type of closed loop output (Velocity Volts or Velocity Torque)
             DriveMotorClosedLoopOutput = kDriveClosedLoopOutput
@@ -161,6 +161,7 @@ object TunerConstants {
         }
 
 
+/*
     // Front Left
     private const val kFrontLeftDriveMotorId = Falcons.FRONT_LEFT_DRIVE
     private const val kFrontLeftSteerMotorId = Falcons.FRONT_LEFT_STEER
@@ -168,6 +169,7 @@ object TunerConstants {
     private val kFrontLeftEncoderOffset: Angle = -0.4535.rotations
     private const val kFrontLeftSteerMotorInverted = true
     private const val kFrontLeftEncoderInverted = false
+    private val kFrontLeftWheelRadius: Distance = 2.197.inches
 
     private val kFrontLeftXPos: Distance = 12.125.inches
     private val kFrontLeftYPos: Distance = 12.125.inches
@@ -179,6 +181,7 @@ object TunerConstants {
     private val kFrontRightEncoderOffset: Angle = -0.094971.rotations
     private const val kFrontRightSteerMotorInverted = true
     private const val kFrontRightEncoderInverted = false
+    private val kFrontRightWheelRadius: Distance = 2.197.inches
 
     private val kFrontRightXPos: Distance = 12.125.inches
     private val kFrontRightYPos: Distance = -12.125.inches
@@ -190,6 +193,7 @@ object TunerConstants {
     private val kBackLeftEncoderOffset: Angle = -0.2592.rotations
     private const val kBackLeftSteerMotorInverted = true
     private const val kBackLeftEncoderInverted = false
+    private val kBackLeftWheelRadius: Distance = 2.197.inches
 
     private val kBackLeftXPos: Distance = -12.125.inches
     private val kBackLeftYPos: Distance = 12.125.inches
@@ -201,11 +205,57 @@ object TunerConstants {
     private val kBackRightEncoderOffset: Angle = 0.287.rotations
     private const val kBackRightSteerMotorInverted = true
     private const val kBackRightEncoderInverted = false
+    private val kBackRightWheelRadius: Distance = 2.197.inches
 
     private val kBackRightXPos: Distance = -12.125.inches
     private val kBackRightYPos: Distance = -12.125.inches
+*/
 
-    @JvmField
+    val FrontLeft = ModuleConfig(
+        Falcons.FRONT_LEFT_DRIVE,
+        Falcons.FRONT_LEFT_STEER,
+        CANCoders.FRONT_LEFT,
+        driveMotorInverted = false,
+        steerMotorInverted = true,
+        encoderInverted = false,
+        moduleTranslationMeters = Translation2d(12.125.inches, 12.125.inches),
+        wheelRadius = 2.0.inches
+    ).createModuleConstants()
+
+    val FrontRight = ModuleConfig(
+        Falcons.FRONT_RIGHT_DRIVE,
+        Falcons.FRONT_RIGHT_STEER,
+        CANCoders.FRONT_RIGHT,
+        driveMotorInverted = false,
+        steerMotorInverted = true,
+        encoderInverted = false,
+        moduleTranslationMeters = Translation2d(12.125.inches, -12.125.inches),
+        wheelRadius = 2.0.inches
+    ).createModuleConstants()
+
+    val BackLeft = ModuleConfig(
+        Falcons.BACK_LEFT_DRIVE,
+        Falcons.BACK_LEFT_STEER,
+        CANCoders.BACK_LEFT,
+        driveMotorInverted = false,
+        steerMotorInverted = true,
+        encoderInverted = false,
+        moduleTranslationMeters = Translation2d(-12.125.inches, 12.125.inches),
+        wheelRadius = 2.0.inches
+    ).createModuleConstants()
+
+    val BackRight = ModuleConfig(
+        Falcons.BACK_RIGHT_DRIVE,
+        Falcons.BACK_RIGHT_STEER,
+        CANCoders.BACK_RIGHT,
+        false,
+        steerMotorInverted = true,
+        encoderInverted = false,
+        moduleTranslationMeters = Translation2d(-12.125.inches, -12.125.inches),
+        wheelRadius = 2.0.inches
+    ).createModuleConstants()
+
+/*    @JvmField
     val FrontLeft: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
         ConstantCreator.createModuleConstants(
             kFrontLeftSteerMotorId,
@@ -217,7 +267,10 @@ object TunerConstants {
             kInvertLeftSide,
             kFrontLeftSteerMotorInverted,
             kFrontLeftEncoderInverted
-        )
+        ).apply {
+            WheelRadius = kFrontLeftWheelRadius.asMeters
+        }*/
+/*
     @JvmField
     val FrontRight: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
         ConstantCreator.createModuleConstants(
@@ -230,7 +283,9 @@ object TunerConstants {
             kInvertRightSide,
             kFrontRightSteerMotorInverted,
             kFrontRightEncoderInverted
-        )
+        ).apply {
+            WheelRadius = kFrontRightWheelRadius.asMeters
+        }
     @JvmField
     val BackLeft: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
         ConstantCreator.createModuleConstants(
@@ -243,7 +298,9 @@ object TunerConstants {
             kInvertLeftSide,
             kBackLeftSteerMotorInverted,
             kBackLeftEncoderInverted
-        )
+        ).apply {
+            WheelRadius = kBackLeftWheelRadius.asMeters
+        }
     @JvmField
     val BackRight: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
         ConstantCreator.createModuleConstants(
@@ -256,7 +313,9 @@ object TunerConstants {
             kInvertRightSide,
             kBackRightSteerMotorInverted,
             kBackRightEncoderInverted
-        )
+        ).apply {
+            WheelRadius = kBackRightWheelRadius.asMeters
+        }*/
 
 
     val DRIVE_BASE_RADIUS: Double = maxOf(
@@ -275,4 +334,29 @@ object TunerConstants {
         Translation2d(BackLeft.LocationX, BackLeft.LocationY),
         Translation2d(BackRight.LocationX, BackRight.LocationY)
     )
+
+
+    class ModuleConfig(
+        val driveMotorID: Int,
+        val steerMotorID: Int,
+        val canCoderID: Int,
+        val driveMotorInverted: Boolean,
+        val steerMotorInverted: Boolean,
+        val encoderInverted: Boolean,
+        val moduleTranslationMeters: Translation2d,
+        val wheelRadius: Distance
+    ) {
+        fun createModuleConstants(): SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> =
+            ConstantCreator.createModuleConstants(
+                steerMotorID,
+                driveMotorID,
+                canCoderID,
+                PhoenixUtil.getMagnetSensorOffsetFromCANcoderID(canCoderID, kCANBus.name),//Double.POSITIVE_INFINITY.degrees, //we do our own encoder offset. this makes the CTRE Swerve not apply a MagnetOffset on the cancoder
+                moduleTranslationMeters.x.meters,
+                moduleTranslationMeters.y.meters,
+                driveMotorInverted,
+                steerMotorInverted,
+                encoderInverted
+            ).withWheelRadius(wheelRadius)
+    }
 }

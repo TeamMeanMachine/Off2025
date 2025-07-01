@@ -24,9 +24,9 @@ class DriveIOCTRE(
     driveConstants: SwerveDrivetrainConstants,
     vararg moduleConstants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
 ): SwerveDrivetrain<TalonFX, TalonFX, CANcoder>(
-    DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-    DeviceConstructor { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-    DeviceConstructor { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
+    { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
+    { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
+    { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
     driveConstants,
     *moduleConstants
 ), DriveIO {
@@ -36,10 +36,14 @@ class DriveIOCTRE(
         val steer = m.steerMotor
         val encoder = m.encoder
         ModuleSignals(
+            drive.velocity,
+            drive.acceleration,
             drive.supplyCurrent,
             drive.statorCurrent,
             drive.motorVoltage,
             drive.deviceTemp,
+            steer.velocity,
+            steer.acceleration,
             steer.supplyCurrent,
             steer.statorCurrent,
             steer.motorVoltage,
@@ -105,14 +109,18 @@ class DriveIOCTRE(
 
         inputs.moduleInputs = Array(4) {
             val m = moduleSignals[it]
-            DriveIO.ModuleInput().apply {
+            DriveIO.ModuleInput.Empty.apply {
                 driveConnected = m.driveConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allDriveSignals).isOK)
+                driveVelocity = m.driveVelocity.valueAsDouble.rotationsPerSecond
+                driveAccel = m.driveAcceleration.valueAsDouble.rotationsPerSecondPerSecond
                 driveSupplyCurrentAmps = m.driveSupplyCurrent.valueAsDouble
                 driveStatorCurrentAmps = m.driveStatorCurrent.valueAsDouble
                 driveAppliedVolts = m.driveAppliedVolts.valueAsDouble
                 driveTemp = m.driveTemperature.valueAsDouble
 
                 steerConnected = m.steerConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allSteerSignals).isOK)
+                steerVelocity = m.steerVelocity.valueAsDouble.rotationsPerSecond
+                steerAccel = m.steerAcceleration.valueAsDouble.rotationsPerSecondPerSecond
                 steerSupplyCurrentAmps = m.steerSupplyCurrent.valueAsDouble
                 steerStatorCurrentAmps = m.steerStatorCurrent.valueAsDouble
                 steerAppliedVolts = m.steerAppliedVolts.valueAsDouble
@@ -182,10 +190,14 @@ class DriveIOCTRE(
 
 
     class ModuleSignals(
+        val driveVelocity: BaseStatusSignal,
+        val driveAcceleration: BaseStatusSignal,
         val driveSupplyCurrent: BaseStatusSignal,
         val driveStatorCurrent: BaseStatusSignal,
         val driveAppliedVolts: BaseStatusSignal,
         val driveTemperature: BaseStatusSignal,
+        val steerVelocity: BaseStatusSignal,
+        val steerAcceleration: BaseStatusSignal,
         val steerSupplyCurrent: BaseStatusSignal,
         val steerStatorCurrent: BaseStatusSignal,
         val steerAppliedVolts: BaseStatusSignal,
@@ -193,12 +205,16 @@ class DriveIOCTRE(
         val encoderAbsolutePosition: BaseStatusSignal
     ) {
         val allDriveSignals: Array<BaseStatusSignal> = arrayOf(
+            driveVelocity,
+            driveAcceleration,
             driveSupplyCurrent,
             driveStatorCurrent,
             driveAppliedVolts,
             driveTemperature
         )
         val allSteerSignals: Array<BaseStatusSignal> = arrayOf(
+            steerVelocity,
+            steerAcceleration,
             steerSupplyCurrent,
             steerStatorCurrent,
             steerAppliedVolts,

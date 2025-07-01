@@ -7,7 +7,7 @@ import edu.wpi.first.units.Units.*
 import edu.wpi.first.units.VoltageUnit
 import edu.wpi.first.units.measure.*
 import kotlin.math.*
-
+import kotlin.math.absoluteValue
 
 //Unit Conversions
 
@@ -184,10 +184,14 @@ fun atan2(y: Distance, x: Distance) = kotlin.math.atan2(y.asInches, x.asInches).
 
 fun Angle.wrap() = asDegrees.IEEErem(360.0).degrees
 fun Angle.unWrap(nearByAngle: Angle) = nearByAngle + (this - nearByAngle).wrap()
+fun Angle.asRotation2d() = Rotation2d(this.asRadians)
 
 fun Angle.absoluteValue() = asDegrees.absoluteValue.degrees
-
-fun Angle.asRotation2d() = Rotation2d(this.asRadians)
+fun Distance.absoluteValue() = asFeet.absoluteValue.feet
+fun AngularVelocity.absoluteValue() = asDegreesPerSecond.absoluteValue.degreesPerSecond
+fun LinearVelocity.absoluteValue() = asFeetPerSecond.absoluteValue.feetPerSecond
+fun AngularAcceleration.absoluteValue() = asDegreesPerSecondPerSecond.absoluteValue.degreesPerSecondPerSecond
+fun LinearAcceleration.absoluteValue() = asFeetPerSecondPerSecond.absoluteValue.feetPerSecondPerSecond
 
 //String
 fun Angle.toReadableString() = "$asDegrees degrees"

@@ -17,14 +17,14 @@ fun SwerveDriveKinematics.toChassisSpeedsK(speeds: Array<SwerveModuleState>): Ch
 /** Sometimes the sim GUI doesn't detect an Xbox controller as a gamepad and does not bind it as such. [simBeingDumb] rebinds the joystick as if the "map gamepad" button was pressed. */
 class MeanCommandXboxController(port: Int, val simBeingDumb: Boolean = false): CommandXboxController(port) {
     override fun getRightX(): Double {
-        if (simBeingDumb) {
+        if (simBeingDumb && isSim) {
             return super.leftTriggerAxis
         }
         return super.getRightX()
     }
 
     override fun getLeftTriggerAxis(): Double {
-        if (simBeingDumb) {
+        if (simBeingDumb && isSim) {
             return super.rightX
         }
         return super.leftTriggerAxis

@@ -14,6 +14,7 @@ import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.PhoenixUtil
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
 import frc.team2471.off2025.util.sequenceCommand
@@ -112,6 +113,8 @@ object Robot : LoggedRobot() {
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
 
+        PhoenixUtil.processNextCallQueue()
+
         if (Robot.isEnabled) {
             if (wasDisabled) {
                 enabledInit()
@@ -130,14 +133,14 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
-        Drive.brakeMode()
+//        Drive.brakeMode()
     }
 
     /** This function is called once when the robot is disabled.  */
     override fun disabledInit() {
         // This makes sure that the autonomous stops running when teleop starts running.
         // If you want the autonomous to continue until interrupted by another command, remove this line.
-        Drive.coastMode()
+//        Drive.coastMode()
         autonomousCommand?.cancel()
         testCommand?.cancel()
     }
