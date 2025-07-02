@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
-import java.lang.IllegalStateException
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
 import kotlin.math.sqrt
@@ -77,7 +76,7 @@ object OI: Subsystem {
 
 
         // Lock to 0° when A button is held
-        driverController.a().whileTrue(DriveCommands.joystickDriveAtAngle { Rotation2d() })
+        driverController.a().whileTrue(Drive.driveAtAngle { Rotation2d() })
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

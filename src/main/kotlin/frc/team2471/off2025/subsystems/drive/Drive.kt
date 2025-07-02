@@ -12,6 +12,8 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025.subsystems.drive
 
+import choreo.trajectory.SwerveSample
+import choreo.trajectory.Trajectory
 import com.ctre.phoenix6.SignalLogger
 import com.ctre.phoenix6.swerve.SwerveModule
 import com.ctre.phoenix6.swerve.SwerveRequest.*
@@ -19,12 +21,17 @@ import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.units.Units
+import edu.wpi.first.units.measure.Angle
+import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
@@ -33,11 +40,12 @@ import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
+import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
 
 object Drive: SubsystemBase("Drive") {
-    val io: DriveIO = DriveIOCTRE(TunerConstants.DrivetrainConstants, TunerConstants.FrontLeft, TunerConstants.FrontRight, TunerConstants.BackLeft, TunerConstants.BackRight)
+    val io: DriveIO = DriveIOCTRE(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs)
     val driveInputs = DriveIO.DriveIOInputs()
 
     var pose: Pose2d
@@ -108,6 +116,8 @@ object Drive: SubsystemBase("Drive") {
     }
 
     val coastModeTimer = Timer()
+    @get:AutoLogOutput
+    var inCoastMode = true
 
 
     init {
@@ -129,17 +139,24 @@ object Drive: SubsystemBase("Drive") {
 
 
         if (Robot.isDisabled) {
-            driveVoltage(ChassisSpeeds())
+            stop()
 
             driveInputs.moduleInputs.forEach {
                 if (it.steerVelocity.absoluteValue() > 0.1.degrees.perSecond) {
                     coastModeTimer.reset()
-                    coastMode()
+                    if (!inCoastMode) {
+                        println("coast mode")
+                        coastMode()
+                        inCoastMode = true
+                    }
                 }
             }
         }
-        if (coastModeTimer.get() > 3.0) {
+
+        if (inCoastMode && coastModeTimer.get() > 3.0 ) {
+            println("brake mode")
             brakeMode()
+            inCoastMode = false
         }
 
 
@@ -181,6 +198,10 @@ object Drive: SubsystemBase("Drive") {
         )
     }
 
+    /**
+     * Runs the drive at the desired voltage.
+     * @param speedsInVolts Speeds in volts
+     */
     fun driveVoltage(speedsInVolts: ChassisSpeeds) {
         io.setDriveRequest(
             ApplyFieldSpeeds().apply {
@@ -190,8 +211,116 @@ object Drive: SubsystemBase("Drive") {
         )
     }
 
+    fun driveAtAngle(angle: Rotation2d): Command = driveAtAngle {angle}
+    fun driveAtAngle(angle: () -> Rotation2d): Command = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
 
-    fun stop() = driveVelocity(ChassisSpeeds())
+    fun driveAtAngle(
+        angle: () -> Rotation2d,
+        translation: () -> Translation2d = { getChassisSpeedsFromJoystick().translation }
+    ): Command = run {
+        driveAtAngle(angle(), translation())
+    }
+
+    private fun driveAtAngle(angle: Rotation2d, translation: Translation2d) {
+        io.setDriveRequest(
+            driveAtAngleRequest.apply {
+                VelocityX = translation.x
+                VelocityY = translation.y
+                TargetDirection = angle
+            }
+        )
+    }
+
+
+    fun driveToPoint(
+        wantedPose: Pose2d,
+        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 1.0.inches && headingError < 3.0.degrees },
+        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+    ): Command {
+        var distanceToPose: Double = Double.POSITIVE_INFINITY
+        val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
+
+        Logger.recordOutput("Drive/DriveToPoint Point", wantedPose)
+
+
+        return run {
+            val translationToPose = wantedPose.translation.minus(pose.translation)
+            distanceToPose = translationToPose.norm
+            val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
+            val wantedVelocity = translationToPose.normalize() * velocityOutput
+
+            driveAtAngle(wantedPose.rotation, wantedVelocity)
+        }.until {
+            val distanceError = distanceToPose.meters
+            val headingError = (wantedPose.rotation - pose.rotation).measure.absoluteValue()
+
+            Logger.recordOutput("Drive/DriveToPoint DistanceError", distanceError)
+            Logger.recordOutput("Drive/DriveToPoint HeadingError", headingError)
+
+            exitSupplier(distanceError, headingError)
+        }.finallyRun {
+            stop()
+            Logger.recordOutput("Drive/DriveToPoint Point", Pose2d(null, null))
+        }.withName("DriveToPoint")
+    }
+
+    fun driveAlongChoreoPath(path: Trajectory<SwerveSample>, resetOdometry: Boolean = false, exitSupplier: (Double) -> Boolean = { it >= 1.0 }): Command {
+        val totalTime = path.totalTime
+
+        Logger.recordOutput("path name", path.name())
+        Logger.recordOutput("path totalTime", totalTime)
+
+        if (resetOdometry) {
+            pose = path.getInitialPose(false).get()
+        }
+
+        var t = 0.0
+        val timer = Timer()
+        timer.start()
+
+        return run {
+            val currentPose = pose
+            t = min(timer.get(), totalTime)
+            val sample = path.sampleAt(t, false).get()
+            val wantedPose = sample.pose
+            val wantedSpeeds = sample.chassisSpeeds
+            val moduleForcesX = sample.moduleForcesX()
+            val moduleForcesY = sample.moduleForcesY()
+
+            Logger.recordOutput("Path Time", t)
+            Logger.recordOutput("Path Pose", wantedPose)
+            Logger.recordOutput("Path Speeds", wantedSpeeds)
+            Logger.recordOutput("Path Module Forces X", moduleForcesX)
+            Logger.recordOutput("Path Module Forces Y", moduleForcesY)
+
+            wantedSpeeds.apply {
+                vxMetersPerSecond += pathXController.calculate(currentPose.x, wantedPose.x)
+                vyMetersPerSecond += pathYController.calculate(currentPose.y, wantedPose.y)
+                omegaRadiansPerSecond += pathThetaController.calculate(currentPose.rotation.radians, sample.heading)
+            }
+            io.setDriveRequest(
+                ApplyFieldSpeeds().apply {
+                    Speeds = wantedSpeeds
+                    WheelForceFeedforwardsX = moduleForcesX
+                    WheelForceFeedforwardsY = moduleForcesY
+                    DriveRequestType = SwerveModule.DriveRequestType.Velocity
+                }
+            )
+        }.until {
+            exitSupplier(t / totalTime)
+        }.finallyRun {
+            stop()
+            Logger.recordOutput("path name", "")
+            Logger.recordOutput("Path Pose", Pose2d(null, null))
+        }
+    }
+
+
+
+
+
+
+    fun stop() = driveVoltage(ChassisSpeeds())
 
     fun xPose() = io.setDriveRequest(SwerveDriveBrake())
 

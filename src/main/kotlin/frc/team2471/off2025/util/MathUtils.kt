@@ -1,5 +1,6 @@
 package frc.team2471.off2025.util
 
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Twist2d
 import kotlin.math.*
 
@@ -26,6 +27,12 @@ fun Double.deadband(tolerance: Double): Double =
     } else {
         (this - tolerance.withSign(this)) / (1.0 - tolerance)
     }
+
+/** Divide [Translation2d] by its magnitude, making it have a magnitude of 1 while preserving its angle. */
+fun Translation2d.normalize(): Translation2d {
+    val mag = norm
+    return if (mag != 0.0) this.div(mag) else this
+}
 
 /** doesn't work with negative values of n */
 infix fun Double.mod(n: Double) = if (this < 0) {

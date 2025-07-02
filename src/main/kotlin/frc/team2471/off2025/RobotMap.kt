@@ -70,6 +70,8 @@ object CANSensors {
     const val RANGE_ARM_LEFT = 40
     const val RANGE_ARM_RIGHT = 38
 
+    const val PIGEON = 40
+
     const val CANDI = 30
 }
 
