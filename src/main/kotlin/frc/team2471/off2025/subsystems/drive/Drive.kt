@@ -59,19 +59,20 @@ object Drive: SubsystemBase("Drive") {
     val speeds: ChassisSpeeds
         get() = driveInputs.speeds
 
-    private val pathXController = PIDController(0.0, 0.0, 0.0)
-    private val pathYController = PIDController(0.0, 0.0, 0.0)
-    private val pathThetaController = PIDController(0.0, 0.0, 0.0).apply {
+    private val pathXController = PIDController(7.0, 0.0, 0.0)
+    private val pathYController = PIDController(7.0, 0.0, 0.0)
+    private val pathThetaController = PIDController(7.0, 0.0, 0.0).apply {
         enableContinuousInput(-Math.PI, Math.PI)
     }
 
-    private val autoDriveToPointController = PIDController(0.0, 0.0, 0.0)
-    private val teleopDriveToPointController = PIDController(0.0, 0.0, 0.0)
+    private val autoDriveToPointController = PIDController(3.0, 0.0, 0.1)
+    private val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
     private val driveAtAngleRequest = FieldCentricFacingAngle().withDriveRequestType(SwerveModule.DriveRequestType.Velocity).apply {
-        HeadingController = PhoenixPIDController(0.0, 0.0, 0.0).apply {
+        HeadingController = PhoenixPIDController(5.0, 0.0, 0.0).apply {
             enableContinuousInput(-Math.PI, Math.PI)
         }
+        DriveRequestType = SwerveModule.DriveRequestType.Velocity
     }
 
     //sysID
@@ -122,6 +123,7 @@ object Drive: SubsystemBase("Drive") {
 
     init {
         println("inside Drive init")
+        zeroGyro()
         coastModeTimer.start()
     }
 
@@ -221,7 +223,7 @@ object Drive: SubsystemBase("Drive") {
         driveAtAngle(angle(), translation())
     }
 
-    private fun driveAtAngle(angle: Rotation2d, translation: Translation2d) {
+    fun driveAtAngle(angle: Rotation2d, translation: Translation2d) {
         io.setDriveRequest(
             driveAtAngleRequest.apply {
                 VelocityX = translation.x
@@ -257,10 +259,11 @@ object Drive: SubsystemBase("Drive") {
             Logger.recordOutput("Drive/DriveToPoint DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint HeadingError", headingError)
 
-            exitSupplier(distanceError, headingError)
+            false
+//            exitSupplier(distanceError, headingError)
         }.finallyRun {
             stop()
-            Logger.recordOutput("Drive/DriveToPoint Point", Pose2d(null, null))
+            Logger.recordOutput("Drive/DriveToPoint Point", Pose2d())
         }.withName("DriveToPoint")
     }
 
@@ -324,7 +327,10 @@ object Drive: SubsystemBase("Drive") {
 
     fun xPose() = io.setDriveRequest(SwerveDriveBrake())
 
-    fun zeroGyro() = io.resetHeading()
+    fun zeroGyro() {
+        println("zero gyro isRedAlliance  $isRedAlliance")
+        io.resetHeading(if (isRedAlliance) 180.0.degrees else 0.0.degrees)
+    }
 
     fun updateSim() {
         if (isSim) io.updateSim()
@@ -339,11 +345,10 @@ object Drive: SubsystemBase("Drive") {
     }
 
 
-    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.dynamic(direction)
-    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.quasistatic(direction)
-    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.dynamic(direction)
-    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.quasistatic(direction)
-    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.dynamic(direction)
-    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.quasistatic(direction)
-
+    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.quasistatic(direction).finallyWait(1.0)
 }

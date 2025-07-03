@@ -65,7 +65,6 @@ class DriveIOCTRE(
     )
 
     init {
-        resetHeading()
 
         val alerts = arrayListOf<Alert>()
         modules.forEachIndexed { i, module ->
@@ -183,9 +182,9 @@ class DriveIOCTRE(
     }
 
 
-    override fun resetHeading(angle: Angle?) {
-        //if angle is null, reset to 0.0
-        resetRotation((angle ?: if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d)
+    override fun resetHeading(angle: Angle) {
+        println("reseting heading to $angle")
+        resetRotation(angle.asRotation2d)
     }
 
 

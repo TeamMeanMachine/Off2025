@@ -22,7 +22,7 @@ interface DriveIO {
 
     fun resetPose(pose: Pose2d?)
 
-    fun resetHeading(angle: Angle? = null)
+    fun resetHeading(angle: Angle)
 
     fun resetPosition(translation: Translation2d?)
 

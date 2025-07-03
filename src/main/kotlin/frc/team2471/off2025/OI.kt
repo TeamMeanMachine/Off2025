@@ -78,19 +78,20 @@ object OI: Subsystem {
         // Lock to 0° when A button is held
         driverController.a().whileTrue(Drive.driveAtAngle { Rotation2d() })
 
+        driverController.b().whileTrue(Drive.driveToPoint(Pose2d(2.0, 2.0, 90.0.degrees.asRotation2d)))
+
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
+                Drive.zeroGyro()
             }.ignoringDisable(true))
 
         // Reset position to zero
         driverController.start().onTrue(
             runOnceCommand(Drive) {
-                Drive.zeroGyro()
                 Drive.pose = Pose2d(Translation2d(), Drive.rotation)
             }.ignoringDisable(true))
     }
@@ -101,7 +102,7 @@ object OI: Subsystem {
     }
 
     /**
-     * Removes the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1
+     * Uses distance formula to remove the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1.
      */
     fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Pair<Double, Double> {
         return if (hypot(rawX, rawY) > 1.0) {

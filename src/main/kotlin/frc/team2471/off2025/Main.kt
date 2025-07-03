@@ -16,6 +16,7 @@ import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.PhoenixUtil
 import frc.team2471.off2025.util.RobotMode
+import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
 import frc.team2471.off2025.util.sequenceCommand
 import org.littletonrobotics.junction.LogFileUtil
@@ -63,6 +64,18 @@ object Robot : LoggedRobot() {
             Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
             Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward),
             Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
+        ))
+        addOption("Drive Rotation SysId ALL", sequenceCommand(
+            Drive.sysIDRotationQuasistatic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDRotationQuasistatic(SysIdRoutine.Direction.kReverse),
+            Drive.sysIDRotationDynamic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDRotationDynamic(SysIdRoutine.Direction.kReverse),
+        ))
+        addOption("Drive Steer SysId ALL", sequenceCommand(
+            Drive.sysIDSteerQuasistatic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDSteerQuasistatic(SysIdRoutine.Direction.kReverse),
+            Drive.sysIDSteerDynamic(SysIdRoutine.Direction.kForward),
+            Drive.sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
         ))
         addOption("Drive Translation SysId (Quasistatic Forward)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward))
         addOption("Drive Translation SysId (Quasistatic Reverse)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse))
@@ -182,6 +195,7 @@ object Robot : LoggedRobot() {
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {
         Drive.updateSim()
+        MasterMotor.simPeriodic()
     }
 
 

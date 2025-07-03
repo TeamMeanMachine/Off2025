@@ -25,23 +25,24 @@ object TunerConstants {
     // The steer motor uses any SwerveModule.SteerRequestType control request with the
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
     private val steerGains: Slot0Configs = Slot0Configs().apply {
-        kP = 50.25
+        kP = 70.0
         kI = 0.0
         kD = 0.0
-        kS = 0.15
-        kV = 0.0
-        kA = 0.0
+        kS = 0.2
+        kV = 2.6622
+        kA = 0.05389
         StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign
     }
 
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private val driveGains: Slot0Configs = Slot0Configs().apply {
-        kP = 0.3
+        kP = 0.09418
         kI = 0.0
         kD = 0.0
-        kS = 0.0
-        kV = 0.133361718
+        kS = 0.1619
+        kV = 0.1255
+        kA = 0.0036533
     }
 
     // Initial configs for the drive/steer motors and encoder, these cannot be null.
@@ -186,7 +187,7 @@ object TunerConstants {
 
 
 
-    val moduleConfigs = arrayOf(frontRight, frontLeft, backRight, backLeft)
+    val moduleConfigs = arrayOf(frontLeft, frontRight, backLeft, backRight)
 
     /** Returns an array of module translations. */
     val moduleTranslationsMeters = moduleConfigs.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }

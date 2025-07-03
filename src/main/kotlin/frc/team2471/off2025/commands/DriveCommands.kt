@@ -12,14 +12,11 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025.commands
 
-import edu.wpi.first.math.controller.ProfiledPIDController
 import edu.wpi.first.math.geometry.Rotation2d
-import edu.wpi.first.math.kinematics.ChassisSpeeds
-import edu.wpi.first.math.trajectory.TrapezoidProfile
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.subsystems.drive.Drive
-import java.util.function.Supplier
+import frc.team2471.off2025.util.isBlueAlliance
 
 object DriveCommands {
     private const val ANGLE_KP = 5.0
@@ -38,9 +35,14 @@ object DriveCommands {
     fun joystickDrive(): Command {
         return Commands.run({
             // Get linear velocity
-            val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()//.fieldToRobotCentric(if (isRedAlliance) -Drive.rotation.plus(Rotation2d(Math.PI)) else -Drive.rotation)
+            val chassisSpeeds = Drive.getChassisSpeedsFromJoystick().apply {
+                if (isBlueAlliance) {
+                    vxMetersPerSecond *= -1.0
+                    vyMetersPerSecond *= -1.0
+                }
+            }
 
-            // Convert to field relative speeds & send command
+            //send it
             Drive.driveVelocity(chassisSpeeds)
 
             },
@@ -48,46 +50,6 @@ object DriveCommands {
         )
     }
 
-    /**
-     * Field relative drive command using joystick for linear control and PID for angular control.
-     * Possible use cases include snapping to an angle, aiming at a vision target, or controlling
-     * absolute rotation with a joystick.
-     */
-    fun joystickDriveAtAngle(goalAngle: Supplier<Rotation2d>): Command {
-        // Create PID controller
-
-        val angleController = ProfiledPIDController(
-                ANGLE_KP,
-                0.0,
-                ANGLE_KD,
-                TrapezoidProfile.Constraints(ANGLE_MAX_VELOCITY, ANGLE_MAX_ACCELERATION)
-            )
-        angleController.enableContinuousInput(-Math.PI, Math.PI)
-
-        // Construct command
-        return Commands.run(
-             {
-                 // Get linear velocity from joysticks
-                 val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()
-
-                 // Calculate angular speed
-                 chassisSpeeds.omegaRadiansPerSecond = angleController.calculate(Drive.rotation.radians, goalAngle.get().radians)
-
-                 Drive.driveVelocity(chassisSpeeds)
-            },
-            Drive
-        ) // Reset PID controller when command starts
-            .beforeStarting({ angleController.reset(Drive.rotation.radians) })
-    }
-
-
-
-    fun zeroSwerveOffsets(): Command = Commands.sequence(
-        Commands.runOnce({
-            Drive.driveVelocity(ChassisSpeeds(0.0, 0.0, 0.0))
-
-        })
-    )
 
     class WheelRadiusCharacterizationState {
         var positions: DoubleArray = DoubleArray(4)
