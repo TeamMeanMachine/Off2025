@@ -137,14 +137,10 @@ object Drive: SubsystemBase("Drive") {
             moduleAlert.first.set(!mInput.driveConnected)
             moduleAlert.second.set(!mInput.steerConnected)
             moduleAlert.third.set(!mInput.encoderConnected)
-        }
 
 
-        if (Robot.isDisabled) {
-            stop()
-
-            driveInputs.moduleInputs.forEach {
-                if (it.steerVelocity.absoluteValue() > 0.1.degrees.perSecond) {
+            if (Robot.isDisabled) {
+                if (mInput.steerVelocity.absoluteValue() > 0.5.degrees.perSecond) {
                     coastModeTimer.reset()
                     if (!inCoastMode) {
                         println("coast mode")
@@ -161,6 +157,10 @@ object Drive: SubsystemBase("Drive") {
             inCoastMode = false
         }
 
+
+        if (Robot.isDisabled) {
+            stop()
+        }
 
         LoopLogger.record("Drive periodic()")
     }

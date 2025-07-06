@@ -14,11 +14,9 @@ import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.units.measure.Angle
-import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
 import frc.team2471.off2025.util.*
-import kotlin.math.roundToInt
 
 class DriveIOCTRE(
     driveConstants: SwerveDrivetrainConstants,
@@ -66,31 +64,6 @@ class DriveIOCTRE(
 
     init {
 
-        val alerts = arrayListOf<Alert>()
-        modules.forEachIndexed { i, module ->
-            if (module.encoder.isConnected) {
-                val encoderConfigs = CANcoderConfiguration().apply {
-                    PhoenixUtil.tryUntilOk(5) { module.encoder.configurator.apply(this) }
-                }
-                val prefsOffset = Preferences.getDouble("Module $i Offset", Double.NaN).degrees
-                val encoderOffset = encoderConfigs.MagnetSensor.magnetOffsetMeasure
-                if (prefsOffset.asDegrees.isNaN()) {
-                    //couldn't find prefs
-                    println("module $i has missing Preferences, setting to encoders Offset: ${encoderOffset.asDegrees.roundToInt()}")
-                    Preferences.setDouble("Module $i Offset", encoderOffset.asDegrees)
-                    alerts.add(Alert("Module $i had missing Networktables prefs", Alert.AlertType.kWarning))
-                } else if (prefsOffset.asDegrees.roundToInt() != encoderOffset.asDegrees.roundToInt()) {
-                    //offsets are different, default to prefs
-                    println("module $i has conflicting offsets. prefsOffset: ${prefsOffset.asDegrees.round(2)} encoders Offset: ${encoderOffset.asDegrees.round(2)}")
-                    module.encoder.setMagnetSensorOffset(prefsOffset)
-                    alerts.add(Alert("Module $i had conflicting offsets", Alert.AlertType.kWarning))
-                }
-            } else {
-                alerts.add(Alert("Module $i CANCoder Disconnected On INIT", Alert.AlertType.kError))
-            }
-        }
-
-        alerts.forEach { it.set(true) }
     }
 
     override fun updateInputs(inputs: DriveIO.DriveIOInputs) {
@@ -108,26 +81,26 @@ class DriveIOCTRE(
 
         inputs.moduleInputs = Array(4) {
             val m = moduleSignals[it]
-            DriveIO.ModuleInput.Empty.apply {
-                driveConnected = m.driveConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allDriveSignals).isOK)
-                driveVelocity = m.driveVelocity.valueAsDouble.rotationsPerSecond
-                driveAccel = m.driveAcceleration.valueAsDouble.rotationsPerSecondPerSecond
-                driveSupplyCurrentAmps = m.driveSupplyCurrent.valueAsDouble
-                driveStatorCurrentAmps = m.driveStatorCurrent.valueAsDouble
-                driveAppliedVolts = m.driveAppliedVolts.valueAsDouble
-                driveTemp = m.driveTemperature.valueAsDouble
+            DriveIO.ModuleInput(
+                driveConnected = m.driveConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allDriveSignals).isOK),
+                driveVelocity = m.driveVelocity.valueAsDouble.rotationsPerSecond,
+                driveAccel = m.driveAcceleration.valueAsDouble.rotationsPerSecondPerSecond,
+                driveSupplyCurrentAmps = m.driveSupplyCurrent.valueAsDouble,
+                driveStatorCurrentAmps = m.driveStatorCurrent.valueAsDouble,
+                driveAppliedVolts = m.driveAppliedVolts.valueAsDouble,
+                driveTemp = m.driveTemperature.valueAsDouble,
 
-                steerConnected = m.steerConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allSteerSignals).isOK)
-                steerVelocity = m.steerVelocity.valueAsDouble.rotationsPerSecond
-                steerAccel = m.steerAcceleration.valueAsDouble.rotationsPerSecondPerSecond
-                steerSupplyCurrentAmps = m.steerSupplyCurrent.valueAsDouble
-                steerStatorCurrentAmps = m.steerStatorCurrent.valueAsDouble
-                steerAppliedVolts = m.steerAppliedVolts.valueAsDouble
-                steerTemp = m.steerTemperature.valueAsDouble
+                steerConnected = m.steerConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allSteerSignals).isOK),
+                steerVelocity = m.steerVelocity.valueAsDouble.rotationsPerSecond,
+                steerAccel = m.steerAcceleration.valueAsDouble.rotationsPerSecondPerSecond,
+                steerSupplyCurrentAmps = m.steerSupplyCurrent.valueAsDouble,
+                steerStatorCurrentAmps = m.steerStatorCurrent.valueAsDouble,
+                steerAppliedVolts = m.steerAppliedVolts.valueAsDouble,
+                steerTemp = m.steerTemperature.valueAsDouble,
 
-                encoderConnected = m.encoderConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allEncoderSignals).isOK)
+                encoderConnected = m.encoderConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*m.allEncoderSignals).isOK),
                 encoderAbsoluteAngle = m.encoderAbsolutePosition.valueAsDouble.rotations
-            }
+            )
         }
 
         val g = gyroSignals
@@ -167,11 +140,17 @@ class DriveIOCTRE(
     }
 
     override fun brakeMode() {
-        configNeutralMode(NeutralModeValue.Brake)
+        modules.forEach {
+            PhoenixUtil.addToCallQueue { it.steerMotor.setNeutralMode(NeutralModeValue.Brake) }
+            PhoenixUtil.addToCallQueue { it.driveMotor.setNeutralMode(NeutralModeValue.Brake) }
+        }
     }
 
     override fun coastMode() {
-        configNeutralMode(NeutralModeValue.Coast)
+        modules.forEach {
+            PhoenixUtil.addToCallQueue { it.steerMotor.setNeutralMode(NeutralModeValue.Coast) }
+            PhoenixUtil.addToCallQueue { it.driveMotor.setNeutralMode(NeutralModeValue.Coast) }
+        }
     }
 
     override fun setAngleOffsets() {
