@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
+import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
 import kotlin.math.absoluteValue
@@ -82,6 +83,11 @@ object OI: Subsystem {
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
+
+        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
+        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
+        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
+        driverController.povDown().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
 
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
