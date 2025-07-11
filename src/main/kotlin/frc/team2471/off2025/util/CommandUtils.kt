@@ -1,6 +1,5 @@
 package frc.team2471.off2025.util
 
-import edu.wpi.first.units.measure.Time
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
@@ -65,13 +64,6 @@ fun parallelCommand(vararg commands: Command): Command = Commands.parallel(*comm
  */
 fun waitCommand(seconds: Double): Command = Commands.waitSeconds(seconds)
 
-/**
- * Constructs a command that does nothing, finishing after a specified duration.
- * @param time – after how long the command finishes
- * @return the command
- * @see edu.wpi.first.wpilibj2.command.WaitCommand
- */
-fun waitCommand(time: Time): Command = Commands.waitTime(time)
 
 /**
  * Constructs a command that does nothing, finishing once a condition becomes true.
@@ -114,15 +106,6 @@ fun raceCommand(vararg commands: Command): Command = Commands.race(*commands)
  * @see edu.wpi.first.wpilibj2.command.ConditionalCommand
  */
 fun eitherCommand(onTrue: Command, onFalse: Command, selector: () -> Boolean): Command = Commands.either(onTrue, onFalse, selector)
-
-/**
- * Constructs a command that runs an action once, and then runs an action every iteration until interrupted.
- * @param start – the action to run on start
- * @param run – the action to run every iteration
- * @param requirements – subsystems the action requires
- * @return the command
- */
-fun startRunCommand(vararg requirements: Subsystem, start: () -> Unit, run: () -> Unit): Command = Commands.startRun(start, run, *requirements)
 
 /**
  * Constructs a command that runs an action once and another action when the command is interrupted.

@@ -4,12 +4,9 @@ import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
-import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
-import frc.team2471.off2025.commands.DriveCommands
-import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
 import java.lang.IllegalStateException
 import kotlin.math.absoluteValue
@@ -63,44 +60,15 @@ object OI: Subsystem {
     val operatorRightY: Double
         get() = operatorController.rightY.deadband(deadbandOperator)
 
-    private val driverNotConnectedAlert: Alert = Alert("DRIVER JOYSTICK DISCONNECTED", Alert.AlertType.kError)
-    private val operatorNotConnectedAlert: Alert = Alert("OPERATOR JOYSTICK DISCONNECTED", Alert.AlertType.kError)
     private val driverDebouncer = Debouncer(0.05)
     private val operatorDebouncer = Debouncer(0.05)
 
 
-
     init {
-        // Default command, normal field-relative drive
-        Drive.defaultCommand = DriveCommands.joystickDrive()
 
 
-
-        // Lock to 0° when A button is held
-        driverController.a().whileTrue(DriveCommands.joystickDriveAtAngle { Rotation2d() })
-
-        // Switch to X pattern when X button is pressed
-        driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
-
-        // Reset gyro to 0° when B button is pressed
-        driverController.back().onTrue(
-            runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Drive.pose.translation, Rotation2d())
-                Drive.arcPose = Pose2d(Drive.arcPose.translation, Rotation2d())
-            }.ignoringDisable(true))
-
-        // Reset position to zero
-        driverController.start().onTrue(
-            runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Translation2d(), Drive.pose.rotation)
-                Drive.arcPose = Pose2d(Translation2d(), Drive.arcPose.rotation)
-            }.ignoringDisable(true))
     }
 
-    override fun periodic() {
-        driverNotConnectedAlert.set(driverDebouncer.calculate(driverController.isConnected))
-        operatorNotConnectedAlert.set(operatorDebouncer.calculate(operatorController.isConnected))
-    }
 
     /**
      * Removes the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1
@@ -136,9 +104,6 @@ object OI: Subsystem {
     inline val CommandXboxController.b: Boolean get() = this.hid.bButton
     inline val CommandXboxController.x: Boolean get() = this.hid.xButton
     inline val CommandXboxController.y: Boolean get() = this.hid.yButton
-
-    inline val CommandXboxController.rightBumper: Boolean get() = this.hid.rightBumperButton
-    inline val CommandXboxController.leftBumper: Boolean get() = this.hid.leftBumperButton
 
     inline val CommandXboxController.start: Boolean get() = this.hid.startButton
     inline val CommandXboxController.back: Boolean get() = this.hid.backButton

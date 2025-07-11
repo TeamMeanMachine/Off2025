@@ -3,19 +3,12 @@ package frc.team2471.off2025
 
 import edu.wpi.first.wpilibj.RobotBase
 
-import com.pathplanner.lib.auto.AutoBuilder
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.ExampleCommand
-import frc.team2471.off2025.commands.feedforwardCharacterization
-import frc.team2471.off2025.commands.joystickTest
-import frc.team2471.off2025.commands.wheelRadiusCharacterization
-import frc.team2471.off2025.subsystems.ExampleSubsystem
-import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
+import frc.team2471.off2025.subsystems.Shooter
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
@@ -41,30 +34,21 @@ object Robot : LoggedRobot() {
 
     // Subsystems:
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
-    val drive = Drive
     val oi = OI
-    val exampleSubsystem = ExampleSubsystem
+    val exampleSubsystem = Shooter
 
 
-    var allSubsystems = arrayOf(drive, oi, exampleSubsystem)
+    var allSubsystems = arrayOf(oi, exampleSubsystem)
 
 
     private var wasDisabled = true
 
     // Dashboard inputs
-    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
+    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
         addOption("ExampleCommand", ExampleCommand())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
-        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
-        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
-        addOption("Drive SysId (Quasistatic Forward)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward))
-        addOption("Drive SysId (Quasistatic Reverse)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
-        addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
-        addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
-        addOption("Set Angle Offsets", Drive.setAngleOffsets())
-        addOption("JoystickTest", joystickTest())
     }
 
     val autonomousCommand: Command? get() = autoChooser.get()
@@ -74,7 +58,7 @@ object Robot : LoggedRobot() {
         // Set up data receivers & replay source
         when (robotMode) {
             RobotMode.REAL -> { // Running on a real robot, log to a USB stick ("/U/logs")
-                Logger.addDataReceiver(WPILOGWriter())
+//                Logger.addDataReceiver(WPILOGWriter())
                 Logger.addDataReceiver(NT4Publisher())
             }
             RobotMode.SIM -> Logger.addDataReceiver(NT4Publisher()) // Running a physics simulator, log to NT
@@ -91,7 +75,6 @@ object Robot : LoggedRobot() {
 
         // Start AdvantageKit logger
         Logger.start()
-        OdometrySignalThread
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
     }
 
@@ -126,7 +109,6 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
-        Drive.brakeMode()
     }
 
     /** This function is called once when the robot is disabled.  */

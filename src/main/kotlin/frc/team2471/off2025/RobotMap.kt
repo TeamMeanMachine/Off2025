@@ -13,34 +13,20 @@ object DigitalSensors {
 }
 
 object Falcons {
-    const val FRONT_RIGHT_DRIVE = 22
-    const val FRONT_RIGHT_STEER = 15
+    const val FRONT_LEFT_DRIVE = 18
+    const val FRONT_RIGHT_DRIVE = 1
+    const val BACK_LEFT_DRIVE = 19
+    const val BACK_RIGHT_DRIVE = 24
 
-    const val FRONT_LEFT_DRIVE = 23
-    const val FRONT_LEFT_STEER = 16
+    const val INTAKE_BOTTOM = 25
+    const val INTAKE_TOP = 28
 
-    const val BACK_RIGHT_DRIVE = 1
-    const val BACK_RIGHT_STEER = 11
+    const val FEEDER = 2
 
-    const val BACK_LEFT_DRIVE = 24
-    const val BACK_LEFT_STEER = 10
+    const val PIVOT = 7
 
-    const val CLIMBER_MOTOR = 13
-
-    const val ELEVATOR_0 = 4
-    const val ELEVATOR_1 = 5
-    const val ELEVATOR_2 = 20
-    const val ELEVATOR_3 = 21
-
-    const val ARM_MOTOR_0 = 2
-    const val ARM_MOTOR_1 = 3
-
-    const val PIVOT_MOTOR = 8
-
-    const val FRONT_INTAKE = 6
-    const val SIDE_MOTOR = 7
-
-    const val ALGAE_MOTOR = 19
+    const val SHOOTER_BOTTOM = 13
+    const val SHOOTER_TOP = 6
 }
 
 object Talons {

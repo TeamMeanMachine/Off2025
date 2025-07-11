@@ -1,21 +1,21 @@
 package frc.team2471.off2025.commands
 
 import edu.wpi.first.wpilibj2.command.Command
-import frc.team2471.off2025.subsystems.ExampleSubsystem
+import frc.team2471.off2025.subsystems.Shooter
 
 /** An example command that uses an example subsystem.  */
 class ExampleCommand : Command() {
     init
     {
         // Use addRequirements() here to declare subsystem dependencies.
-        addRequirements(ExampleSubsystem)
+        addRequirements(Shooter)
     }
 
     override fun initialize()
     {
         // Called when the command is initially scheduled.
         // Here we show an example of calling an action on the ExampleSubsystem
-        ExampleSubsystem.exampleAction()
+        Shooter.exampleAction()
     }
 
     override fun execute()
