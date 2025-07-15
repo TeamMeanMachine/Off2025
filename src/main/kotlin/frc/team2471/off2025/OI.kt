@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import frc.team2471.off2025.subsystems.Shooter
 import frc.team2471.off2025.util.*
 import java.lang.IllegalStateException
 import kotlin.math.absoluteValue
@@ -66,9 +67,12 @@ object OI: Subsystem {
 
     init {
 
-
+        driverController.rightTrigger(0.1).whileTrue(runCommand { Shooter.shooterVelocitySetpoint = (driverController.rightTriggerAxis * Shooter.MAX_VELOCITY) }.finallyRun { Shooter.stop() })
+//        driverController.leftTrigger(0.1).whileTrue(runCommand { Shooter.setVoltage(driverController.leftTriggerAxis * -12.0) }.finallyRun { Shooter.stop() })
+        driverController.a().whileTrue(runCommand { Shooter.shooterVelocitySetpoint = 0.0})
+        driverController.b().whileTrue(runCommand { Shooter.shooterVelocitySetpoint = 1250.0})
+        driverController.y().whileTrue(runCommand { Shooter.shooterVelocitySetpoint = 4000.0})
     }
-
 
     /**
      * Removes the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1
