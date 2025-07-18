@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import frc.team2471.off2025.subsystems.Shooter
 import frc.team2471.off2025.util.*
 import java.lang.IllegalStateException
 import kotlin.math.absoluteValue
@@ -65,10 +66,14 @@ object OI: Subsystem {
 
 
     init {
+        val a = ""  // todo: delete this line
 
+        // TODO: map the right trigger to setting the open loop voltage of the shooter motor.  full trigger should be MAX_VELOCITY
+
+
+        // TODO: map button a to 0 RPM velocity, b to 1250 RPM, and y to 3000 RPM
 
     }
-
 
     /**
      * Removes the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1
