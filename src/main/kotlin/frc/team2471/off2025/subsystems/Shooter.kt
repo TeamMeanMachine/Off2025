@@ -30,21 +30,24 @@ object Shooter : SubsystemBase() {
     // TODO: declare a const val for MAX_VELOCITY and set it to 4000
     const val MAX_VELOCITY = 4000.0
 
-    // TODO: create a var for the shooterVelocitySetpoint, include a set() function which sets the motors velocity by using VelocityVoltage mode
+    // TODO: create a var for the shooterVelocitySetpoint,
+    //  include a set() function which sets the motors velocity by using VelocityVoltage mode
     var shooterVelocitySetpoint: Double = 0.0
         set(value) {
             shooterMotorTop.setControl(VelocityVoltage(value/60.0))
             field = value
         }
 
-    // TODO: create a val for retrieving the velocity of the shooter motor, include a get() function to evaluate the velocity liveconvert from
+    // TODO: create a val for retrieving the velocity of the shooter motor,
+    //  include a get() function to evaluate the velocity live continuously
     // TODO: be sure to convert CTRE's native units of Rotations per Second to ours Rotations per Minute
     val shooterMotorTopVelocity
         get() = shooterMotorTop.velocity.valueAsDouble * 60.0
 
 
     init {
-        // TODO: configure the top motor with current limits of 30 amps, include kP, kD, and kV values for our PID.  They can start at 0.
+        // TODO: configure the top motor with current limits of 30 amps,
+        //  include kP, kD, and kV values for our PID.  They can start at 0.
         shooterMotorTop.configurator.apply(TalonFXConfiguration().apply {
             CurrentLimits.apply {
                 SupplyCurrentLimit = 30.0
