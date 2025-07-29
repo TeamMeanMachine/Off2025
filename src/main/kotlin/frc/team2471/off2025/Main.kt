@@ -14,11 +14,9 @@ import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
-import frc.team2471.off2025.util.PhoenixUtil
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
-import frc.team2471.off2025.util.sequenceCommand
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -59,24 +57,9 @@ object Robot : LoggedRobot() {
         // Set up SysId routines
 //        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
 //        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
-        addOption("Drive Translation SysId ALL", sequenceCommand(
-            Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
-            Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
-        ))
-        addOption("Drive Rotation SysId ALL", sequenceCommand(
-            Drive.sysIDRotationQuasistatic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDRotationQuasistatic(SysIdRoutine.Direction.kReverse),
-            Drive.sysIDRotationDynamic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDRotationDynamic(SysIdRoutine.Direction.kReverse),
-        ))
-        addOption("Drive Steer SysId ALL", sequenceCommand(
-            Drive.sysIDSteerQuasistatic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDSteerQuasistatic(SysIdRoutine.Direction.kReverse),
-            Drive.sysIDSteerDynamic(SysIdRoutine.Direction.kForward),
-            Drive.sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
-        ))
+        addOption("Drive Translation SysId ALL", Drive.sysIDTranslationAll())
+        addOption("Drive Rotation SysId ALL", Drive.sysIDRotationAll())
+        addOption("Drive Steer SysId ALL", Drive.sysIDSteerAll())
         addOption("Drive Translation SysId (Quasistatic Forward)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward))
         addOption("Drive Translation SysId (Quasistatic Reverse)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse))
         addOption("Drive Translation SysId (Dynamic Forward)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward))
@@ -110,6 +93,7 @@ object Robot : LoggedRobot() {
 
         // Start AdvantageKit logger
         Logger.start()
+        // Call all subsystems, make sure their init's run
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
     }
 
@@ -125,8 +109,6 @@ object Robot : LoggedRobot() {
         // finished or interrupted commands, and running subsystem periodic() methods.
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
-
-        PhoenixUtil.processNextCallQueue()
 
         if (Robot.isEnabled) {
             if (wasDisabled) {
@@ -146,14 +128,14 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
-//        Drive.brakeMode()
+        Drive.brakeMode()
     }
 
     /** This function is called once when the robot is disabled.  */
     override fun disabledInit() {
         // This makes sure that the autonomous stops running when teleop starts running.
         // If you want the autonomous to continue until interrupted by another command, remove this line.
-//        Drive.coastMode()
+        Drive.coastMode()
         autonomousCommand?.cancel()
         testCommand?.cancel()
     }

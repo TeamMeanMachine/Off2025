@@ -31,6 +31,8 @@ interface DriveIO {
     fun brakeMode()
     fun coastMode()
 
+    fun poseAt(timestampSeconds: Double): Pose2d?
+
     fun setAngleOffsets()
 
 

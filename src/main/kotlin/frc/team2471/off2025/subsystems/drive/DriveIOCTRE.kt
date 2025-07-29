@@ -4,8 +4,6 @@ import com.ctre.phoenix6.BaseStatusSignal
 import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
-import com.ctre.phoenix6.hardware.TalonFX
-import com.ctre.phoenix6.signals.NeutralModeValue
 import com.ctre.phoenix6.swerve.SwerveDrivetrain
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstants
@@ -17,13 +15,16 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
 import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.logged.LoggedTalonFX
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlin.jvm.optionals.getOrNull
 
 class DriveIOCTRE(
     driveConstants: SwerveDrivetrainConstants,
     vararg moduleConstants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-): SwerveDrivetrain<TalonFX, TalonFX, CANcoder>(
-    { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
-    { deviceId: Int, canbus: String? -> TalonFX(deviceId, canbus) },
+): SwerveDrivetrain<LoggedTalonFX, LoggedTalonFX, CANcoder>(
+    { deviceId: Int, canbus: String? -> LoggedTalonFX(deviceId, canbus) },
+    { deviceId: Int, canbus: String? -> LoggedTalonFX(deviceId, canbus) },
     { deviceId: Int, canbus: String? -> CANcoder(deviceId, canbus) },
     driveConstants,
     *moduleConstants
@@ -106,12 +107,15 @@ class DriveIOCTRE(
         val g = gyroSignals
         inputs.gyroInputs.apply {
             gyroConnected = g.gyroConnectedDebouncer.calculate(BaseStatusSignal.refreshAll(*g.allSignals).isOK)
-            yaw = g.yaw.valueAsDouble.degrees
+
+            yaw = BaseStatusSignal.getLatencyCompensatedValueAsDouble(g.yaw, g.yawRate).degrees
+            pitch = BaseStatusSignal.getLatencyCompensatedValueAsDouble(g.pitch, g.pitchRate).degrees
+            roll = BaseStatusSignal.getLatencyCompensatedValueAsDouble(g.roll, g.rollRate).degrees
+
             yawRate = g.yawRate.valueAsDouble.degreesPerSecond
-            pitch = g.pitch.valueAsDouble.degrees
             pitchRate = g.pitchRate.valueAsDouble.degreesPerSecond
-            roll = g.roll.valueAsDouble.degrees
             rollRate = g.rollRate.valueAsDouble.degreesPerSecond
+
             xAccel = g.xAccel.valueAsDouble.Gs - g.xGrav.valueAsDouble.Gs
             yAccel = g.yAccel.valueAsDouble.Gs - g.yGrav.valueAsDouble.Gs
         }
@@ -141,15 +145,16 @@ class DriveIOCTRE(
 
     override fun brakeMode() {
         modules.forEach {
-            PhoenixUtil.addToCallQueue { it.steerMotor.setNeutralMode(NeutralModeValue.Brake) }
-            PhoenixUtil.addToCallQueue { it.driveMotor.setNeutralMode(NeutralModeValue.Brake) }
+            it.steerMotor.brakeMode()
+            it.driveMotor.brakeMode()
         }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun coastMode() {
         modules.forEach {
-            PhoenixUtil.addToCallQueue { it.steerMotor.setNeutralMode(NeutralModeValue.Coast) }
-            PhoenixUtil.addToCallQueue { it.driveMotor.setNeutralMode(NeutralModeValue.Coast) }
+            it.steerMotor.coastMode()
+            it.steerMotor.coastMode()
         }
     }
 
@@ -159,6 +164,8 @@ class DriveIOCTRE(
             Preferences.setDouble("Module $i Offset", offset.asDegrees)
         }
     }
+
+    override fun poseAt(timestampSeconds: Double): Pose2d? = samplePoseAt(timestampSeconds).getOrNull()
 
 
     override fun resetHeading(angle: Angle) {

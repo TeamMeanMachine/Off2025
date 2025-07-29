@@ -98,7 +98,7 @@ object OI: Subsystem {
         // Reset position to zero
         driverController.start().onTrue(
             runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Translation2d(), Drive.rotation)
+                Drive.pose = Pose2d(Translation2d(), Drive.heading)
             }.ignoringDisable(true))
     }
 
@@ -108,11 +108,12 @@ object OI: Subsystem {
     }
 
     /**
-     * Uses distance formula to remove the 90 degree "snap" that Xbox joysticks do at extreme magnitudes and prevents magnitudes over 1.
+     * Uses the distance formula to remove the 90 degree "snap" that Xbox joystick axes do at extreme magnitudes.
+     * Also desaturates (prevents magnitudes over 1).
      */
     fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Pair<Double, Double> {
         return if (hypot(rawX, rawY) > 1.0) {
-            //magnitude is > 1, something is being "snapped" or is inaccurate
+            //magnitude is > 1, something is being "snapped" or the value is inaccurate
             if (rawX.absoluteValue >= 1.0) {
                 //x not trustworthy
                 Pair(sqrt(1 - rawY.square()).withSign(rawX), rawY)
@@ -120,12 +121,18 @@ object OI: Subsystem {
                 //y not trustworthy
                 Pair(rawX, sqrt(1 - rawX.square()).withSign(rawY))
             } else {
-                //both kinda trustworthy so perform weighted average for smooth motion. larger values are more untrustworthy
+                //Both axes are not snapping, but the magnitude > 1 meaning that one or both axes are inaccurate. (Joystick is drifting or warping)
+                //We will assume the joystick magnitude equals 1 and assume both axes are untrustworthy.
+                //To get the correct angle, we will perform a weighted average between the raw and calculated axes.
+                //Larger raw axis values are untrustworthy. A raw axis value is used as the weight for the calculated axis provided by the opposing (perpendicular) axis.
+                //In the weighted average: rawX is used as the weight for xCalc (xCalc was calculated using rawY)
+
                 val xCalc = sqrt(1 - rawY.square()).withSign(rawX)
                 val yCalc = sqrt(1 - rawX.square()).withSign(rawY)
                 val yConfidence = rawX.absoluteValue
                 val xConfidence = rawY.absoluteValue
                 val totalWeight = (yConfidence + xConfidence)
+
                 val x = (rawX * xConfidence + xCalc * yConfidence) / totalWeight
                 val y = (rawY * yConfidence + yCalc * xConfidence) / totalWeight
 

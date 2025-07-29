@@ -20,8 +20,6 @@ import edu.wpi.first.wpilibj.DriverStation
 import java.util.function.Supplier
 
 object PhoenixUtil {
-    private val callQueue = ArrayDeque<() -> StatusCode>()
-
     /** Attempts to run the command until no error is produced.  */
     fun tryUntilOk(maxAttempts: Int, command: Supplier<StatusCode>) {
         for (i in 0..<maxAttempts) {
@@ -34,17 +32,6 @@ object PhoenixUtil {
     fun getMagnetSensorOffsetFromCANcoderID(id: Int, canBus: String = ""): Angle {
         return CANcoder(id, canBus).getMagnetSensorOffset()
     }
-
-
-    fun addToCallQueue(function: () -> StatusCode) {
-        callQueue.addLast(function)
-    }
-
-    fun processNextCallQueue() {
-        callQueue.removeFirstOrNull()?.invoke()
-        LoopLogger.record("PhoenixUtil.processNextCallQueue()")
-    }
-
 }
 
 
@@ -57,7 +44,10 @@ fun CANcoder.getMagnetSensorOffset(): Angle {
     return initialConfigs.MagnetSensor.MagnetOffset.rotations
 }
 
-/** Applies the MagnetOffset config to the [CANcoder] while not changing other configuration values. */
+/**
+ * Applies the MagnetOffset config to the [CANcoder] while not changing other configuration values.
+ * This is probably a backing call
+ */
 fun CANcoder.setMagnetSensorOffset(offset: Angle) {
     if (isReal) {
         val initialConfigs = CANcoderConfiguration()
@@ -69,7 +59,10 @@ fun CANcoder.setMagnetSensorOffset(offset: Angle) {
     }
 }
 
-/** Sets the [CANcoder]s MagnetOffset config so its current position equals the specified angle. */
+/**
+ * Sets the [CANcoder]s MagnetOffset config so its current position equals the specified angle.
+ * This is probably a backing call
+ */
 fun CANcoder.setCANCoderAngle(angle: Angle): Angle {
     val initialPosition = this.absolutePosition.valueAsDouble.rotations
     val initialOffset = getMagnetSensorOffset()

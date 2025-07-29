@@ -40,7 +40,6 @@ import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
-import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
 
@@ -52,9 +51,12 @@ object Drive: SubsystemBase("Drive") {
         get() = driveInputs.pose
         set(value) = io.resetPose(value)
 
-    var rotation: Rotation2d
+    var heading: Rotation2d
         get() = pose.rotation
         set(value) = io.resetHeading(value.measure)
+
+    val headingLatencyCompensated: Angle
+        get() = driveInputs.gyroInputs.yaw
 
     val speeds: ChassisSpeeds
         get() = driveInputs.speeds
@@ -75,38 +77,6 @@ object Drive: SubsystemBase("Drive") {
         DriveRequestType = SwerveModule.DriveRequestType.Velocity
     }
 
-    //sysID
-    private val translationSysIdRoutine = SysIdRoutine(
-        SysIdRoutine.Config(
-            null,
-            7.0.volts,
-            5.0.seconds
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdTranslation_State", state.toString())},
-        Mechanism({ output: Voltage -> io.setDriveRequest(SysIdSwerveTranslation().withVolts(output))}, null, this)
-    )
-    //used to find driveAtAngleRequest PID
-    private val rotationSysIdRoutine = SysIdRoutine(
-        SysIdRoutine.Config(
-            Units.Volts.of(Math.PI / 6).per(Units.Second),
-            Math.PI.volts,
-            5.0.seconds
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdRotation_State", state.toString())},
-        Mechanism({ output: Voltage ->
-            /* output is actually radians per second, but SysId only supports "volts" */
-            io.setDriveRequest(SysIdSwerveRotation().withRotationalRate(output.asVolts))
-            /* also log the requested output for SysId */
-            SignalLogger.writeDouble("Rotational_Rate", output.asVolts)
-        }, null, this)
-    )
-    private val steerSysIdRoutine = SysIdRoutine(
-        SysIdRoutine.Config(
-            null,
-            7.0.volts,
-            null
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdSteer_State", state.toString()) },
-        Mechanism({ volts: Voltage? -> io.setDriveRequest(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
-    )
-
     val gyroDisconnectedAlert = Alert("Gyro Disconnected", Alert.AlertType.kError)
     val moduleDisconnectedAlerts = Array<Triple<Alert, Alert, Alert>>(4) {
         Triple(
@@ -116,15 +86,9 @@ object Drive: SubsystemBase("Drive") {
         )
     }
 
-    val coastModeTimer = Timer()
-    @get:AutoLogOutput
-    var inCoastMode = true
-
-
     init {
         println("inside Drive init")
         zeroGyro()
-        coastModeTimer.start()
     }
 
     override fun periodic() {
@@ -133,30 +97,12 @@ object Drive: SubsystemBase("Drive") {
 
         gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
         driveInputs.moduleInputs.forEachIndexed { i, mInput ->
+            // Alert if any swerve motor or encoder is disconnected
             val moduleAlert = moduleDisconnectedAlerts[i]
             moduleAlert.first.set(!mInput.driveConnected)
             moduleAlert.second.set(!mInput.steerConnected)
             moduleAlert.third.set(!mInput.encoderConnected)
-
-
-            if (Robot.isDisabled) {
-                if (mInput.steerVelocity.absoluteValue() > 0.5.degrees.perSecond) {
-                    coastModeTimer.reset()
-                    if (!inCoastMode) {
-                        println("coast mode")
-                        coastMode()
-                        inCoastMode = true
-                    }
-                }
-            }
         }
-
-        if (inCoastMode && coastModeTimer.get() > 3.0 ) {
-            println("brake mode")
-            brakeMode()
-            inCoastMode = false
-        }
-
 
         if (Robot.isDisabled) {
             stop()
@@ -165,33 +111,12 @@ object Drive: SubsystemBase("Drive") {
         LoopLogger.record("Drive periodic()")
     }
 
-    fun getChassisSpeedsFromJoystick(): ChassisSpeeds {
-        //make joystick pure circle
-        val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
-
-        //square drive input
-        val mult = hypot(cx, cy).square()
-        val (x, y) = Pair(cx * mult, cy * mult)
-
-        val omega = OI.driveRotation.cube()
-
-        val chassisSpeeds = ChassisSpeeds(
-            x * TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-            y * TunerConstants.kSpeedAt12Volts.asMetersPerSecond,
-            omega * maxAngularSpeedRadPerSec.asRadiansPerSecond
-        )
-
-//        println("linearVelocity = ${chassisSpeeds.translation.norm}")
-
-        return chassisSpeeds
-    }
-
     /**
      * Runs the drive at the desired velocity.
      * @param speeds Speeds in meters/sec
      */
     fun driveVelocity(speeds: ChassisSpeeds) {
-        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(rotation))
+        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(heading))
         io.setDriveRequest(
             ApplyFieldSpeeds().apply{
                 Speeds = speeds
@@ -213,9 +138,56 @@ object Drive: SubsystemBase("Drive") {
         )
     }
 
-    fun driveAtAngle(angle: Rotation2d): Command = driveAtAngle {angle}
-    fun driveAtAngle(angle: () -> Rotation2d): Command = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
+    fun stop() = driveVoltage(ChassisSpeeds())
 
+    fun xPose() = io.setDriveRequest(SwerveDriveBrake())
+
+    fun zeroGyro() {
+        println("zero gyro isRedAlliance  $isRedAlliance")
+        io.resetHeading(if (isRedAlliance) 180.0.degrees else 0.0.degrees)
+    }
+
+    fun updateSim() {
+        if (isSim) io.updateSim()
+    }
+
+    fun brakeMode() = io.brakeMode()
+    fun coastMode() = io.coastMode()
+
+    fun poseAt(timestampSeconds: Double): Pose2d? = io.poseAt(timestampSeconds)
+
+    fun setAngleOffsets() = runOnce {
+        io.setAngleOffsets()
+    }
+
+
+    /**
+     * Returns [ChassisSpeeds] with a percentage power from the driver controller.
+     * Performs [OI.unsnapAndDesaturateJoystick] to undo axis snapping and does squaring/cubing on the vectors.
+     */
+    fun getChassisPercentSpeedsFromJoystick(): ChassisSpeeds {
+        //make joystick pure circle
+        val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+
+        //square drive input
+        val power = hypot(cx, cy).square()
+        val (x, y) = Pair(cx * power, cy * power)
+
+        //cube rotation input
+        val omega = OI.driveRotation.cube()
+
+        return ChassisSpeeds(x, y, omega)
+    }
+
+    fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getChassisPercentSpeedsFromJoystick().apply {
+            vxMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
+            vyMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
+            omegaRadiansPerSecond *= maxAngularSpeedRadPerSec.asRadiansPerSecond
+        }
+
+    // All of these driveAtAngle function variations exist to make syntax good when calling the function
+    fun driveAtAngle(angle: Rotation2d): Command = driveAtAngle { angle }
+    fun driveAtAngle(angle: () -> Rotation2d): Command = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
     fun driveAtAngle(
         angle: () -> Rotation2d,
         translation: () -> Translation2d = { getChassisSpeedsFromJoystick().translation }
@@ -259,8 +231,7 @@ object Drive: SubsystemBase("Drive") {
             Logger.recordOutput("Drive/DriveToPoint DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint HeadingError", headingError)
 
-            false
-//            exitSupplier(distanceError, headingError)
+            exitSupplier(distanceError, headingError)
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/DriveToPoint Point", Pose2d())
@@ -312,10 +283,12 @@ object Drive: SubsystemBase("Drive") {
         }.until {
             exitSupplier(t / totalTime)
         }.finallyRun {
+            // Tell drivetrain to apply no output
             stop()
+            // Publish empty data to show that the path is done
             Logger.recordOutput("path name", "")
             Logger.recordOutput("Path Pose", Pose2d(null, null))
-        }
+        }.withName("DriveAlongChoreoPath")
     }
 
 
@@ -323,27 +296,38 @@ object Drive: SubsystemBase("Drive") {
 
 
 
-    fun stop() = driveVoltage(ChassisSpeeds())
+    // sysID
 
-    fun xPose() = io.setDriveRequest(SwerveDriveBrake())
-
-    fun zeroGyro() {
-        println("zero gyro isRedAlliance  $isRedAlliance")
-        io.resetHeading(if (isRedAlliance) 180.0.degrees else 0.0.degrees)
-    }
-
-    fun updateSim() {
-        if (isSim) io.updateSim()
-    }
-
-    fun brakeMode() = io.brakeMode()
-    fun coastMode() = io.coastMode()
-
-
-    fun setAngleOffsets() = runOnce {
-        io.setAngleOffsets()
-    }
-
+    private val translationSysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            null,
+            7.0.volts,
+            5.0.seconds
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdTranslation_State", state.toString())},
+        Mechanism({ output: Voltage -> io.setDriveRequest(SysIdSwerveTranslation().withVolts(output))}, null, this)
+    )
+    //used to find driveAtAngleRequest PID
+    private val rotationSysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            Units.Volts.of(Math.PI / 6).per(Units.Second),
+            Math.PI.volts,
+            5.0.seconds
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdRotation_State", state.toString())},
+        Mechanism({ output: Voltage ->
+            /* output is actually radians per second, but SysId only supports "volts" */
+            io.setDriveRequest(SysIdSwerveRotation().withRotationalRate(output.asVolts))
+            /* also log the requested output for SysId */
+            SignalLogger.writeDouble("Rotational_Rate", output.asVolts)
+        }, null, this)
+    )
+    private val steerSysIdRoutine = SysIdRoutine(
+        SysIdRoutine.Config(
+            null,
+            7.0.volts,
+            null
+        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdSteer_State", state.toString()) },
+        Mechanism({ volts: Voltage? -> io.setDriveRequest(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
+    )
 
     fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.dynamic(direction).finallyWait(1.0)
     fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
@@ -351,4 +335,23 @@ object Drive: SubsystemBase("Drive") {
     fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
     fun sysIDSteerDynamic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.dynamic(direction).finallyWait(1.0)
     fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+
+    fun sysIDTranslationAll() = sequenceCommand(
+        // Quasistatic forward and reverse
+        sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward), sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
+        // Dynamic forward and reverse
+        sysIDTranslationDynamic(SysIdRoutine.Direction.kForward), sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
+    )
+    fun sysIDRotationAll() = sequenceCommand(
+        // Quasistatic forward and reverse
+        sysIDRotationQuasistatic(SysIdRoutine.Direction.kForward), sysIDRotationQuasistatic(SysIdRoutine.Direction.kReverse),
+        // Dynamic forward and reverse
+        sysIDRotationDynamic(SysIdRoutine.Direction.kForward), sysIDRotationDynamic(SysIdRoutine.Direction.kReverse),
+    )
+    fun sysIDSteerAll() = sequenceCommand(
+        // Quasistatic forward and reverse
+        sysIDSteerQuasistatic(SysIdRoutine.Direction.kForward), sysIDSteerQuasistatic(SysIdRoutine.Direction.kReverse),
+        // Dynamic forward and reverse
+        sysIDSteerDynamic(SysIdRoutine.Direction.kForward), sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
+    )
 }
