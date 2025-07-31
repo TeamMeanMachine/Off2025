@@ -96,6 +96,8 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.1"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
+    implementation group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
