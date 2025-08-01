@@ -12,6 +12,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.team2471.off2025.util.LoopLogger
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
 
@@ -123,6 +124,7 @@ object Armavator: SubsystemBase() {
 
     override fun periodic()
     {
+        LoopLogger.record("B4 Armavator periodic()")
         // This method will be called once per scheduler run
         elevatorHeightEntry.setDouble(currentHeightInches)
         elevatorSetpointEntry.setDouble(heightSetpoint)
@@ -133,6 +135,8 @@ object Armavator: SubsystemBase() {
         armSetpointEntry.setDouble(armAngleSetpoint)
         armCurrentEntry.setDouble(armMotor0.statorCurrent.valueAsDouble)
         armVelocityEntry.setDouble(armMotor0.velocity.valueAsDouble)
+
+        LoopLogger.record("Armavator periodic()")
     }
 
     /**

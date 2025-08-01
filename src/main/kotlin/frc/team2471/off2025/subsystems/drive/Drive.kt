@@ -164,13 +164,13 @@ object Drive: SubsystemBase("Drive") {
 
         //vision
         cameras.forEach {
-            it.updateInputs()
+//            it.updateInputs()
         }
-        localizer.updateWithLatestPoseEstimate()
+//        localizer.updateWithLatestPoseEstimate()
         val yaw = headingLatencyCompensated
         val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(Rotation2d(yaw), driveInputs.modulePositions)
         val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
-        localizer.update(odometryMeasurement, visionMeasurements, speeds)
+//        localizer.update(odometryMeasurement, visionMeasurements, speeds)
 
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
