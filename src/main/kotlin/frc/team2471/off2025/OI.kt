@@ -6,7 +6,7 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.Subsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.Armavator
@@ -17,7 +17,7 @@ import kotlin.math.hypot
 import kotlin.math.sqrt
 import kotlin.math.withSign
 
-object OI: Subsystem {
+object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, true)
     val operatorController = MeanCommandXboxController(1)
 
@@ -103,8 +103,10 @@ object OI: Subsystem {
     }
 
     override fun periodic() {
+        LoopLogger.record("b4 OI piodc")
         driverNotConnectedAlert.set(driverDebouncer.calculate(driverController.isConnected))
         operatorNotConnectedAlert.set(operatorDebouncer.calculate(operatorController.isConnected))
+        LoopLogger.record("OI piodc")
     }
 
     /**

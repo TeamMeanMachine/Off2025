@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.ExampleCommand
 import frc.team2471.off2025.commands.joystickTest
+import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
@@ -35,16 +36,18 @@ import kotlin.collections.iterator
  */
 object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
+    val commandScheduler = CommandScheduler.getInstance()
 
 
     // Subsystems:
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
     val drive = Drive
     val oi = OI
+    val armavator = Armavator
     val exampleSubsystem = ExampleSubsystem
 
 
-    var allSubsystems = arrayOf(drive, oi, exampleSubsystem)
+    var allSubsystems = arrayOf(drive, oi, exampleSubsystem, armavator)
 
 
     private var wasDisabled = true
@@ -120,7 +123,8 @@ object Robot : LoggedRobot() {
         }
 
 
-        CommandScheduler.getInstance().run()
+        LoopLogger.record("B4 CommandScheduler.run()")
+        commandScheduler.run()
 
         // Return to non-RT thread priority (do not modify the first argument)
 //         Threads.setCurrentThreadPriority(false, 10);
@@ -176,8 +180,10 @@ object Robot : LoggedRobot() {
 
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {
+        LoopLogger.record("b4 simulation piodc")
         Drive.updateSim()
         MasterMotor.simPeriodic()
+        LoopLogger.record("simulation piodc")
     }
 
 
