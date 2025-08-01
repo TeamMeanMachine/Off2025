@@ -14,8 +14,14 @@ package frc.team2471.off2025
 
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.math.geometry.Transform2d
+import edu.wpi.first.math.geometry.Transform3d
+import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.util.Units
+import frc.team2471.off2025.util.asMeters
+import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.quix.Fiducials
 import java.util.Map
 
@@ -91,4 +97,54 @@ object Constants {
             }
         }
     }
+
+
+    // Need to be more accurate
+    val frontRightCamPose: Transform3d = Transform3d(
+        Translation3d(
+            9.375.inches.asMeters,
+            -4.125.inches.asMeters,
+            7.745.inches.asMeters
+        ), Rotation3d(
+            0.0.degrees,
+            (-20.0).degrees,
+            -8.0.degrees
+        )
+    )
+
+    val frontLeftCamPose: Transform3d = Transform3d(
+        Translation3d(
+            9.375.inches.asMeters,
+            0.825.inches.asMeters,
+            7.745.inches.asMeters
+        ), Rotation3d(
+            0.0.degrees,
+            (-20.0).degrees,
+            8.0.degrees
+        )
+    )
+
+    val backLeftCamPose: Transform3d = Transform3d(
+        Translation3d(
+            -9.375.inches.asMeters,
+            0.825.inches.asMeters,
+            7.745.inches.asMeters
+        ), Rotation3d(
+            0.0.degrees,
+            (-20.0).degrees,
+            (180.0 - 8).degrees
+        )
+    )
+
+    val backRightCamPose: Transform3d = Transform3d(
+        Translation3d(
+            -9.375.inches.asMeters,
+            -4.0.inches.asMeters,
+            7.745.inches.asMeters
+        ), Rotation3d(
+            0.0.degrees,
+            (-20.0).degrees,
+            (180.0 + 8).degrees
+        )
+    )
 }
