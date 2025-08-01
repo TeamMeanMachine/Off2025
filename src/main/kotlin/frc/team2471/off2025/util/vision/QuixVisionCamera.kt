@@ -5,7 +5,6 @@ import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
-import frc.team2471.off2025.util.vision.Fiducial
 import org.photonvision.simulation.PhotonCameraSim
 import java.util.*
 
@@ -16,7 +15,6 @@ interface QuixVisionCamera {
     fun updateInputs()
 
     /** Returns the latest measurement.  */
-//    @JvmField
     val latestMeasurement: PipelineVisionPacket
 
     /** Select the active pipeline index.  */

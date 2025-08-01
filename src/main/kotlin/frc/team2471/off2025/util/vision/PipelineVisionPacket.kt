@@ -4,7 +4,12 @@ import org.photonvision.targeting.PhotonTrackedTarget
 
 /** A data class for a pipeline packet.  */
 class PipelineVisionPacket(
-    private val m_hasTargets: Boolean,
+    /**
+     * If the vision packet has valid targets.
+     *
+     * @return if targets are found.
+     */
+    val hasTargets: Boolean,
     /**
      * Gets best target.
      *
@@ -23,13 +28,4 @@ class PipelineVisionPacket(
      * @return the timestamp in seconds.
      */
     val captureTimestamp: Double
-) {
-    /**
-     * If the vision packet has valid targets.
-     *
-     * @return if targets are found.
-     */
-    fun hasTargets(): Boolean {
-        return m_hasTargets
-    }
-}
+)

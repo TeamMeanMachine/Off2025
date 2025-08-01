@@ -29,25 +29,15 @@ import java.nio.ByteBuffer
  *
  */
 class PoseEstimateStruct : Struct<PoseEstimate> {
-    override fun getTypeClass(): Class<PoseEstimate> {
-        return PoseEstimate::class.java
-    }
+    override fun getTypeClass(): Class<PoseEstimate> = PoseEstimate::class.java
 
-    override fun getTypeName(): String {
-        return "PoseEstimate"
-    }
+    override fun getTypeName(): String = "PoseEstimate"
 
-    override fun getSize(): Int {
-        return Pose2d.struct.size + Struct.kSizeInt32 * 2
-    }
+    override fun getSize(): Int = Pose2d.struct.size + Struct.kSizeInt32 * 2
 
-    override fun getSchema(): String {
-        return "int32 id;" + "Pose2d pose;" + "int32 hasVision;"
-    }
+    override fun getSchema(): String = "int32 id;" + "Pose2d pose;" + "int32 hasVision;"
 
-    override fun getNested(): Array<Struct<*>> {
-        return arrayOf(Pose2d.struct)
-    }
+    override fun getNested(): Array<Struct<*>> = arrayOf(Pose2d.struct)
 
     override fun unpack(bb: ByteBuffer): PoseEstimate {
         val id = bb.getInt()
@@ -56,14 +46,11 @@ class PoseEstimateStruct : Struct<PoseEstimate> {
         return PoseEstimate(id, pose, hasVision)
     }
 
-
     override fun pack(bb: ByteBuffer, value: PoseEstimate) {
         bb.putInt(value.id)
         Pose2d.struct.pack(bb, value.pose)
-        bb.putInt(if (value.hasVision()) 1 else 0)
+        bb.putInt(if (value.hasVision) 1 else 0)
     }
 
-    override fun isImmutable(): Boolean {
-        return true
-    }
+    override fun isImmutable(): Boolean = true
 }
