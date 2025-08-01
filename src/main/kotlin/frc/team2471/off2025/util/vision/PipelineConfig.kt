@@ -4,21 +4,31 @@ import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
+import frc.team2471.off2025.util.asRotation2d
+import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.vision.Fiducial
+import org.photonvision.simulation.SimCameraProperties
 
 /** Describes a given vision camera pipeline configuration.  */
 class PipelineConfig(
-    @JvmField val fiducialType: Fiducial.Type,
+    @JvmField val fiducialType: Fiducial.Type = Fiducial.Type.APRILTAG,
 // pixels
-    @JvmField val imageWidth: Int,
+    @JvmField val imageWidth: Int = 1280,
     // pixels
-    @JvmField val imageHeight: Int,
+    @JvmField val imageHeight: Int = 800,
+
+    val simCameraProp: SimCameraProperties = SimCameraProperties().apply {
+        setCalibration(resWidth, resHeight, 70.2.degrees.asRotation2d)
+        setCalibError(0.001, 0.005) // Values from docs. Should change
+        fps = 20.0
+        avgLatencyMs = 20.0
+        latencyStdDevMs = 3.0
+    },
     // used for sim only
-    @JvmField val camIntrinsics: Matrix<N3, N3>,
+    val camIntrinsics: Matrix<N3, N3> = simCameraProp.intrinsics,
     // used for sim only
-    @JvmField val distCoeffs: Matrix<N8, N1>
+    @JvmField val distCoeffs: Matrix<N8, N1> = simCameraProp.distCoeffs
 ) {
-//    init {
-//        this.distCoeffs = distCoeffs
-//    }
+    init {
+    }
 }

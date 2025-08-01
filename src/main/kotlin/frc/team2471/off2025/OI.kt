@@ -18,7 +18,7 @@ import kotlin.math.sqrt
 import kotlin.math.withSign
 
 object OI: Subsystem {
-    val driverController = MeanCommandXboxController(0, false)
+    val driverController = MeanCommandXboxController(0, true)
     val operatorController = MeanCommandXboxController(1)
 
     val deadbandDriver = 0.08

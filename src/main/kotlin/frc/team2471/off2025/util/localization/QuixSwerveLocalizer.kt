@@ -267,7 +267,7 @@ class QuixSwerveLocalizer(
         mLatestRawEstimate = estimate
 
         // Only incorporate estimate if it is new.
-        if (mIdToTimeMap.isEmpty() || estimate.id == mLastUpdatedId) {
+        if (mIdToTimeMap.isEmpty() || estimate.id == mLastUpdatedId || mIdToTimeMap[estimate.id] == null) {
             val endTimestamp = Timer.getFPGATimestamp()
             Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
             Logger.recordOutput("Localizer/visionCorrection (m)", 0.0)

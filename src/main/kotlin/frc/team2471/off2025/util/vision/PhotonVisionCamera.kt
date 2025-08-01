@@ -51,7 +51,7 @@ class PhotonVisionCamera(
 
         override fun fromLog(table: LogTable) {
             pipelineIndex = table.get("PipelineIndex", pipelineIndex)
-            latestResult = table.get<PhotonPipelineResult>("LatestResult", latestResult)
+            latestResult = table.get("LatestResult", latestResult)
             cameraMatrix =
                 if (table.get("CameraMatrixIsPresent", false))
                     Optional.of<Matrix<N3, N3>>(
@@ -85,30 +85,32 @@ class PhotonVisionCamera(
         val props = SimCameraProperties()
         // TODO: Sim more than one pipeline.
         props.setCalibration(
-            pipelineConfigs[0]!!.imageWidth,
-            pipelineConfigs[0]!!.imageHeight,
-            pipelineConfigs[0]!!.camIntrinsics,
-            pipelineConfigs[0]!!.distCoeffs
+            pipelineConfigs[0].imageWidth,
+            pipelineConfigs[0].imageHeight,
+            pipelineConfigs[0].camIntrinsics,
+            pipelineConfigs[0].distCoeffs
         )
         props.setCalibError(0.25, 0.08)
-        props.setFPS(20.0)
-        props.setAvgLatencyMs(35.0)
-        props.setLatencyStdDevMs(5.0)
+        props.fps = 20.0
+        props.avgLatencyMs = 35.0
+        props.latencyStdDevMs = 5.0
         this.cameraSim = PhotonCameraSim(m_camera, props)
         cameraSim.enableDrawWireframe(true)
+        cameraSim.enableProcessedStream(true)
+        cameraSim.enableRawStream(true)
     }
 
     override fun updateInputs() {
-        m_inputs.pipelineIndex = cameraSim!!.getCamera().getPipelineIndex()
+        m_inputs.pipelineIndex = cameraSim.camera.pipelineIndex
         // TODO: Handle all results, not just the latest.
-        val latestResults = cameraSim.getCamera().getAllUnreadResults()
+        val latestResults = cameraSim.camera.allUnreadResults
         m_inputs.latestResult =
             if (latestResults.size > 0)
                 latestResults.get(latestResults.size - 1)
             else
                 PhotonPipelineResult()
         // Only update these once, since they shouldn't be changing.
-        val cameraMatrix = cameraSim.getCamera().getCameraMatrix()
+        val cameraMatrix = cameraSim.camera.getCameraMatrix()
         if (m_inputs.cameraMatrix.isEmpty() && cameraMatrix.isPresent()) {
             m_inputs.cameraMatrix = cameraMatrix
         }
