@@ -2,35 +2,30 @@ package frc.team2471.off2025.util.vision
 
 import edu.wpi.first.math.geometry.Pose3d
 
-class Fiducial(val type: Type, // An ID of -1 indicates this is an unlabeled fiducial (e.g. retroreflective tape)
-    private val m_id: Int, val pose: Pose3d, val size: Double
-) {
+// An ID of -1 indicates this is an unlabeled fiducial (e.g. retroreflective tape)
+class Fiducial(val type: Type, val id: Int, val pose: Pose3d, val size: Double) {
     enum class Type(@JvmField val value: Int) {
         RETROREFLECTIVE(0),
         APRILTAG(1)
     }
 
-    fun id(): Int {
-        return m_id
-    }
-
     val x: Double
-        get() = pose.getX()
+        get() = pose.x
 
     val y: Double
-        get() = pose.getY()
+        get() = pose.y
 
     val z: Double
-        get() = pose.getZ()
+        get() = pose.z
 
     val xRot: Double
-        get() = pose.getRotation().getX()
+        get() = pose.rotation.x
 
     val yRot: Double
-        get() = pose.getRotation().getY()
+        get() = pose.rotation.y
 
     val zRot: Double
-        get() = pose.getRotation().getZ()
+        get() = pose.rotation.z
 
     companion object {
         // Struct for serialization.

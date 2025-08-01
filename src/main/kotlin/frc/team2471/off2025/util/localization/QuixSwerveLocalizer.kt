@@ -69,7 +69,7 @@ import kotlin.math.max
  * @param modulePositions The positions of the swerve modules.
  * @param priori The initial pose of the robot.
  * @param targets The fiducial targets for vision-based localization.
- * @param mCameras The vision cameras used for detecting fiducial targets.
+ * @param cameras The vision cameras used for detecting fiducial targets.
  */
 class QuixSwerveLocalizer(
     kinematics: SwerveDriveKinematics,
@@ -77,48 +77,48 @@ class QuixSwerveLocalizer(
     modulePositions: Array<SwerveModulePosition>,
     priori: Pose2d,
     targets: Array<Fiducial>,
-    val mCameras: ArrayList<QuixVisionCamera>
+    val cameras: ArrayList<QuixVisionCamera>
 ) {
     // Manages sending and receiving from NetworkTables.
-    private val mNetworktable = NTManager()
+    private val networktable = NTManager()
 
     // If empty, uses all tags.
-    private val mTagsToTrack = HashSet<Int>()
+    private val tagsToTrack = HashSet<Int>()
 
     // ID of the current measurement. Used to sync between Robot and DriverStation.
-    private var mCurrentId = 0
+    private var currentId = 0
 
     // Map of {id: time}
-    private val mIdToTimeMap = HashMap<Int, Double>()
+    private val idToTimeMap = HashMap<Int, Double>()
 
     // Map of {time : SwerveDriveOdometryMeasurement}
-    private val mTimeToOdometryMap = ConcurrentSkipListMap<Double, SwerveOdometryMeasurement>()
+    private val timeToOdometryMap = ConcurrentSkipListMap<Double, SwerveOdometryMeasurement>()
 
     // Buffer of poses so we can get the interpolated pose at the time of a vision measurement.
     private val kBufferHistorySeconds = 10.0 // s
-    private val mRawOdometryPoseBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(kBufferHistorySeconds)
+    private val rawOdometryPoseBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(kBufferHistorySeconds)
 
     // Buffer of chassis speeds so we can get the interpolated chassis speed at the time of a vision
     // measurement.
-    private val mChassisSpeedsBuffer = TimeInterpolatableBuffer.createBuffer<InterpolatableChassisSpeeds>(kBufferHistorySeconds)
+    private val chassisSpeedsBuffer = TimeInterpolatableBuffer.createBuffer<InterpolatableChassisSpeeds>(kBufferHistorySeconds)
 
     // Map of {time: Pair<NTOdometryMeasurement, NTVisionMeasurement>}
-    private val mTimeToMeasurementMap = TreeMap<Double, Measurement>()
+    private val timeToMeasurementMap = TreeMap<Double, Measurement>()
 
     // ID of the last measurement that was updated.
-    private var mLastUpdatedId = -1
+    private var lastUpdatedId = -1
 
     // Continuous odometry from the last reset. Used as input to the localizer.
-    private val mRawOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val rawOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
 
     // Odometry played back on top of the latest localization estimate.
-    private val mPlaybackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val playbackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
 
     // Odometry played back on top of the latest single-tag localization estimate.
-    private val mSingleTagPlaybackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val singleTagPlaybackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
 
     // Latest raw localization estimate from DS.
-    private var mLatestRawEstimate = PoseEstimate()
+    private var latestRawEstimate = PoseEstimate()
 
     // Measurements within |kMutableTimeBuffer| of the current time are not considered final.
     // This gives us a chance to associate new vision measurements with an past interpolated
@@ -126,65 +126,65 @@ class QuixSwerveLocalizer(
     private val kMutableTimeBuffer = 0.05 // seconds
 
     init {
-        mNetworktable.publishTargets(targets)
+        networktable.publishTargets(targets)
         trackAllTags()
     }
 
     /** Resets the localizer to the given pose.  */
     fun resetPose(gyroAngle: Rotation2d, modulePositions: Array<SwerveModulePosition>, pose: Pose2d) {
-        mRawOdometry.resetPosition(gyroAngle, modulePositions, pose)
-        mPlaybackOdometry.resetPosition(gyroAngle, modulePositions, pose)
-        mSingleTagPlaybackOdometry.resetPosition(gyroAngle, modulePositions, pose)
+        rawOdometry.resetPosition(gyroAngle, modulePositions, pose)
+        playbackOdometry.resetPosition(gyroAngle, modulePositions, pose)
+        singleTagPlaybackOdometry.resetPosition(gyroAngle, modulePositions, pose)
     }
 
     fun trackAllTags() {
-        mTagsToTrack.clear()
+        tagsToTrack.clear()
         for (tag in Fiducials.aprilTagFiducials) {
-            mTagsToTrack.add(tag.id())
+            tagsToTrack.add(tag.id)
         }
     }
 
     fun setTagsToTrack(tagIDs: IntArray) {
-        mTagsToTrack.clear()
+        tagsToTrack.clear()
         for (id in tagIDs) {
-            mTagsToTrack.add(id)
+            tagsToTrack.add(id)
         }
     }
 
     val odometryPose: Pose2d
         /** Raw odometry pose.  */
-        get() = mRawOdometry.poseMeters
+        get() = rawOdometry.poseMeters
 
     val pose: Pose2d
         /** Localizer latency-compensated pose.  */
-        get() = mPlaybackOdometry.poseMeters
+        get() = playbackOdometry.poseMeters
 
     val singleTagPose: Pose2d
         /** Single tag latency-compensated pose.  */
-        get() = mSingleTagPlaybackOdometry.poseMeters
+        get() = singleTagPlaybackOdometry.poseMeters
 
     val rawPose: Pose2d
         /** Localizer pose from DS. Use for plotting/debugging only.  */
-        get() = mLatestRawEstimate.pose
+        get() = latestRawEstimate.pose
 
     /** Update with odometry and optional vision.  */
     fun update(odometry: SwerveOdometryMeasurement, visionPackets: ArrayList<PipelineVisionPacket>, chassisSpeeds: ChassisSpeeds) {
-        mNetworktable.publishCameras(mCameras)
+        networktable.publishCameras(cameras)
 
         val startTimestamp = Timer.getFPGATimestamp()
         val currentTime = Timer.getTimestamp()
 
-        mRawOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
-        mPlaybackOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
-        mSingleTagPlaybackOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
-        mTimeToOdometryMap.put(currentTime, odometry)
+        rawOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
+        playbackOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
+        singleTagPlaybackOdometry.update(odometry.gyroAngle, odometry.modulePositionStates)
+        timeToOdometryMap.put(currentTime, odometry)
 
-        val curPose = mRawOdometry.poseMeters
-        mRawOdometryPoseBuffer.addSample(currentTime, curPose)
-        mChassisSpeedsBuffer.addSample(currentTime, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
+        val curPose = rawOdometry.poseMeters
+        rawOdometryPoseBuffer.addSample(currentTime, curPose)
+        chassisSpeedsBuffer.addSample(currentTime, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
 
         // Always save latest odometry.
-        mTimeToMeasurementMap.put(currentTime, Measurement(curPose))
+        timeToMeasurementMap.put(currentTime, Measurement(curPose))
 
         // Save data from each camera.
         for (cameraID in visionPackets.indices) {
@@ -196,26 +196,26 @@ class QuixSwerveLocalizer(
                 Logger.recordOutput("Localizer/measurementLatency[$cameraID]", currentTime - measurementTime)
             }
 
-            if (!vision.hasTargets()) {
+            if (!vision.hasTargets) {
                 val array = arrayOfNulls<Translation3d>(0)
                 Logger.recordOutput<Translation3d>("Localizer/detectedTags[$cameraID]", *array)
                 continue
             }
 
             // Merge with the existing measurement if it already exists.
-            var existingMeasurement = mTimeToMeasurementMap.get(measurementTime)
+            var existingMeasurement = timeToMeasurementMap.get(measurementTime)
 
             // If there is no existing measurement, create a new one by interpolating pose.
             if (existingMeasurement == null) {
-                val interpolatedPose = mRawOdometryPoseBuffer.getSample(measurementTime).get()
+                val interpolatedPose = rawOdometryPoseBuffer.getSample(measurementTime).get()
                 existingMeasurement = Measurement(interpolatedPose)
-                mTimeToMeasurementMap.put(measurementTime, existingMeasurement)
+                timeToMeasurementMap.put(measurementTime, existingMeasurement)
             }
 
             // Set vision uncertainty based on chassis speeds.
             // The fast we are moving, the more uncertain we are.
             // TODO: Tune
-            val interpolatedChassisSpeeds = mChassisSpeedsBuffer.getSample(measurementTime).get()
+            val interpolatedChassisSpeeds = chassisSpeedsBuffer.getSample(measurementTime).get()
             val pixelSigma: Double = max(
                 100.0,
                 5.0
@@ -226,7 +226,7 @@ class QuixSwerveLocalizer(
 
             if (vision.targets != null) {
                 for (target in vision.targets) {
-                    if (mTagsToTrack.contains(target.getFiducialId())) {
+                    if (tagsToTrack.contains(target.getFiducialId())) {
                         // Use AprilTag corners.
                         for (cornerID in target.getDetectedCorners().indices) {
                             existingMeasurement.addVisionMeasurement(
@@ -237,7 +237,7 @@ class QuixSwerveLocalizer(
                             )
                         }
                         if (target.getFiducialId() <= Fiducials.aprilTagFiducials.size) {
-                            detectedTags.add(Pose3d(this.pose).transformBy(mCameras[cameraID].transform).translation)
+                            detectedTags.add(Pose3d(this.pose).transformBy(cameras[cameraID].transform).translation)
                             detectedTags.add(Fiducials.aprilTagFiducials[target.getFiducialId() - 1].pose.translation)
                         }
                     }
@@ -260,37 +260,37 @@ class QuixSwerveLocalizer(
      */
     fun updateWithLatestPoseEstimate() {
         val startTimestamp = Timer.getFPGATimestamp()
-        mNetworktable.updateInputs()
-        val estimate = mNetworktable.latestPoseEstimate
+        networktable.updateInputs()
+        val estimate = networktable.latestPoseEstimate
 
         // Save for plotting/debugging purposes.
-        mLatestRawEstimate = estimate
+        latestRawEstimate = estimate
 
         // Only incorporate estimate if it is new.
-        if (mIdToTimeMap.isEmpty() || estimate.id == mLastUpdatedId || mIdToTimeMap[estimate.id] == null) {
+        if (idToTimeMap.isEmpty() || estimate.id == lastUpdatedId || idToTimeMap[estimate.id] == null) {
             val endTimestamp = Timer.getFPGATimestamp()
             Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
             Logger.recordOutput("Localizer/visionCorrection (m)", 0.0)
             return
         }
-        mLastUpdatedId = estimate.id
+        lastUpdatedId = estimate.id
 
         // Save the pose before correction.
         val preCorrectionPose = this.pose
 
         // Start playback odometry at the first time >= the current estimate.
-        val estimateTime: Double = mIdToTimeMap[estimate.id]!!
-        var curTime = mTimeToOdometryMap.ceilingKey(estimateTime)
+        val estimateTime: Double = idToTimeMap[estimate.id]!!
+        var curTime = timeToOdometryMap.ceilingKey(estimateTime)
 
-        val measurement: SwerveOdometryMeasurement = mTimeToOdometryMap.get(curTime)!!
-        mPlaybackOdometry.resetPosition(measurement.gyroAngle, measurement.modulePositionStates, estimate.pose)
+        val measurement: SwerveOdometryMeasurement = timeToOdometryMap.get(curTime)!!
+        playbackOdometry.resetPosition(measurement.gyroAngle, measurement.modulePositionStates, estimate.pose)
 
         // Traverse entries in |m_timeToOdometryMap| from |curTime| until the end to update
         // playback odometry.
         while (curTime != null) {
-            val lastMeasurement: SwerveOdometryMeasurement = mTimeToOdometryMap.get(curTime)!!
-            mPlaybackOdometry.update(lastMeasurement.gyroAngle, lastMeasurement.modulePositionStates)
-            curTime = mTimeToOdometryMap.higherKey(curTime)
+            val lastMeasurement: SwerveOdometryMeasurement = timeToOdometryMap.get(curTime)!!
+            playbackOdometry.update(lastMeasurement.gyroAngle, lastMeasurement.modulePositionStates)
+            curTime = timeToOdometryMap.higherKey(curTime)
         }
         val endTimestamp = Timer.getFPGATimestamp()
         Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
@@ -305,7 +305,7 @@ class QuixSwerveLocalizer(
         val currentTime = Timer.getTimestamp()
 
         // Times are in ascending order.
-        val times = ArrayList(mTimeToMeasurementMap.keys)
+        val times = ArrayList(timeToMeasurementMap.keys)
         for (time in times) {
             // Entries within |kMutableTimeBuffer| of the current time are not considered final.
             // Once we reach this point we are done.
@@ -315,12 +315,12 @@ class QuixSwerveLocalizer(
 
             // Entries older than |kMutableTimeBuffer| are considered immutable.
             // Assign them an ID and publish them.
-            val measurement: Measurement = mTimeToMeasurementMap[time]!!
-            mNetworktable.publishMeasurement(measurement, mCurrentId)
-            mTimeToMeasurementMap.remove(time)
+            val measurement: Measurement = timeToMeasurementMap[time]!!
+            networktable.publishMeasurement(measurement, currentId)
+            timeToMeasurementMap.remove(time)
 
-            mIdToTimeMap.put(mCurrentId, time)
-            mCurrentId += 1
+            idToTimeMap.put(currentId, time)
+            currentId += 1
         }
     }
 
@@ -340,7 +340,7 @@ class QuixSwerveLocalizer(
         var latestTimestamp = 0.0
         var latestTarget: PhotonTrackedTarget? = null
         var cam: QuixVisionCamera? = null
-        for (camera in mCameras) {
+        for (camera in cameras) {
             val measurement = camera.latestMeasurement
             if (measurement.captureTimestamp <= latestTimestamp) {
                 continue
@@ -363,7 +363,7 @@ class QuixSwerveLocalizer(
         }
 
         // Compute single tag pose
-        val interpolatedPose = mRawOdometryPoseBuffer.getSample(latestTimestamp).get()
+        val interpolatedPose = rawOdometryPoseBuffer.getSample(latestTimestamp).get()
         val interpolatedRotation = interpolatedPose.rotation
         val distance = latestTarget.bestCameraToTarget.translation.norm
         val robotToCam = cam.transform
@@ -388,19 +388,19 @@ class QuixSwerveLocalizer(
         Logger.recordOutput("Swerve/SingleTagPoseRaw", robotPose)
 
         // Replay odometry on top of latest estimate
-        var curTime = mTimeToOdometryMap.ceilingKey(latestTimestamp)
+        var curTime = timeToOdometryMap.ceilingKey(latestTimestamp)
         if (curTime == null) {
             return
         }
-        val measurement: SwerveOdometryMeasurement = mTimeToOdometryMap[curTime]!!
-        mSingleTagPlaybackOdometry.resetPosition(measurement.gyroAngle, measurement.modulePositionStates, robotPose)
+        val measurement: SwerveOdometryMeasurement = timeToOdometryMap[curTime]!!
+        singleTagPlaybackOdometry.resetPosition(measurement.gyroAngle, measurement.modulePositionStates, robotPose)
 
         // Traverse entries in |m_timeToOdometryMap| from |curTime| until the end to update
         // playback odometry.
         while (curTime != null) {
-            val lastMeasurement: SwerveOdometryMeasurement = mTimeToOdometryMap[curTime]!!
-            mSingleTagPlaybackOdometry.update(lastMeasurement.gyroAngle, lastMeasurement.modulePositionStates)
-            curTime = mTimeToOdometryMap.higherKey(curTime)
+            val lastMeasurement: SwerveOdometryMeasurement = timeToOdometryMap[curTime]!!
+            singleTagPlaybackOdometry.update(lastMeasurement.gyroAngle, lastMeasurement.modulePositionStates)
+            curTime = timeToOdometryMap.higherKey(curTime)
         }
     }
 

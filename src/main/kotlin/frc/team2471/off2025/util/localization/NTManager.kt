@@ -3,7 +3,6 @@ package frc.team2471.off2025.util.localization
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.networktables.*
 import edu.wpi.first.util.struct.StructBuffer
-import frc.team2471.off2025.util.localization.CameraInfo
 import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import org.littletonrobotics.junction.AutoLog
@@ -18,21 +17,21 @@ import java.util.concurrent.atomic.AtomicReference
  * accordingly.
  */
 class NTManager {
-    private val mLocalizerTable: NetworkTable
+    private val localizerTable: NetworkTable
 
     // Combined Robot to DS odometry and vision measurements
-    private val mMeasurementsPub: DoubleArrayPublisher
+    private val measurementsPub: DoubleArrayPublisher
 
     // Robot to DS targets
-    private val mTargetPub: StructArrayPublisher<Fiducial?>
+    private val targetPub: StructArrayPublisher<Fiducial?>
 
     // Robot to Camera transforms and intrinsics
-    private val mCameraInfosPublisher: StructArrayPublisher<CameraInfo?>
+    private val cameraInfosPublisher: StructArrayPublisher<CameraInfo?>
 
     // Use an AtomicReference to make updating the value thread-safe
-    private val mLatestPoseEstimate = AtomicReference<PoseEstimate?>()
+    private val latestPoseEstimateReference = AtomicReference<PoseEstimate>()
 
-    private val mInputs = PoseEstimateInputsAutoLogged()
+    private val inputs = PoseEstimateInputsAutoLogged()
 
     @AutoLog
     open class PoseEstimateInputs {
@@ -65,19 +64,19 @@ class NTManager {
      */
     init {
         val inst = NetworkTableInstance.getDefault()
-        mLocalizerTable = inst.getTable("localizer")
-        mMeasurementsPub = mLocalizerTable.getDoubleArrayTopic("measurements").publish(PubSubOption.sendAll(true))
-        mTargetPub = mLocalizerTable.getStructArrayTopic<Fiducial?>("targets", Fiducial.struct)
+        localizerTable = inst.getTable("localizer")
+        measurementsPub = localizerTable.getDoubleArrayTopic("measurements").publish(PubSubOption.sendAll(true))
+        targetPub = localizerTable.getStructArrayTopic<Fiducial?>("targets", Fiducial.struct)
             .publish(PubSubOption.sendAll(true))
-        mCameraInfosPublisher = mLocalizerTable.getStructArrayTopic<CameraInfo?>("cameras", CameraInfo.struct)
+        cameraInfosPublisher = localizerTable.getStructArrayTopic<CameraInfo?>("cameras", CameraInfo.struct)
             .publish(PubSubOption.sendAll(true))
 
         // Setup listener for when the estimate is updated.
-        val estimatesSub = mLocalizerTable.getStructTopic("estimates", PoseEstimate.struct)
+        val estimatesSub = localizerTable.getStructTopic("estimates", PoseEstimate.struct)
             .subscribe(PoseEstimate(), PubSubOption.sendAll(true))
         val poseEstimateStructBuffer = StructBuffer.create(PoseEstimate.struct)
-        inst.addListener(estimatesSub, EnumSet.of<NetworkTableEvent.Kind>(NetworkTableEvent.Kind.kValueAll)) { event: NetworkTableEvent? ->
-            mLatestPoseEstimate.set(poseEstimateStructBuffer.read(event!!.valueData.value.getRaw()))
+        inst.addListener(estimatesSub, EnumSet.of<NetworkTableEvent.Kind>(NetworkTableEvent.Kind.kValueAll)) { event: NetworkTableEvent ->
+            latestPoseEstimateReference.set(poseEstimateStructBuffer.read(event.valueData.value.getRaw()))
         }
     }
 
@@ -88,7 +87,7 @@ class NTManager {
      * @param id The identifier for the measurement.
      */
     fun publishMeasurement(measurement: Measurement, id: Int) {
-        mMeasurementsPub.set(measurement.toArray(id))
+        measurementsPub.set(measurement.toArray(id))
         NetworkTableInstance.getDefault().flush()
     }
 
@@ -98,7 +97,7 @@ class NTManager {
      * @param targets An array of Fiducial objects representing the targets to be published.
      */
     fun publishTargets(targets: Array<Fiducial>) {
-        mTargetPub.set(targets)
+        targetPub.set(targets)
     }
 
     /**
@@ -109,15 +108,11 @@ class NTManager {
      * to create a CameraInfo object, which will then be published.
      */
     fun publishCameras(cameras: ArrayList<QuixVisionCamera>) {
-        val infos = ArrayList<CameraInfo?>()
-        for (camera in cameras) {
-            infos.add(
-                CameraInfo(camera.transform, camera.cameraMatrix, camera.distCoeffs)
-            )
-        }
-        val array = arrayOfNulls<CameraInfo>(infos.size)
-        infos.toArray<CameraInfo?>(array)
-        mCameraInfosPublisher.set(array)
+        val array = cameras.map {
+            CameraInfo(it.transform, it.cameraMatrix, it.distCoeffs)
+        }.toTypedArray()
+
+        cameraInfosPublisher.set(array)
     }
 
     /**
@@ -129,21 +124,20 @@ class NTManager {
      * values are not updated. The updated inputs are then processed by the Logger.
      */
     fun updateInputs() {
-        val latestEstimate = mLatestPoseEstimate.get()
+        val latestEstimate = latestPoseEstimateReference.get()
         if (latestEstimate != null) {
-            mInputs.id = latestEstimate.id
-            mInputs.pose = latestEstimate.pose
-            mInputs.hasVision = latestEstimate.hasVision()
+            inputs.id = latestEstimate.id
+            inputs.pose = latestEstimate.pose
+            inputs.hasVision = latestEstimate.hasVision
         }
-        Logger.processInputs("Inputs/NTManager", mInputs)
+        Logger.processInputs("Inputs/NTManager", inputs)
     }
 
-    /** Get the latest estimate over NT.  */
+    /**
+     * Retrieves the latest pose estimate from NT.
+     *
+     * @return A [PoseEstimate] object containing the latest pose information.
+     */
     val latestPoseEstimate: PoseEstimate
-        /**
-         * Retrieves the latest pose estimate.
-         *
-         * @return A [PoseEstimate] object containing the latest pose information.
-         */
-        get() = PoseEstimate(mInputs.id, mInputs.pose, mInputs.hasVision)
+        get() = PoseEstimate(inputs.id, inputs.pose, inputs.hasVision)
 }

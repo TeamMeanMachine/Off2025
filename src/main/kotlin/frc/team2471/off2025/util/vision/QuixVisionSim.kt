@@ -18,11 +18,10 @@ class QuixVisionSim(cameras: ArrayList<QuixVisionCamera>, aprilTags: Array<Fiduc
                         for (tag in aprilTags) {
                             m_visionSim.addVisionTargets(
                                 "apriltag",
-                                VisionTargetSim(tag.pose, TargetModel.kAprilTag36h11, tag.id())
+                                VisionTargetSim(tag.pose, TargetModel.kAprilTag36h11, tag.id)
                             )
                         }
                     }
-
                     else -> {}
                 }
                 m_visionSim.addCamera(camera.cameraSim, camera.transform)
@@ -40,5 +39,5 @@ class QuixVisionSim(cameras: ArrayList<QuixVisionCamera>, aprilTags: Array<Fiduc
     }
 
     val simField: Field2d?
-        get() = m_visionSim.getDebugField()
+        get() = m_visionSim.debugField
 }

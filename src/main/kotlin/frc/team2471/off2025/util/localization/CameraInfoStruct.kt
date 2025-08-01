@@ -8,7 +8,6 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.util.struct.Struct
-import frc.team2471.off2025.util.localization.CameraInfo
 import java.nio.ByteBuffer
 import java.util.*
 
@@ -48,20 +47,14 @@ import java.util.*
  * @see Struct
  */
 class CameraInfoStruct : Struct<CameraInfo> {
-    override fun getTypeClass(): Class<CameraInfo> {
-        return CameraInfo::class.java
-    }
+    override fun getTypeClass(): Class<CameraInfo> = CameraInfo::class.java
 
-    override fun getTypeName(): String {
-        return "CameraInfo"
-    }
+    override fun getTypeName(): String = "CameraInfo"
 
-    override fun getSize(): Int {
-        return Transform3d.struct.size + Struct.kSizeInt32 * 2 + Struct.kSizeDouble * 17
-    }
+    override fun getSize(): Int = Transform3d.struct.size + Struct.kSizeInt32 * 2 + Struct.kSizeDouble * 17
 
-    override fun getSchema(): String {
-        return ("Transform3d transform;"
+    override fun getSchema(): String =
+        ("Transform3d transform;"
                 + "int32 hasCameraMatrix;"
                 + "double M00;"
                 + "double M01;"
@@ -81,11 +74,8 @@ class CameraInfoStruct : Struct<CameraInfo> {
                 + "double d5;"
                 + "double d6;"
                 + "double d7;")
-    }
 
-    override fun getNested(): Array<Struct<*>> {
-        return arrayOf(Transform3d.struct)
-    }
+    override fun getNested(): Array<Struct<*>> = arrayOf(Transform3d.struct)
 
     /**
      * Unpacks camera information from a ByteBuffer into a CameraInfo object.
@@ -102,15 +92,15 @@ class CameraInfoStruct : Struct<CameraInfo> {
     override fun unpack(bb: ByteBuffer): CameraInfo {
         val transform = Transform3d.struct.unpack(bb)
         val hasCameraMatrix = bb.getInt() != 0
-        val M00 = bb.getDouble()
-        val M01 = bb.getDouble()
-        val M02 = bb.getDouble()
-        val M10 = bb.getDouble()
-        val M11 = bb.getDouble()
-        val M12 = bb.getDouble()
-        val M20 = bb.getDouble()
-        val M21 = bb.getDouble()
-        val M22 = bb.getDouble()
+        val m00 = bb.getDouble()
+        val m01 = bb.getDouble()
+        val m02 = bb.getDouble()
+        val m10 = bb.getDouble()
+        val m11 = bb.getDouble()
+        val m12 = bb.getDouble()
+        val m20 = bb.getDouble()
+        val m21 = bb.getDouble()
+        val m22 = bb.getDouble()
         val hasDistCoeffs = bb.getInt() != 0
         val d0 = bb.getDouble()
         val d1 = bb.getDouble()
@@ -122,29 +112,16 @@ class CameraInfoStruct : Struct<CameraInfo> {
         val d7 = bb.getDouble()
         return CameraInfo(
             transform,
-            if (hasCameraMatrix)
-                Optional.of(
-                    MatBuilder.fill(Nat.N3(), Nat.N3(), M00, M01, M02, M10, M11, M12, M20, M21, M22)
-                )
-            else
-                Optional.empty<Matrix<N3, N3>>(),
-            if (hasDistCoeffs)
-                Optional.of(
-                    MatBuilder.fill(
-                        Nat.N8(),
-                        Nat.N1(),
-                        d0,
-                        d1,
-                        d2,
-                        d3,
-                        d4,
-                        d5,
-                        d6,
-                        d7
-                    )
-                )
-            else
+            if (hasCameraMatrix) {
+                Optional.of(MatBuilder.fill(Nat.N3(), Nat.N3(), m00, m01, m02, m10, m11, m12, m20, m21, m22))
+            } else {
+                Optional.empty<Matrix<N3, N3>>()
+            },
+            if (hasDistCoeffs) {
+                Optional.of(MatBuilder.fill(Nat.N8(), Nat.N1(), d0, d1, d2, d3, d4, d5, d6, d7))
+            } else {
                 Optional.empty<Matrix<N8, N1>>()
+            }
         )
     }
 
@@ -158,7 +135,7 @@ class CameraInfoStruct : Struct<CameraInfo> {
      */
     override fun pack(bb: ByteBuffer, value: CameraInfo) {
         Transform3d.struct.pack(bb, value.transform)
-        val hasCameraMatrix = value.cameraMatrix!!.isPresent()
+        val hasCameraMatrix = value.cameraMatrix.isPresent
         bb.putInt(if (hasCameraMatrix) 1 else 0)
         bb.putDouble(if (hasCameraMatrix) value.cameraMatrix.get().get(0, 0) else 0.0)
         bb.putDouble(if (hasCameraMatrix) value.cameraMatrix.get().get(0, 1) else 0.0)
@@ -169,7 +146,7 @@ class CameraInfoStruct : Struct<CameraInfo> {
         bb.putDouble(if (hasCameraMatrix) value.cameraMatrix.get().get(2, 0) else 0.0)
         bb.putDouble(if (hasCameraMatrix) value.cameraMatrix.get().get(2, 1) else 0.0)
         bb.putDouble(if (hasCameraMatrix) value.cameraMatrix.get().get(2, 2) else 0.0)
-        val hasDistCoeffs = value.distCoeffs!!.isPresent()
+        val hasDistCoeffs = value.distCoeffs.isPresent
         bb.putInt(if (hasDistCoeffs) 1 else 0)
         bb.putDouble(if (hasDistCoeffs) value.distCoeffs.get().get(0, 0) else 0.0)
         bb.putDouble(if (hasDistCoeffs) value.distCoeffs.get().get(1, 0) else 0.0)
@@ -181,7 +158,5 @@ class CameraInfoStruct : Struct<CameraInfo> {
         bb.putDouble(if (hasDistCoeffs) value.distCoeffs.get().get(7, 0) else 0.0)
     }
 
-    override fun isImmutable(): Boolean {
-        return true
-    }
+    override fun isImmutable(): Boolean = true
 }
