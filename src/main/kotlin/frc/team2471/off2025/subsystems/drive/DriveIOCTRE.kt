@@ -171,6 +171,7 @@ class DriveIOCTRE(
     override fun resetHeading(angle: Angle) {
         println("reseting heading to $angle")
         resetRotation(angle.asRotation2d)
+        pigeon2.setYaw(angle)
     }
 
 
