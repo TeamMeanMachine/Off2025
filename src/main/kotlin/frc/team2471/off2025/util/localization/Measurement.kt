@@ -12,14 +12,14 @@ import org.photonvision.targeting.TargetCorner
 /**
  * Constructs a new Measurement object with the specified pose.
  *
- * @param m_pose The initial pose of the measurement.
+ * @param pose The initial pose of the measurement.
  */
-class Measurement(private val m_pose: Pose2d) {
-    private val mPoseSigmas: Pose2d = Pose2d(0.1, 0.1, Rotation2d.fromDegrees(0.1)) // TODO: Don't hardcode // TODO: Actually use this
+class Measurement(private val pose: Pose2d) {
+    private val poseSigmas: Pose2d = Pose2d(0.1, 0.1, Rotation2d.fromDegrees(0.1)) // TODO: Don't hardcode // TODO: Actually use this
 
     // Vision measurements
-    private val mCameraIds: ArrayList<Int> = ArrayList()
-    private val mTargetIds: ArrayList<Int> = ArrayList()
+    private val cameraIds: ArrayList<Int> = ArrayList()
+    private val targetIds: ArrayList<Int> = ArrayList()
 
     // Fiducial corner ID is valid only for AprilTags. -1 denotes the center. IDs are numbered as
     // follows:
@@ -27,11 +27,11 @@ class Measurement(private val m_pose: Pose2d) {
     // * |      |       |
     // * V      |       |
     // * +Y     0 ----- 1
-    private val mFiducialCornerIds: ArrayList<Int> = ArrayList()
-    private val mCorners: ArrayList<TargetCorner> = ArrayList()
+    private val fiducialCornerIds: ArrayList<Int> = ArrayList()
+    private val corners: ArrayList<TargetCorner> = ArrayList()
 
     // Default to a moderate uncertainty.
-    private var mPixelSigma = 50.0
+    private var pixelSigma = 50.0
 
 
     /**
@@ -54,10 +54,10 @@ class Measurement(private val m_pose: Pose2d) {
      * @param pixelXY The pixel coordinates of the target corner in the image.
      */
     fun addVisionMeasurement(cameraID: Int, targetID: Int, fiducialCornerID: Int, pixelXY: TargetCorner) {
-        mCameraIds.add(cameraID)
-        mTargetIds.add(targetID)
-        mFiducialCornerIds.add(fiducialCornerID)
-        mCorners.add(pixelXY)
+        cameraIds.add(cameraID)
+        targetIds.add(targetID)
+        fiducialCornerIds.add(fiducialCornerID)
+        corners.add(pixelXY)
     }
 
     /**
@@ -66,7 +66,7 @@ class Measurement(private val m_pose: Pose2d) {
      * @param pixelSigma The standard deviation of the pixel measurement noise.
      */
     fun setVisionUncertainty(pixelSigma: Double) {
-        mPixelSigma = pixelSigma
+        this.pixelSigma = pixelSigma
     }
 
     /**
@@ -86,21 +86,21 @@ class Measurement(private val m_pose: Pose2d) {
     fun toArray(id: Int): DoubleArray {
         val kStaticDataLength = 8
         val kVisionDataLength = 5
-        val data = DoubleArray(kStaticDataLength + kVisionDataLength * mCameraIds.size)
+        val data = DoubleArray(kStaticDataLength + kVisionDataLength * cameraIds.size)
         data[0] = id.toDouble()
-        data[1] = m_pose.x
-        data[2] = m_pose.y
-        data[3] = m_pose.rotation.radians
-        data[4] = mPoseSigmas.x
-        data[5] = mPoseSigmas.y
-        data[6] = mPoseSigmas.rotation.radians
-        data[7] = mPixelSigma
-        for (i in mCameraIds.indices) {
-            data[kStaticDataLength + kVisionDataLength * i] = mCameraIds[i].toDouble()
-            data[kStaticDataLength + kVisionDataLength * i + 1] = mTargetIds[i].toDouble()
-            data[kStaticDataLength + kVisionDataLength * i + 2] = mFiducialCornerIds[i].toDouble()
-            data[kStaticDataLength + kVisionDataLength * i + 3] = mCorners[i].x
-            data[kStaticDataLength + kVisionDataLength * i + 4] = mCorners[i].y
+        data[1] = pose.x
+        data[2] = pose.y
+        data[3] = pose.rotation.radians
+        data[4] = poseSigmas.x
+        data[5] = poseSigmas.y
+        data[6] = poseSigmas.rotation.radians
+        data[7] = pixelSigma
+        for (i in cameraIds.indices) {
+            data[kStaticDataLength + kVisionDataLength * i] = cameraIds[i].toDouble()
+            data[kStaticDataLength + kVisionDataLength * i + 1] = targetIds[i].toDouble()
+            data[kStaticDataLength + kVisionDataLength * i + 2] = fiducialCornerIds[i].toDouble()
+            data[kStaticDataLength + kVisionDataLength * i + 3] = corners[i].x
+            data[kStaticDataLength + kVisionDataLength * i + 4] = corners[i].y
         }
         return data
     }
