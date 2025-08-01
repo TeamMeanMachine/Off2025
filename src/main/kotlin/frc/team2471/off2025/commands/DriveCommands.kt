@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.isBlueAlliance
+import frc.team2471.off2025.util.isRedAlliance
 
 object DriveCommands {
     private const val ANGLE_KP = 5.0
@@ -38,7 +39,7 @@ object DriveCommands {
             LoopLogger.record("b4 joystickDrive")
             // Get linear velocity
             val chassisSpeeds = Drive.getChassisSpeedsFromJoystick().apply {
-                if (isBlueAlliance) {
+                if (isRedAlliance) {
                     vxMetersPerSecond *= -1.0
                     vyMetersPerSecond *= -1.0
                 }
