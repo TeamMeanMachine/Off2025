@@ -189,7 +189,8 @@ object Drive: SubsystemBase("Drive") {
 
     fun zeroGyro() {
         println("zero gyro isRedAlliance  $isRedAlliance")
-        io.resetHeading(if (isRedAlliance) 0.0.degrees else 0.0.degrees)
+        heading = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
+
     }
 
     fun updateSim() {

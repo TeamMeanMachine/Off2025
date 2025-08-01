@@ -101,16 +101,16 @@ class PhotonVisionCamera(
     }
 
     override fun updateInputs() {
-        m_inputs.pipelineIndex = cameraSim.camera.pipelineIndex
+        m_inputs.pipelineIndex = m_camera.pipelineIndex
         // TODO: Handle all results, not just the latest.
-        val latestResults = cameraSim.camera.allUnreadResults
+        val latestResults = m_camera.allUnreadResults
         m_inputs.latestResult =
             if (latestResults.size > 0)
                 latestResults.get(latestResults.size - 1)
             else
                 PhotonPipelineResult()
         // Only update these once, since they shouldn't be changing.
-        val cameraMatrix = cameraSim.camera.getCameraMatrix()
+        val cameraMatrix = m_camera.getCameraMatrix()
         if (m_inputs.cameraMatrix.isEmpty() && cameraMatrix.isPresent()) {
             m_inputs.cameraMatrix = cameraMatrix
         }
@@ -127,9 +127,9 @@ class PhotonVisionCamera(
             return
         }
         if (this.cameraSim != null) {
-            cameraSim.getCamera().setPipelineIndex(index)
+            //m_camera.setPipelineIndex(index)
         } else {
-            m_camera.setPipelineIndex(index)
+            //m_camera.setPipelineIndex(index)
         }
     }
 
