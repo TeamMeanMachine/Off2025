@@ -11,7 +11,7 @@ class QuixVisionSim(cameras: ArrayList<QuixVisionCamera>, aprilTags: Array<Fiduc
     private val m_visionSim = VisionSystemSim("main")
 
     init {
-        if (isReal) {
+        if (!isReal) {
             for (camera in cameras) {
                 when (camera.pipelineConfig.fiducialType) {
                     Fiducial.Type.APRILTAG -> {
@@ -26,6 +26,7 @@ class QuixVisionSim(cameras: ArrayList<QuixVisionCamera>, aprilTags: Array<Fiduc
                     else -> {}
                 }
                 m_visionSim.addCamera(camera.cameraSim, camera.transform)
+                println("vision sim has ${m_visionSim.cameraSims.size} cameras")
             }
         }
     }
