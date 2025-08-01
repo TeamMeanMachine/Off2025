@@ -8,6 +8,9 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.subsystems.Armavator
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
+import frc.team2471.off2025.commands.ExampleCommand
+import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
@@ -34,6 +37,8 @@ import kotlin.collections.iterator
 object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
     private var wasDisabled = true
+
+    val commandScheduler = CommandScheduler.getInstance()
 
     // Subsystems:
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
@@ -95,7 +100,7 @@ object Robot : LoggedRobot() {
 
 
         LoopLogger.record("b4 CommandScheduler")
-        CommandScheduler.getInstance().run()
+        commandScheduler.run()
 
         // Return to non-RT thread priority (do not modify the first argument)
 //         Threads.setCurrentThreadPriority(false, 10);

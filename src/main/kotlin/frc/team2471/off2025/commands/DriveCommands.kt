@@ -16,6 +16,7 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.subsystems.drive.Drive
+import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.isRedAlliance
 
@@ -35,6 +36,7 @@ object DriveCommands {
     @JvmStatic
     fun joystickDrive(): Command {
         return Commands.run({
+            LoopLogger.record("b4 joystickDrive")
             // Get linear velocity
             val chassisSpeeds = Drive.getChassisSpeedsFromJoystick().apply {
                 if (isRedAlliance) {
@@ -46,6 +48,7 @@ object DriveCommands {
             //send it
             Drive.driveVelocity(chassisSpeeds)
 
+            LoopLogger.record("joystickDrive")
             },
             Drive
         )
