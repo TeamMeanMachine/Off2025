@@ -36,7 +36,7 @@ class NTManager {
     @AutoLog
     open class PoseEstimateInputs {
         @JvmField var id: Int = 0
-        @JvmField var pose: Pose2d = Pose2d()
+        @JvmField var pose: Pose2d? = null
         @JvmField var hasVision: Boolean = false
     }
 

@@ -5,6 +5,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.math.system.plant.LinearSystemId
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
+import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.volts
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -54,8 +55,10 @@ class LoggedTalonFX(id: Int, canBus: String? = ""): TalonFX(id, canBus), LoggedM
      */
     @OptIn(DelicateCoroutinesApi::class)
     fun brakeMode() {
-        GlobalScope.launch {
-            setNeutralMode(NeutralModeValue.Brake)
+        if (isReal) {
+            GlobalScope.launch {
+                setNeutralMode(NeutralModeValue.Brake)
+            }
         }
     }
 
@@ -67,8 +70,10 @@ class LoggedTalonFX(id: Int, canBus: String? = ""): TalonFX(id, canBus), LoggedM
      */
     @OptIn(DelicateCoroutinesApi::class)
     fun coastMode() {
-        GlobalScope.launch {
-            setNeutralMode(NeutralModeValue.Coast)
+        if (isReal) {
+            GlobalScope.launch {
+                setNeutralMode(NeutralModeValue.Coast)
+            }
         }
     }
 

@@ -14,6 +14,7 @@ object ExampleSubsystem : SubsystemBase() {
 
 
     init {
+        println("inside ExampleSubsystem init")
         motor.configSim(DCMotor.getKrakenX60Foc(1), 0.000001)
     }
 

@@ -67,6 +67,7 @@ object Armavator: SubsystemBase() {
         }
 
     init {
+        println("inside Armavator init")
         val elevatorMotorConfigs = TalonFXConfiguration().apply {
             CurrentLimits.apply {
                 SupplyCurrentLimit = 30.0

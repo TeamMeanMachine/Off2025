@@ -67,7 +67,7 @@ import kotlin.math.max
  * @param kinematics The kinematics of the swerve drive.
  * @param initialGyroAngle The initial angle of the gyro.
  * @param modulePositions The positions of the swerve modules.
- * @param priori The initial pose of the robot.
+ * @param initialPose The initial pose of the robot.
  * @param targets The fiducial targets for vision-based localization.
  * @param cameras The vision cameras used for detecting fiducial targets.
  */
@@ -75,7 +75,7 @@ class QuixSwerveLocalizer(
     kinematics: SwerveDriveKinematics,
     initialGyroAngle: Rotation2d,
     modulePositions: Array<SwerveModulePosition>,
-    priori: Pose2d,
+    initialPose: Pose2d,
     targets: Array<Fiducial>,
     val cameras: ArrayList<QuixVisionCamera>
 ) {
@@ -109,13 +109,13 @@ class QuixSwerveLocalizer(
     private var lastUpdatedId = -1
 
     // Continuous odometry from the last reset. Used as input to the localizer.
-    private val rawOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val rawOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, initialPose)
 
     // Odometry played back on top of the latest localization estimate.
-    private val playbackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val playbackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, initialPose)
 
     // Odometry played back on top of the latest single-tag localization estimate.
-    private val singleTagPlaybackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, priori)
+    private val singleTagPlaybackOdometry = SwerveDriveOdometry(kinematics, initialGyroAngle, modulePositions, initialPose)
 
     // Latest raw localization estimate from DS.
     private var latestRawEstimate = PoseEstimate()
@@ -126,12 +126,17 @@ class QuixSwerveLocalizer(
     private val kMutableTimeBuffer = 0.05 // seconds
 
     init {
+        println("created Localizer with initialGyroAngle: $initialGyroAngle and initialPose: $initialPose")
+
+        println("playback odom ${playbackOdometry.poseMeters}")
+
         networktable.publishTargets(targets)
         trackAllTags()
     }
 
     /** Resets the localizer to the given pose.  */
     fun resetPose(gyroAngle: Rotation2d, modulePositions: Array<SwerveModulePosition>, pose: Pose2d) {
+        println("reset pose to gyro: $gyroAngle pose: $pose")
         rawOdometry.resetPosition(gyroAngle, modulePositions, pose)
         playbackOdometry.resetPosition(gyroAngle, modulePositions, pose)
         singleTagPlaybackOdometry.resetPosition(gyroAngle, modulePositions, pose)
@@ -165,7 +170,7 @@ class QuixSwerveLocalizer(
 
     val rawPose: Pose2d
         /** Localizer pose from DS. Use for plotting/debugging only.  */
-        get() = latestRawEstimate.pose
+        get() = latestRawEstimate.pose ?: Pose2d()
 
     /** Update with odometry and optional vision.  */
     fun update(odometry: SwerveOdometryMeasurement, visionPackets: ArrayList<PipelineVisionPacket>, chassisSpeeds: ChassisSpeeds) {
@@ -267,7 +272,7 @@ class QuixSwerveLocalizer(
         latestRawEstimate = estimate
 
         // Only incorporate estimate if it is new.
-        if (idToTimeMap.isEmpty() || estimate.id == lastUpdatedId || idToTimeMap[estimate.id] == null) {
+        if (idToTimeMap.isEmpty() || estimate.id == lastUpdatedId || idToTimeMap[estimate.id] == null || estimate.pose == null) {
             val endTimestamp = Timer.getFPGATimestamp()
             Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
             Logger.recordOutput("Localizer/visionCorrection (m)", 0.0)
@@ -282,7 +287,7 @@ class QuixSwerveLocalizer(
         val estimateTime: Double = idToTimeMap[estimate.id]!!
         var curTime = timeToOdometryMap.ceilingKey(estimateTime)
 
-        val measurement: SwerveOdometryMeasurement = timeToOdometryMap.get(curTime)!!
+        val measurement: SwerveOdometryMeasurement = timeToOdometryMap[curTime]!!
         playbackOdometry.resetPosition(measurement.gyroAngle, measurement.modulePositionStates, estimate.pose)
 
         // Traverse entries in |m_timeToOdometryMap| from |curTime| until the end to update
