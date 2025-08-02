@@ -34,7 +34,7 @@ class QuixVisionSim(cameras: ArrayList<QuixVisionCamera>, aprilTags: Array<Fiduc
         m_visionSim.resetRobotPose(pose)
     }
 
-    fun updatePose(pose: Pose2d?) {
+    fun updatePose(pose: Pose2d) {
         m_visionSim.update(pose)
     }
 

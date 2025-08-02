@@ -10,7 +10,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveRequest
 import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
@@ -125,14 +124,14 @@ class DriveIOCTRE(
 
     override fun resetPose(pose: Pose2d?) {
         val safePose = pose ?: Pose2d()
-        resetPosition(safePose.translation)
+        resetTranslation(safePose.translation)
         resetHeading(safePose.rotation.measure)
     }
 
-    override fun resetPosition(translation: Translation2d?) {
+//    override fun resetPosition(translation: Translation2d?) {
         //if translation is null, reset to (0, 0)
-        resetTranslation(translation ?: Translation2d())
-    }
+//        resetTranslation(translation ?: Translation2d())
+//    }
 
     override fun updateSim() {
         if (isSim) {
@@ -170,7 +169,8 @@ class DriveIOCTRE(
 
     override fun resetHeading(angle: Angle) {
         println("reseting heading to $angle")
-        resetRotation(angle.asRotation2d)
+//        resetRotation(180.0.degrees.asRotation2d)
+//        resetRotation(angle.asRotation2d - 180.0.degrees.asRotation2d)
         pigeon2.setYaw(angle)
     }
 
