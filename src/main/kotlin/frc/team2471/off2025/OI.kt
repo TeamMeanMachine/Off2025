@@ -71,6 +71,7 @@ object OI: SubsystemBase("OI") {
 
 
     init {
+        println("inside OI init")
         // Default command, normal field-relative drive
         Drive.defaultCommand = DriveCommands.joystickDrive()
 
@@ -95,6 +96,7 @@ object OI: SubsystemBase("OI") {
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             runOnceCommand(Drive) {
+                println("zero gyro")
                 Drive.zeroGyro()
             }.ignoringDisable(true))
 

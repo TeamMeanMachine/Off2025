@@ -18,6 +18,8 @@ import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -181,7 +183,9 @@ object Robot : LoggedRobot() {
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {
         LoopLogger.record("b4 simulation piodc")
-        Drive.updateSim()
+        GlobalScope.launch {
+            Drive.updateSim()
+        }
         MasterMotor.simPeriodic()
         LoopLogger.record("simulation piodc")
     }

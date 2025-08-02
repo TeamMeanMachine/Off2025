@@ -53,6 +53,8 @@ import frc.team2471.off2025.util.vision.PhotonVisionCamera
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
@@ -66,12 +68,14 @@ object Drive: SubsystemBase("Drive") {
         get() = driveInputs.pose
         set(value) = io.resetPose(value)
 
+    @get:AutoLogOutput
     var heading: Rotation2d
         get() = pose.rotation
         set(value) = io.resetHeading(value.measure)
 
-    val headingLatencyCompensated: Angle
-        get() = driveInputs.gyroInputs.yaw
+    @get:AutoLogOutput
+    val headingLatencyCompensated: Rotation2d
+        get() = driveInputs.gyroInputs.yaw.asRotation2d
 
     val speeds: ChassisSpeeds
         get() = driveInputs.speeds
@@ -103,7 +107,7 @@ object Drive: SubsystemBase("Drive") {
     )
     val visionSim = QuixVisionSim(cameras, Fiducials.aprilTagFiducials)
 
-    val localizer = QuixSwerveLocalizer(swerveKinematics, heading, driveInputs.modulePositions, pose, Fiducials.aprilTagFiducials, cameras)
+    val localizer = QuixSwerveLocalizer(swerveKinematics, 0.0.degrees.asRotation2d /* this number can be anything */, driveInputs.modulePositions, Pose2d() /* this can be anything */, Fiducials.aprilTagFiducials, cameras)
 
 
 
@@ -143,6 +147,7 @@ object Drive: SubsystemBase("Drive") {
         io.updateInputs(driveInputs)
         Logger.processInputs("Drive", driveInputs)
 
+        Logger.recordOutput("moduleTranslations", *TunerConstants.moduleTranslationsMeters.toTypedArray())
         gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
         driveInputs.moduleInputs.forEachIndexed { i, mInput ->
             // Alert if any swerve motor or encoder is disconnected
@@ -164,13 +169,12 @@ object Drive: SubsystemBase("Drive") {
 
         //vision
         cameras.forEach {
-//            it.updateInputs()
+            it.updateInputs()
         }
-//        localizer.updateWithLatestPoseEstimate()
-        val yaw = headingLatencyCompensated
-        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(Rotation2d(yaw), driveInputs.modulePositions)
+        localizer.updateWithLatestPoseEstimate()
+        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(headingLatencyCompensated, driveInputs.modulePositions)
         val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
-//        localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        localizer.update(odometryMeasurement, visionMeasurements, speeds)
 
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
@@ -219,9 +223,10 @@ object Drive: SubsystemBase("Drive") {
     fun xPose() = io.setDriveRequest(SwerveDriveBrake())
 
     fun zeroGyro() {
-        println("zero gyro isRedAlliance  $isRedAlliance")
-        heading = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
-
+        val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
+        println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
+        heading = wantedAngle
+        println("heading: ${heading.degrees}")
     }
 
     fun updateSim() {
@@ -515,6 +520,10 @@ object Drive: SubsystemBase("Drive") {
 
 
     override fun simulationPeriodic() {
-        visionSim.updatePose(pose)
+        LoopLogger.record("b4 Drive Sim piodic")
+        GlobalScope.launch {
+            visionSim.updatePose(pose)
+        }
+        LoopLogger.record("Drive Sim piodic")
     }
 }

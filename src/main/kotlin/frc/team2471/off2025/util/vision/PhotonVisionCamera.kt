@@ -6,6 +6,7 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.isReal
 import org.ejml.simple.SimpleMatrix
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
@@ -20,12 +21,13 @@ class PhotonVisionCamera(
     override val transform: Transform3d,
     private val pipelineConfigs: Array<PipelineConfig>
 ) : QuixVisionCamera {
+    override val cameraSim: PhotonCameraSim = PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
+
     private val loggingName: String = "Inputs/PhotonVisionCamera [$cameraName]"
-    private val camera: PhotonCamera = PhotonCamera(cameraName)
+    private val camera: PhotonCamera = if (isReal) PhotonCamera(cameraName) else cameraSim.camera
 
     private val inputs = PhotonCameraInputs()
 
-    override val cameraSim: PhotonCameraSim = PhotonCameraSim(camera, pipelineConfigs[0].simCameraProp)
 
     inner class PhotonCameraInputs : LoggableInputs {
         // TODO: Monitor performance and consider not logging the whole PhotonPipelineResult.
@@ -77,7 +79,7 @@ class PhotonVisionCamera(
         if (inputs.cameraMatrix.isEmpty && cameraMatrix.isPresent) {
             inputs.cameraMatrix = cameraMatrix
         }
-        val distCoeffs = cameraSim.camera.distCoeffs
+        val distCoeffs = camera.distCoeffs
         if (inputs.distCoeffs.isEmpty && distCoeffs.isPresent) {
             inputs.distCoeffs = distCoeffs
         }

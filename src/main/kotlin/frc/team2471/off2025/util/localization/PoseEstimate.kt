@@ -9,7 +9,7 @@ import edu.wpi.first.math.geometry.Pose2d
  */
 class PoseEstimate @JvmOverloads constructor(
     val id: Int = 0,
-    val pose: Pose2d = Pose2d.kZero,
+    val pose: Pose2d? = null,
     val hasVision: Boolean = false
 ) {
     override fun toString(): String = String.format("PoseEstimate(%s, %s, %s)", this.id, this.pose, hasVision)
