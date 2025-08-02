@@ -79,7 +79,7 @@ object OI: Subsystem {
         // Lock to 0° when A button is held
         driverController.a().whileTrue(Drive.driveAtAngle { Rotation2d() })
 
-        driverController.b().whileTrue(Drive.driveToPoint(Pose2d(2.0, 2.0, 90.0.degrees.asRotation2d)))
+        driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

@@ -205,7 +205,7 @@ object TunerConstants {
     val moduleConfigs = arrayOf(frontLeft, frontRight, backLeft, backRight)
 
     /** Returns an array of module translations. */
-    val moduleTranslationsMeters = moduleConfigs.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }
+    val moduleTranslationsMeters = moduleConfigs.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }.toTypedArray()
 
     val driveBaseRadius = moduleTranslationsMeters.maxOf { it.norm }.meters
 

@@ -39,9 +39,9 @@ interface DriveIO {
     open class DriveIOInputs: LoggableInputs {
         @JvmField var pose = Pose2d()
         @JvmField var speeds = ChassisSpeeds()
-        @JvmField var moduleStates = arrayOf<SwerveModuleState>()
-        @JvmField var moduleTargets = arrayOf<SwerveModuleState>()
-        @JvmField var modulePositions = arrayOf<SwerveModulePosition>()
+        @JvmField var moduleStates = Array(4) { SwerveModuleState() }
+        @JvmField var moduleTargets = Array(4) { SwerveModuleState() }
+        @JvmField var modulePositions = Array(4) { SwerveModulePosition() }
         @JvmField var rawHeading = Rotation2d()
         @JvmField var timestamp = 0.0
         @JvmField var odometryPeriod = 0.0

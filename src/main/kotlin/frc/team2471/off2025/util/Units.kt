@@ -2,6 +2,7 @@
 package frc.team2471.off2025.util
 
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.units.LinearAccelerationUnit
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.Units.*
 import edu.wpi.first.units.VoltageUnit
@@ -75,6 +76,7 @@ inline val Double.radiansPerSecond: AngularVelocity get() = RadiansPerSecond.of(
 
 
 //Linear Acceleration
+inline val LinearAcceleration.asInchesPerSecondPerSecond: Double get() = `in`(InchesPerSecond.per(Second))
 inline val LinearAcceleration.asFeetPerSecondPerSecond: Double get() = `in`(FeetPerSecondPerSecond)
 inline val LinearAcceleration.asMetersPerSecondPerSecond: Double get() = `in`(MetersPerSecondPerSecond)
 inline val LinearAcceleration.asGs: Double get() = `in`(Gs)
@@ -82,10 +84,17 @@ inline val LinearAcceleration.asGs: Double get() = `in`(Gs)
 inline val Distance.perSecondPerSecond: LinearAcceleration get() = FeetPerSecondPerSecond.of(this.asFeet)
 inline val LinearVelocity.perSecond: LinearAcceleration get() = FeetPerSecondPerSecond.of(this.asFeetPerSecond)
 
-inline val Double.asInchesPerSecondPerSecond: LinearAcceleration get() = InchesPerSecond.per(Second).of(this)
+inline val Double.inchesPerSecondPerSecond: LinearAcceleration get() = InchesPerSecond.per(Second).of(this)
 inline val Double.feetPerSecondPerSecond: LinearAcceleration get() = FeetPerSecondPerSecond.of(this)
 inline val Double.metersPerSecondPerSecond: LinearAcceleration get() = MetersPerSecondPerSecond.of(this)
 inline val Double.Gs: LinearAcceleration get() = Units.Gs.of(this)
+
+//Linear Jerk
+inline val LinearAcceleration.perSecond: Velocity<LinearAccelerationUnit> get() = MetersPerSecondPerSecond.per(Second).of(this.asMetersPerSecondPerSecond)
+
+inline val Velocity<LinearAccelerationUnit>.asInchesJerk: Double get() = `in`(MetersPerSecondPerSecond.per(Second))
+inline val Velocity<LinearAccelerationUnit>.asFeetJerk: Double get() = `in`(InchesPerSecond.per(Second).per(Second))
+inline val Velocity<LinearAccelerationUnit>.asMetersJerk: Double get() = `in`(FeetPerSecondPerSecond.per(Second))
 
 
 //Angular Acceleration

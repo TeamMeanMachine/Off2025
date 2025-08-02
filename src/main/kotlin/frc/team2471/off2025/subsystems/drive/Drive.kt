@@ -23,12 +23,16 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
+import edu.wpi.first.units.LinearAccelerationUnit
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearAcceleration
 import edu.wpi.first.units.measure.LinearVelocity
+import edu.wpi.first.units.measure.Velocity
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Alert
+import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
 import edu.wpi.first.wpilibj2.command.Command
@@ -40,6 +44,7 @@ import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
+import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
 
@@ -61,6 +66,22 @@ object Drive: SubsystemBase("Drive") {
     val speeds: ChassisSpeeds
         get() = driveInputs.speeds
 
+    @get:AutoLogOutput
+    val velocity: LinearVelocity
+        get() = hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond).metersPerSecond
+    var prevVelocity = velocity
+
+    @get:AutoLogOutput
+    var acceleration: LinearAcceleration = 0.0.feetPerSecondPerSecond
+    private set
+
+    @get:AutoLogOutput
+    var jerk: Velocity<LinearAccelerationUnit> = 0.0.feetPerSecondPerSecond.perSecond
+    private set
+
+    var prevTime = -0.02
+
+
     private val pathXController = PIDController(7.0, 0.0, 0.0)
     private val pathYController = PIDController(7.0, 0.0, 0.0)
     private val pathThetaController = PIDController(7.0, 0.0, 0.0).apply {
@@ -78,7 +99,7 @@ object Drive: SubsystemBase("Drive") {
     }
 
     val gyroDisconnectedAlert = Alert("Gyro Disconnected", Alert.AlertType.kError)
-    val moduleDisconnectedAlerts = Array<Triple<Alert, Alert, Alert>>(4) {
+    val moduleDisconnectedAlerts = Array(4) {
         Triple(
             Alert("Module $it Drive Motor Disconnected", Alert.AlertType.kError),
             Alert("Module $it Steer Motor Disconnected", Alert.AlertType.kError),
@@ -103,6 +124,16 @@ object Drive: SubsystemBase("Drive") {
             moduleAlert.second.set(!mInput.steerConnected)
             moduleAlert.third.set(!mInput.encoderConnected)
         }
+
+        val currTime = RobotController.getMeasureTime().asSeconds
+        val currVelocity = velocity
+        val prevAcceleration = acceleration
+        val deltaTime = currTime - prevTime
+        acceleration = ((currVelocity - prevVelocity) / deltaTime).perSecond
+        jerk = ((acceleration - prevAcceleration) / deltaTime).perSecond
+
+        prevVelocity = currVelocity
+        prevTime = currTime
 
         if (Robot.isDisabled) {
             stop()
