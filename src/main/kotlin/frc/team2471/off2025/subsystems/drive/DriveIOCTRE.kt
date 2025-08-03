@@ -70,7 +70,7 @@ class DriveIOCTRE(
     override fun updateInputs(inputs: DriveIO.DriveIOInputs) {
         val s = this.stateCopy
         inputs.pose = s.Pose
-        inputs.speeds = s.Speeds
+        inputs.speeds = s.Speeds.robotToFieldCentric(s.Pose.rotation)
         inputs.moduleStates = s.ModuleStates
         inputs.moduleTargets = s.ModuleTargets
         inputs.modulePositions = s.ModulePositions

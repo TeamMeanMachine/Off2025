@@ -18,6 +18,10 @@ import com.ctre.phoenix6.SignalLogger
 import com.ctre.phoenix6.swerve.SwerveModule
 import com.ctre.phoenix6.swerve.SwerveRequest.*
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
+import com.therekrab.autopilot.APConstraints
+import com.therekrab.autopilot.APProfile
+import com.therekrab.autopilot.APTarget
+import com.therekrab.autopilot.Autopilot
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
@@ -141,6 +145,8 @@ object Drive: SubsystemBase("Drive") {
             stop()
         }
 
+        Logger.recordOutput("Drive/speeds", speeds.translation.toPose2d(speeds.omegaRadiansPerSecond.radians.asRotation2d))
+
         LoopLogger.record("Drive pirdc")
     }
 
@@ -244,7 +250,7 @@ object Drive: SubsystemBase("Drive") {
      */
     fun driveToPoint(
         wantedPose: Pose2d,
-        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 1.0.inches && headingError < 3.0.degrees },
+        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.5.inches && headingError < 1.0.degrees },
         maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY
@@ -272,6 +278,27 @@ object Drive: SubsystemBase("Drive") {
             stop()
             Logger.recordOutput("Drive/DriveToPoint Point", Pose2d())
         }.withName("DriveToPoint")
+    }
+
+    val autoPilot = Autopilot(APProfile(APConstraints(Double.MAX_VALUE, 5.0)).withErrorXY(0.5.inches).withErrorTheta(1.0.degrees).withBeelineRadius(8.0.centimeters))
+    fun driveToAutopilotPoint(wantedPose: Pose2d, entryAngle: Angle? = null): Command {
+        val target = if (entryAngle != null) {
+            APTarget(wantedPose).withEntryAngle(entryAngle.asRotation2d)
+        } else {
+            APTarget(wantedPose)
+        }
+        Logger.recordOutput("Drive/AutoPilotTarget", wantedPose)
+        return run {
+            val output = autoPilot.calculate(pose, speeds.translation, target)
+            val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
+//            println("output ${velocity.norm}")
+            driveAtAngle(output.targetAngle(), velocity)
+        }.until {
+            autoPilot.atTarget(pose, target)
+        }.finallyRun {
+            stop()
+            Logger.recordOutput("Drive/AutoPilotTarget", Pose2d())
+        }
     }
 
     /**
