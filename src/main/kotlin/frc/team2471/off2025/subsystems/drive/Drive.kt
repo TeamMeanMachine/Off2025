@@ -96,7 +96,7 @@ object Drive: SubsystemBase("Drive") {
     var prevTime = -0.02
 
 
-    val swerveKinematics = SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters.toTypedArray())
+    val swerveKinematics = SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters)
 
 
     val cameras: ArrayList<QuixVisionCamera> = arrayListOf(
@@ -147,7 +147,7 @@ object Drive: SubsystemBase("Drive") {
         io.updateInputs(driveInputs)
         Logger.processInputs("Drive", driveInputs)
 
-        Logger.recordOutput("moduleTranslations", *TunerConstants.moduleTranslationsMeters.toTypedArray())
+        Logger.recordOutput("moduleTranslations", *TunerConstants.moduleTranslationsMeters)
         gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
         driveInputs.moduleInputs.forEachIndexed { i, mInput ->
             // Alert if any swerve motor or encoder is disconnected
