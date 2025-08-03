@@ -1,5 +1,7 @@
 package frc.team2471.off2025.util
 
+import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Twist2d
 import kotlin.math.*
@@ -32,6 +34,10 @@ fun Double.deadband(tolerance: Double): Double =
 fun Translation2d.normalize(): Translation2d {
     val mag = norm
     return if (mag != 0.0) this.div(mag) else this
+}
+
+fun Translation2d.toPose2d(heading: Rotation2d = Rotation2d()): Pose2d {
+    return Pose2d(this, heading)
 }
 
 /** doesn't work with negative values of n */
@@ -74,6 +80,24 @@ fun windRelativeAngles(angle1: Double, angle2: Double): Double {
         angle2
     }
 }
+
+/**
+ * Finds the closest point along a line defined by [linePointOne] and [linePointTwo] to the provided [referencePoint]
+ */
+fun findClosestPointOnLine(linePointOne: Translation2d, linePointTwo: Translation2d, referencePoint: Translation2d): Translation2d {
+    val lineVector = linePointTwo - linePointOne
+    val lineAngle = lineVector.angle
+    val rotatedReferencePoint = referencePoint.rotateBy(-lineAngle)
+    val rotatedPointOne = linePointOne.rotateBy(-lineAngle)
+    val rotatedPointTwo = linePointTwo.rotateBy(-lineAngle)
+    val closestXPoint = rotatedReferencePoint.x.coerceInDynamic(rotatedPointOne.x, rotatedPointTwo.x)
+    val coercedTranslation = Translation2d(closestXPoint, rotatedPointOne.y)
+    val closestPointOnLine = coercedTranslation.rotateBy(lineAngle)
+
+    return closestPointOnLine
+}
+
+fun Double.coerceInDynamic(oneLimit: Double, twoLimit: Double) = this.coerceIn(min(oneLimit, twoLimit), max(oneLimit, twoLimit))
 
 fun interpTo(from: Double, to: Double, speed: Double, dt: Double = 0.02): Double {
     return from + (to - from) * dt * speed

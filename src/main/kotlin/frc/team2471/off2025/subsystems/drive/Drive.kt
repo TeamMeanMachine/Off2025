@@ -36,6 +36,7 @@ import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
@@ -237,13 +238,15 @@ object Drive: SubsystemBase("Drive") {
     }
 
 
+    /**
+     * Drives the robot to a [wantedPose]
+     */
     fun driveToPoint(
         wantedPose: Pose2d,
         exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 1.0.inches && headingError < 3.0.degrees },
         maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY
-        val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
 
         Logger.recordOutput("Drive/DriveToPoint Point", wantedPose)
 
@@ -251,6 +254,7 @@ object Drive: SubsystemBase("Drive") {
         return run {
             val translationToPose = wantedPose.translation.minus(pose.translation)
             distanceToPose = translationToPose.norm
+            val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
 
@@ -268,6 +272,84 @@ object Drive: SubsystemBase("Drive") {
             Logger.recordOutput("Drive/DriveToPoint Point", Pose2d())
         }.withName("DriveToPoint")
     }
+
+    /**
+     * Drives the robot to the closest point along a line but also lets the driver control the robot along it
+     */
+    fun joystickDriveAlongLine(
+        pointOne: Translation2d,
+        pointTwo: Translation2d,
+        heading: Rotation2d? = null,
+        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+    ): Command {
+        val lineAngle = (pointTwo - pointOne).angle
+
+        return run {
+            val currentPose = pose
+            val linePoint = findClosestPointOnLine(pointOne, pointTwo, currentPose.translation)
+            val translationToPose = linePoint.minus(currentPose.translation)
+            val driveToPointPower = min(abs(teleopDriveToPointController.calculate(translationToPose.norm, 0.0)), maxVelocity.asMetersPerSecond)
+
+            val driveToPointVelocity = translationToPose.normalize() * driveToPointPower
+            val teleopChassisSpeeds = getChassisSpeedsFromJoystick().apply {
+                //Limit joystick speeds to be along the line
+                val modifiedTranslation = translation.rotateBy(-lineAngle)
+                val lineCentricTranslation = Translation2d(modifiedTranslation.x, 0.0).rotateBy(lineAngle)
+                vxMetersPerSecond = lineCentricTranslation.x
+                vyMetersPerSecond = lineCentricTranslation.y
+            }
+
+            Logger.recordOutput("Drive/AlongLine line", *arrayOf(pointOne, pointTwo))
+            Logger.recordOutput("Drive/AlongLine closestPoint", linePoint.toPose2d())
+            Logger.recordOutput("Drive/AlongLine translation2Pose", translationToPose.toPose2d())
+
+
+            if (heading == null) {
+                val driveToPointChassisSpeeds = ChassisSpeeds(driveToPointVelocity.x, driveToPointVelocity.y, 0.0)
+                val wantedChassisSpeeds = driveToPointChassisSpeeds + teleopChassisSpeeds
+                driveVelocity(wantedChassisSpeeds)
+            } else {
+                val wantedVelocity = teleopChassisSpeeds.translation + driveToPointVelocity
+                driveAtAngle(heading, wantedVelocity)
+            }
+
+        }
+    }
+
+    /**
+     * Drives the robot to the closest point along a line specified by [pointOne] and [pointTwo]
+     * @see driveToPoint
+     */
+    fun driveToLine(
+        pointOne: Translation2d,
+        pointTwo: Translation2d,
+        heading: Rotation2d,
+        exitSupplier: ((Distance, Angle) -> Boolean)? = null,
+        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+    ): Command {
+        var closestPoseOnLine: Pose2d? = null
+
+        return sequenceCommand(
+            runOnce {
+                println("driveToPointOnLine")
+
+                closestPoseOnLine = findClosestPointOnLine(pointOne, pointTwo, pose.translation).toPose2d(heading)
+
+                Logger.recordOutput("Drive/ToPointOnLine Points", *arrayOf(pointOne, pointTwo))
+                Logger.recordOutput("Drive/ToPointOnLine ClosestPose", closestPoseOnLine)
+            },
+            Commands.either(
+                defer { driveToPoint(closestPoseOnLine!!, maxVelocity = maxVelocity) },
+                defer { driveToPoint(closestPoseOnLine!!, exitSupplier!!, maxVelocity) },
+                { exitSupplier == null })
+        ).finallyRun {
+            Logger.recordOutput("Drive/ToPointOnLine Points", *arrayOf<Translation2d>())
+            Logger.recordOutput("Drive/ToPointOnLine ClosestPose", *arrayOf<Pose2d>())
+        }
+    }
+
+
+
 
     fun driveAlongChoreoPath(path: Trajectory<SwerveSample>, resetOdometry: Boolean = false, exitSupplier: (Double) -> Boolean = { it >= 1.0 }): Command {
         val totalTime = path.totalTime

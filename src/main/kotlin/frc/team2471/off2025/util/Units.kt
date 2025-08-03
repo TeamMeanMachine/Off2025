@@ -188,8 +188,7 @@ fun asin(value: Double) = kotlin.math.asin(value).radians
 fun acos(value: Double) = kotlin.math.acos(value).radians
 fun atan(value: Double) = kotlin.math.atan(value).radians
 
-fun atan2(y: Double, x: Double) = kotlin.math.atan2(y, x).radians
-fun atan2(y: Distance, x: Distance) = kotlin.math.atan2(y.asInches, x.asInches).radians
+fun atan2(y: Distance, x: Distance) = atan2(y.asInches, x.asInches).radians
 
 fun Angle.wrap() = asDegrees.IEEErem(360.0).degrees
 fun Angle.unWrap(nearByAngle: Angle) = nearByAngle + (this - nearByAngle).wrap()

@@ -18,7 +18,7 @@ import kotlin.math.sqrt
 import kotlin.math.withSign
 
 object OI: Subsystem {
-    val driverController = MeanCommandXboxController(0, false)
+    val driverController = MeanCommandXboxController(0, true)
     val operatorController = MeanCommandXboxController(1)
 
     val deadbandDriver = 0.08
@@ -80,6 +80,9 @@ object OI: Subsystem {
         driverController.a().whileTrue(Drive.driveAtAngle { Rotation2d() })
 
         driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
+
+
+        driverController.y().whileTrue(Drive.joystickDriveAlongLine(Translation2d(8.0, 8.0), Translation2d(8.0, 4.0), /*-90.0.degrees.asRotation2d*/))
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
