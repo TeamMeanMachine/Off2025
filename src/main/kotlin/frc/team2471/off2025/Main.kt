@@ -11,12 +11,15 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.commands.ExampleCommand
 import frc.team2471.off2025.commands.joystickTest
+import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -35,19 +38,16 @@ import kotlin.collections.iterator
  */
 object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
-
+    private var wasDisabled = true
 
     // Subsystems:
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
     val drive = Drive
     val oi = OI
+    val armavator = Armavator
     val exampleSubsystem = ExampleSubsystem
 
-
-    var allSubsystems = arrayOf(drive, oi, exampleSubsystem)
-
-
-    private var wasDisabled = true
+    var allSubsystems = arrayOf(drive, oi, armavator, exampleSubsystem)
 
     // Dashboard inputs
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
@@ -95,6 +95,7 @@ object Robot : LoggedRobot() {
         Logger.start()
         // Call all subsystems, make sure their init's run
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
+        FieldManager
     }
 
     /** This function is called periodically during all modes.  */
@@ -120,6 +121,7 @@ object Robot : LoggedRobot() {
         }
 
 
+        LoopLogger.record("b4 CommandScheduler")
         CommandScheduler.getInstance().run()
 
         // Return to non-RT thread priority (do not modify the first argument)
@@ -155,7 +157,6 @@ object Robot : LoggedRobot() {
     /** This function is called once when teleop is enabled.  */
     override fun teleopInit() {
 
-
     }
 
     /** This function is called periodically during operator control.  */
@@ -176,8 +177,10 @@ object Robot : LoggedRobot() {
 
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {
-        Drive.updateSim()
-        MasterMotor.simPeriodic()
+        GlobalScope.launch {
+            Drive.updateSim()
+            MasterMotor.simPeriodic()
+        }
     }
 
 

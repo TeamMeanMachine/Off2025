@@ -82,7 +82,7 @@ object OI: Subsystem {
         driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
 
 
-        driverController.y().whileTrue(Drive.joystickDriveAlongLine(Translation2d(8.0, 8.0), Translation2d(8.0, 4.0), /*-90.0.degrees.asRotation2d*/))
+        driverController.y().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

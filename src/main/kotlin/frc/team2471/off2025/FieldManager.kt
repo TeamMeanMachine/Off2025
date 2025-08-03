@@ -1,0 +1,194 @@
+package frc.team2471.off2025
+
+import edu.wpi.first.apriltag.AprilTagFieldLayout
+import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Transform2d
+import edu.wpi.first.math.geometry.Translation2d
+import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.asFeet
+import frc.team2471.off2025.util.asRotation2d
+import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.isRedAlliance
+import frc.team2471.off2025.util.meters
+import frc.team2471.off2025.util.mirrorYAxis
+import frc.team2471.off2025.util.round
+import frc.team2471.off2025.util.toPose2d
+import org.littletonrobotics.junction.Logger
+
+object FieldManager {
+    val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadFromResource("2025-reefscape-welded.json")
+    val allAprilTags = aprilTagFieldLayout.tags
+
+    val fieldWidth = aprilTagFieldLayout.fieldWidth.meters
+    val fieldLength = aprilTagFieldLayout.fieldLength.meters
+
+    val fieldDimensions = Translation2d(fieldLength, fieldWidth)
+
+    val fieldHalfWidth = fieldWidth / 2.0
+    val fieldHalfLength = fieldLength / 2.0
+
+    val fieldCenter = fieldDimensions / 2.0
+
+    //Blue Reef AprilTags
+    val reefAprilTagsBlue = allAprilTags.filter { it.ID in 17..22 }
+    val reefAprilTagPositionsBlue = reefAprilTagsBlue.map {it.pose.toPose2d()}
+
+    //Red Reef AprilTags
+    val reefAprilTagsRed = allAprilTags.filter { it.ID in 6..11 }
+    val reefAprilTagPositionsRed = reefAprilTagsRed.map {it.pose.toPose2d()}
+
+    val reefCenterBlue: Translation2d = (allAprilTags[20].pose.toPose2d().translation + allAprilTags[17].pose.toPose2d().translation) / 2.0
+    val reefCenterRed: Translation2d = (allAprilTags[9].pose.toPose2d().translation + allAprilTags[6].pose.toPose2d().translation) / 2.0
+
+    // Align Point Arrays
+    val alignPositionsRightRed = mutableListOf<Pose2d>()
+    val alignPositionsLeftRed = mutableListOf<Pose2d>()
+
+    val alignPositionsRightBlue = mutableListOf<Pose2d>()
+    val alignPositionsLeftBlue = mutableListOf<Pose2d>()
+
+    val alignPositionsRightL4Red = mutableListOf<Pose2d>()
+    val alignPositionsLeftL4Red = mutableListOf<Pose2d>()
+
+    val alignPositionsRightL4Blue = mutableListOf<Pose2d>()
+    val alignPositionsLeftL4Blue = mutableListOf<Pose2d>()
+
+    val alignPositionsL1Red = mutableListOf<Pose2d>()
+    val alignPositionsL1Blue = mutableListOf<Pose2d>()
+
+    val alignPositionsAlgaeRed = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
+    val alignPositionsAlgaeBlue = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
+
+    // L3 and L2
+    val alignRightOffset = Transform2d(19.0.inches, 6.5.inches, Rotation2d()) //L2, L3
+    val alignLeftOffset = alignRightOffset.mirrorYAxis()
+
+    // L4
+    val alignRightL4Offset = Transform2d(25.0.inches, 6.5.inches, Rotation2d()) //L4 ONLY
+    val alignLeftL4Offset = alignRightL4Offset.mirrorYAxis()
+
+    // L1
+    val alignL1Offset = Transform2d(19.0.inches, 19.0.inches, Rotation2d())
+
+    // Algae
+    val alignAlgaeOffset = Transform2d(30.0.inches, -6.5.inches, Rotation2d())
+
+    init {
+        println("FieldManager init: I see ${allAprilTags.size} AprilTags and the field is ${fieldLength.asFeet.round(3)} feet long")
+        val startTime = Timer.getFPGATimestamp()
+
+
+        for (face in 0..5) {
+            val redReefAprilTagID = 10 - face
+            println("face $redReefAprilTagID")
+            val tagPose = allAprilTags[redReefAprilTagID].pose.toPose2d()
+            alignPositionsRightRed.add(face, tagPose.transformBy(alignRightOffset))
+            alignPositionsLeftRed.add(face, tagPose.transformBy(alignLeftOffset))
+            alignPositionsRightL4Red.add(face, tagPose.transformBy(alignRightL4Offset))
+            alignPositionsLeftL4Red.add(face, tagPose.transformBy(alignLeftL4Offset))
+            alignPositionsL1Red.add(face, tagPose.transformBy(alignL1Offset))
+
+            alignPositionsRightBlue.add(face, alignPositionsRightRed[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
+            alignPositionsLeftBlue.add(face, alignPositionsLeftRed[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
+            alignPositionsRightL4Blue.add(face, alignPositionsRightL4Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
+            alignPositionsLeftL4Blue.add(face, alignPositionsLeftL4Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
+            alignPositionsL1Blue.add(face, alignPositionsL1Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
+
+            val algaeLevel = if (face.mod(2) == 1) AlgaeLevel.HIGH else AlgaeLevel.LOW
+            alignPositionsAlgaeRed.add(face, Pair(tagPose.transformBy(alignAlgaeOffset), algaeLevel))
+            alignPositionsAlgaeBlue.add(face, Pair(alignPositionsAlgaeRed[face].first.rotateAround(fieldCenter, 180.0.degrees.asRotation2d), algaeLevel))
+        }
+        val allAlignPositions = mutableListOf<Pose2d>()
+
+        alignPositionsRightRed.toCollection(allAlignPositions)
+        alignPositionsLeftRed.toCollection(allAlignPositions)
+        alignPositionsRightBlue.toCollection(allAlignPositions)
+        alignPositionsLeftBlue.toCollection(allAlignPositions)
+        alignPositionsRightL4Red.toCollection(allAlignPositions)
+        alignPositionsLeftL4Red.toCollection(allAlignPositions)
+        alignPositionsRightL4Blue.toCollection(allAlignPositions)
+        alignPositionsLeftL4Blue.toCollection(allAlignPositions)
+        alignPositionsL1Red.toCollection(allAlignPositions)
+        alignPositionsL1Blue.toCollection(allAlignPositions)
+        alignPositionsAlgaeRed.map { it.first }.toCollection(allAlignPositions)
+        alignPositionsAlgaeBlue.map { it.first }.toCollection(allAlignPositions)
+
+        println("Created ${allAlignPositions.size} align positions in ${(Timer.getFPGATimestamp() - startTime).round(4)} seconds")
+
+        Logger.recordOutput("FieldManager/alignPositionL4Left", *alignPositionsLeftL4Red.toTypedArray())
+        Logger.recordOutput("FieldManager/alignPositionLeft", *alignPositionsLeftRed.toTypedArray())
+        Logger.recordOutput("FieldManager/alignPositionsAlgae", *alignPositionsAlgaeRed.map {it.first}.toTypedArray())
+
+        Logger.recordOutput("FieldManager/allAlignPosition", *allAlignPositions.toTypedArray())
+
+        Logger.recordOutput("FieldManager/fieldCenter", fieldCenter.toPose2d())
+        Logger.recordOutput("FieldManager/fieldDimensions", fieldDimensions.toPose2d())
+        Logger.recordOutput("FieldManager/allApriltags", *allAprilTags.map { it.pose }.toTypedArray())
+
+    }
+
+
+
+    fun closestAlignPoint(pose: Translation2d, level: Level, side: ScoringSide? = null): Pose2d {
+        val isRed = isRedAlliance
+        val alignPositions = when (level) {
+            Level.L4 -> {
+                when (side) {
+                    ScoringSide.RIGHT -> if (isRed) alignPositionsRightL4Red else alignPositionsRightL4Blue
+                    ScoringSide.LEFT -> if (isRed) alignPositionsLeftL4Red else alignPositionsLeftL4Blue
+                    else -> if (isRed) mutableListOf(*alignPositionsRightL4Red.toTypedArray(), *alignPositionsLeftL4Red.toTypedArray()) else mutableListOf(*alignPositionsRightL4Blue.toTypedArray(), *alignPositionsLeftL4Blue.toTypedArray())
+                }
+            }
+            Level.L2, Level.L3 -> {
+                when (side) {
+                    ScoringSide.RIGHT -> if (isRed) alignPositionsRightRed else alignPositionsRightBlue
+                    ScoringSide.LEFT -> if (isRed) alignPositionsLeftRed else alignPositionsLeftBlue
+                    else -> if (isRed) mutableListOf(*alignPositionsRightRed.toTypedArray(), *alignPositionsLeftRed.toTypedArray()) else mutableListOf(*alignPositionsRightBlue.toTypedArray(), *alignPositionsLeftBlue.toTypedArray())
+                }
+            }
+            Level.L1 -> if (isRed) alignPositionsL1Red else alignPositionsL1Blue
+        }
+
+        //Calculate closest distance
+        var poseAndDistance: Pair<Pose2d?, Double> = Pair(null, Double.MAX_VALUE)
+        alignPositions.forEach {
+            val distance = it.translation.getDistance(pose)
+            if (distance < poseAndDistance.second) {
+                poseAndDistance = Pair(it, distance)
+            }
+        }
+
+        return poseAndDistance.first!!
+    }
+
+    fun closestAlgaeAlignPoint(pose: Translation2d): Pair<Pose2d, AlgaeLevel> {
+        val alignPoints = if (isRedAlliance) alignPositionsAlgaeRed else alignPositionsAlgaeBlue
+        var algaeAndDistance: Pair<Pair<Pose2d, AlgaeLevel>?, Double> = Pair(null, Double.MAX_VALUE)
+        alignPoints.forEach {
+            val distance = it.first.translation.getDistance(pose)
+            if (distance < algaeAndDistance.second) {
+                algaeAndDistance = Pair(it, distance)
+            }
+        }
+
+        return algaeAndDistance.first!!
+     }
+
+
+    enum class Level {
+        L1,
+        L2,
+        L3,
+        L4,
+    }
+    enum class ScoringSide {
+        LEFT,
+        RIGHT
+    }
+    enum class AlgaeLevel {
+        LOW,
+        HIGH
+    }
+}

@@ -114,6 +114,7 @@ object Drive: SubsystemBase("Drive") {
     }
 
     override fun periodic() {
+        LoopLogger.record("b4 Drive piodc")
         io.updateInputs(driveInputs)
         Logger.processInputs("Drive", driveInputs)
 
@@ -140,7 +141,7 @@ object Drive: SubsystemBase("Drive") {
             stop()
         }
 
-        LoopLogger.record("Drive periodic()")
+        LoopLogger.record("Drive pirdc")
     }
 
     /**

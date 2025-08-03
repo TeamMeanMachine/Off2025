@@ -2,6 +2,7 @@ package frc.team2471.off2025.util
 
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Twist2d
 import kotlin.math.*
@@ -39,6 +40,12 @@ fun Translation2d.normalize(): Translation2d {
 fun Translation2d.toPose2d(heading: Rotation2d = Rotation2d()): Pose2d {
     return Pose2d(this, heading)
 }
+
+fun Translation2d.mirrorXAxis() = Translation2d(-x, y)
+fun Translation2d.mirrorYAxis() = Translation2d(x, -y)
+
+fun Transform2d.mirrorXAxis() = Transform2d(-x, y, rotation)
+fun Transform2d.mirrorYAxis() = Transform2d(x, -y, rotation)
 
 /** doesn't work with negative values of n */
 infix fun Double.mod(n: Double) = if (this < 0) {
