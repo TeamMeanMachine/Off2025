@@ -255,49 +255,52 @@ object Drive: SubsystemBase("Drive") {
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY
 
-        Logger.recordOutput("Drive/DriveToPoint Point", wantedPose)
+        Logger.recordOutput("Drive/DriveToPoint/Point", wantedPose)
 
 
         return run {
+            val start = RobotController.getFPGATime()
             val translationToPose = wantedPose.translation.minus(pose.translation)
             distanceToPose = translationToPose.norm
             val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
-
+            println("time: ${RobotController.getFPGATime() - start}")
             driveAtAngle(wantedPose.rotation, wantedVelocity)
         }.until {
             val distanceError = distanceToPose.meters
             val headingError = (wantedPose.rotation - pose.rotation).measure.absoluteValue()
 
-            Logger.recordOutput("Drive/DriveToPoint DistanceError", distanceError)
-            Logger.recordOutput("Drive/DriveToPoint HeadingError", headingError)
+            Logger.recordOutput("Drive/DriveToPoint/DistanceError", distanceError)
+            Logger.recordOutput("Drive/DriveToPoint/HeadingError", headingError)
 
             exitSupplier(distanceError, headingError)
         }.finallyRun {
             stop()
-            Logger.recordOutput("Drive/DriveToPoint Point", Pose2d())
+            Logger.recordOutput("Drive/DriveToPoint/Point", Pose2d())
         }.withName("DriveToPoint")
     }
 
-    val autoPilot = Autopilot(APProfile(APConstraints(Double.MAX_VALUE, 5.0)).withErrorXY(0.5.inches).withErrorTheta(1.0.degrees).withBeelineRadius(8.0.centimeters))
+    val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 20.0, 0.5, 0.5.inches, 1.0.degrees)
     fun driveToAutopilotPoint(wantedPose: Pose2d, entryAngle: Angle? = null): Command {
         val target = if (entryAngle != null) {
             APTarget(wantedPose).withEntryAngle(entryAngle.asRotation2d)
         } else {
             APTarget(wantedPose)
         }
-        Logger.recordOutput("Drive/AutoPilotTarget", wantedPose)
+        Logger.recordOutput("Drive/AutoPilot/Target", wantedPose)
         return run {
             val output = autoPilot.calculate(pose, speeds.translation, target)
             val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
+            Logger.recordOutput("Drive/AutoPilot/Velocity", velocity.norm)
+
 //            println("output ${velocity.norm}")
             driveAtAngle(output.targetAngle(), velocity)
         }.until {
             autoPilot.atTarget(pose, target)
         }.finallyRun {
             stop()
-            Logger.recordOutput("Drive/AutoPilotTarget", Pose2d())
+            Logger.recordOutput("Drive/AutoPilot/Target", Pose2d())
         }
     }
 
@@ -327,9 +330,9 @@ object Drive: SubsystemBase("Drive") {
                 vyMetersPerSecond = lineCentricTranslation.y
             }
 
-            Logger.recordOutput("Drive/AlongLine line", *arrayOf(pointOne, pointTwo))
-            Logger.recordOutput("Drive/AlongLine closestPoint", linePoint.toPose2d())
-            Logger.recordOutput("Drive/AlongLine translation2Pose", translationToPose.toPose2d())
+            Logger.recordOutput("Drive/AlongLine/line", *arrayOf(pointOne, pointTwo))
+            Logger.recordOutput("Drive/AlongLine/closestPoint", linePoint.toPose2d())
+            Logger.recordOutput("Drive/AlongLine/translation2Pose", translationToPose.toPose2d())
 
 
             if (heading == null) {
@@ -363,16 +366,16 @@ object Drive: SubsystemBase("Drive") {
 
                 closestPoseOnLine = findClosestPointOnLine(pointOne, pointTwo, pose.translation).toPose2d(heading)
 
-                Logger.recordOutput("Drive/ToPointOnLine Points", *arrayOf(pointOne, pointTwo))
-                Logger.recordOutput("Drive/ToPointOnLine ClosestPose", closestPoseOnLine)
+                Logger.recordOutput("Drive/ToPointOnLine/Points", *arrayOf(pointOne, pointTwo))
+                Logger.recordOutput("Drive/ToPointOnLine/ClosestPose", closestPoseOnLine)
             },
             Commands.either(
                 defer { driveToPoint(closestPoseOnLine!!, maxVelocity = maxVelocity) },
                 defer { driveToPoint(closestPoseOnLine!!, exitSupplier!!, maxVelocity) },
                 { exitSupplier == null })
         ).finallyRun {
-            Logger.recordOutput("Drive/ToPointOnLine Points", *arrayOf<Translation2d>())
-            Logger.recordOutput("Drive/ToPointOnLine ClosestPose", *arrayOf<Pose2d>())
+            Logger.recordOutput("Drive/ToPointOnLine/Points", *arrayOf<Translation2d>())
+            Logger.recordOutput("Drive/ToPointOnLine/ClosestPose", *arrayOf<Pose2d>())
         }
     }
 
@@ -381,17 +384,8 @@ object Drive: SubsystemBase("Drive") {
 
     fun driveAlongChoreoPath(path: Trajectory<SwerveSample>, resetOdometry: Boolean = false, exitSupplier: (Double) -> Boolean = { it >= 1.0 }): Command {
         val totalTime = path.totalTime
-
-        Logger.recordOutput("path name", path.name())
-        Logger.recordOutput("path totalTime", totalTime)
-
-        if (resetOdometry) {
-            pose = path.getInitialPose(false).get()
-        }
-
         var t = 0.0
         val timer = Timer()
-        timer.start()
 
         return run {
             val currentPose = pose
@@ -402,11 +396,11 @@ object Drive: SubsystemBase("Drive") {
             val moduleForcesX = sample.moduleForcesX()
             val moduleForcesY = sample.moduleForcesY()
 
-            Logger.recordOutput("Path Time", t)
-            Logger.recordOutput("Path Pose", wantedPose)
-            Logger.recordOutput("Path Speeds", wantedSpeeds)
-            Logger.recordOutput("Path Module Forces X", moduleForcesX)
-            Logger.recordOutput("Path Module Forces Y", moduleForcesY)
+            Logger.recordOutput("Drive/Path/Time", t)
+            Logger.recordOutput("Drive/Path/Pose", wantedPose)
+            Logger.recordOutput("Drive/Path/Speeds", wantedSpeeds)
+            Logger.recordOutput("Drive/Path/Module Forces X", moduleForcesX)
+            Logger.recordOutput("Drive/Path/Module Forces Y", moduleForcesY)
 
             wantedSpeeds.apply {
                 vxMetersPerSecond += pathXController.calculate(currentPose.x, wantedPose.x)
@@ -421,21 +415,39 @@ object Drive: SubsystemBase("Drive") {
                     DriveRequestType = SwerveModule.DriveRequestType.Velocity
                 }
             )
+        }.beforeRun {
+            if (resetOdometry) {
+                pose = path.getInitialPose(false).get()
+            }
+
+            println("Running DriveAlongChoreoPath")
+
+            Logger.recordOutput("Drive/Path/Name", path.name())
+            Logger.recordOutput("Drive/Path/TotalTime", totalTime)
+
+            t = 0.0
+
+            timer.restart()
         }.until {
-            exitSupplier(t / totalTime)
+            val p = t / totalTime
+            Logger.recordOutput("Drive/Path/Done %", p)
+            exitSupplier(p)
         }.finallyRun {
             // Tell drivetrain to apply no output
             stop()
+
+            println("Finished driveAlongChoreoPath at ${(t / totalTime * 100.0).round(1)}% done")
             // Publish empty data to show that the path is done
-            Logger.recordOutput("path name", "")
-            Logger.recordOutput("Path Pose", Pose2d(null, null))
+            Logger.recordOutput("Drive/Path/Pose", Pose2d())
         }.withName("DriveAlongChoreoPath")
     }
 
 
-
-
-
+    fun createAPObject(maxVelocity: Double, maxAcceleration: Double, maxJerk: Double, xyTolerance: Distance, thetaTolerance: Angle, beelineRadius: Distance = 8.0.centimeters): Autopilot {
+        return Autopilot(APProfile(APConstraints(maxVelocity, maxAcceleration, maxJerk))
+            .withErrorXY(xyTolerance).withErrorTheta(thetaTolerance).withBeelineRadius(beelineRadius)
+        )
+    }
 
     // sysID
 

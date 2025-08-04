@@ -2,7 +2,6 @@ package frc.team2471.off2025
 
 import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
@@ -76,13 +75,11 @@ object OI: Subsystem {
 
 
 
-        // Lock to 0° when A button is held
-        driverController.a().whileTrue(Drive.driveAtAngle { Rotation2d() })
-
         driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
 
 
-        driverController.y().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
+        driverController.y().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
+        driverController.a().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

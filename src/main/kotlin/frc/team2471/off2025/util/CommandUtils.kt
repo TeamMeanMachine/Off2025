@@ -3,6 +3,7 @@ package frc.team2471.off2025.util
 import edu.wpi.first.units.measure.Time
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.WrapperCommand
 
@@ -21,6 +22,16 @@ fun Command.finallyRun(run: (Boolean) -> Unit): WrapperCommand =
  * @see Commands.waitSeconds
  */
 fun Command.finallyWait(seconds: Double) = this.andThen(waitCommand(seconds))
+
+/**
+ * Before the command starts, run this [action] first.
+ * @param action the action to run
+ * @param requirements subsystems the action requires
+ * @return the command
+ * @see Command.beforeStarting
+ */
+fun Command.beforeRun(vararg requirements: Subsystem, action: () -> Unit): SequentialCommandGroup =
+    this.beforeStarting(action)
 
 
 /**

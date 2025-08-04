@@ -5,12 +5,8 @@ import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import frc.team2471.off2025.commands.ExampleCommand
-import frc.team2471.off2025.commands.joystickTest
 import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.ExampleSubsystem
 import frc.team2471.off2025.subsystems.drive.Drive
@@ -23,7 +19,6 @@ import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
-import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import org.littletonrobotics.junction.networktables.NT4Publisher
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
@@ -48,28 +43,6 @@ object Robot : LoggedRobot() {
     val exampleSubsystem = ExampleSubsystem
 
     var allSubsystems = arrayOf(drive, oi, armavator, exampleSubsystem)
-
-    // Dashboard inputs
-    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        addOption("ExampleCommand", ExampleCommand())
-    }
-    private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
-        // Set up SysId routines
-//        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
-//        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
-        addOption("Drive Translation SysId ALL", Drive.sysIDTranslationAll())
-        addOption("Drive Rotation SysId ALL", Drive.sysIDRotationAll())
-        addOption("Drive Steer SysId ALL", Drive.sysIDSteerAll())
-        addOption("Drive Translation SysId (Quasistatic Forward)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward))
-        addOption("Drive Translation SysId (Quasistatic Reverse)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse))
-        addOption("Drive Translation SysId (Dynamic Forward)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward))
-        addOption("Drive Translation SysId (Dynamic Reverse)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse))
-        addOption("Set Angle Offsets", Drive.setAngleOffsets())
-        addOption("JoystickTest", joystickTest())
-    }
-
-    val autonomousCommand: Command? get() = autoChooser.get()
-    val testCommand: Command? get() = testChooser.get()
 
     init {
         // Set up data receivers & replay source
@@ -135,20 +108,19 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when the robot is disabled.  */
     override fun disabledInit() {
-        // This makes sure that the autonomous stops running when teleop starts running.
-        // If you want the autonomous to continue until interrupted by another command, remove this line.
         Drive.coastMode()
-        autonomousCommand?.cancel()
-        testCommand?.cancel()
+        Autonomous.autonomousCommand?.cancel() // This makes sure that the autonomous stops running when teleop starts running.
+        Autonomous.testCommand?.cancel()
     }
 
     /** This function is called periodically when disabled.  */
-    override fun disabledPeriodic() {}
+    override fun disabledPeriodic() {
+        Autonomous.flipPathsIfAllianceChange()
+    }
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
-        // schedule the autonomous command
-        (autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
+        (Autonomous.autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
     }
 
     /** This function is called periodically during autonomous.  */
@@ -164,9 +136,8 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when test mode is enabled.  */
     override fun testInit() {
-        // Cancels all running commands at the start of test mode.
-        CommandScheduler.getInstance().cancelAll()
-        (testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")})).schedule()
+        CommandScheduler.getInstance().cancelAll() // Cancels all running commands at the start of test mode.
+        (Autonomous.testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")})).schedule()
     }
 
     /** This function is called periodically during test mode.  */
