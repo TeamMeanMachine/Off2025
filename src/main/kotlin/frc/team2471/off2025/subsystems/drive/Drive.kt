@@ -62,7 +62,7 @@ object Drive: SubsystemBase("Drive") {
         set(value) = io.resetPose(value)
 
     var heading: Rotation2d
-        get() = pose.rotation
+        get() = pose.rotation.wrap()
         set(value) = io.resetHeading(value.measure)
 
     val headingLatencyCompensated: Angle
@@ -344,6 +344,9 @@ object Drive: SubsystemBase("Drive") {
                 driveAtAngle(heading, wantedVelocity)
             }
 
+        }.finallyRun {
+            Logger.recordOutput("Drive/AlongLine/line", *arrayOf<Translation2d>())
+            Logger.recordOutput("Drive/AlongLine/closestPoint", Pose2d())
         }
     }
 
