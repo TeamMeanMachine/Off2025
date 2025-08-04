@@ -23,8 +23,6 @@ interface DriveIO {
 
     fun resetHeading(angle: Angle)
 
-//    fun resetPosition(translation: Translation2d?)
-
     fun updateSim()
 
     fun brakeMode()

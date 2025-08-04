@@ -27,6 +27,8 @@ class Fiducial(val type: Type, val id: Int, val pose: Pose3d, val size: Double) 
     val zRot: Double
         get() = pose.rotation.z
 
+    override fun toString(): String = "(${type.name}, ID: $id, Pose: $pose, Size: $size)"
+
     companion object {
         // Struct for serialization.
         val struct: FiducialStruct = FiducialStruct()

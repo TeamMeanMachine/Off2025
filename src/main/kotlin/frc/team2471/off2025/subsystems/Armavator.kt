@@ -18,15 +18,15 @@ import org.team2471.frc2025.Falcons
 object Armavator: SubsystemBase() {
 
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
-    private val elevatorCurrentEntry = table.getEntry("Elevator Current")
-    private val elevatorHeightEntry = table.getEntry("Elevator Motor Height")
-    private val elevatorSetpointEntry = table.getEntry("Elevator Setpoint")
-    private val elevatorVelocityEntry = table.getEntry("Elevator Velocity")
+    private val elevatorCurrentEntry = table.getDoubleTopic("Elevator Current").publish()
+    private val elevatorHeightEntry = table.getDoubleTopic("Elevator Motor Height").publish()
+    private val elevatorSetpointEntry = table.getDoubleTopic("Elevator Setpoint").publish()
+    private val elevatorVelocityEntry = table.getDoubleTopic("Elevator Velocity").publish()
 
-    private val armCurrentEntry = table.getEntry("Arm Current")
-    private val armAngleEntry = table.getEntry("Arm Motor Angle")
-    private val armSetpointEntry = table.getEntry("Arm Setpoint")
-    private val armVelocityEntry = table.getEntry("Arm Velocity")
+    private val armCurrentEntry = table.getDoubleTopic("Arm Current").publish()
+    private val armAngleEntry = table.getDoubleTopic("Arm Motor Angle").publish()
+    private val armSetpointEntry = table.getDoubleTopic("Arm Setpoint").publish()
+    private val armVelocityEntry = table.getDoubleTopic("Arm Velocity").publish()
 
     val elevatorMotor0 = TalonFX(Falcons.ELEVATOR_0, CANivores.ELEVATOR_CAN)
     val elevatorMotor1 = TalonFX(Falcons.ELEVATOR_1, CANivores.ELEVATOR_CAN)
@@ -125,15 +125,15 @@ object Armavator: SubsystemBase() {
     override fun periodic() {
         LoopLogger.record("b4 Armavator pirdc")
         // This method will be called once per scheduler run
-        elevatorHeightEntry.setDouble(currentHeightInches)
-        elevatorSetpointEntry.setDouble(heightSetpoint)
-        elevatorCurrentEntry.setDouble(elevatorMotor0.statorCurrent.valueAsDouble)
-        elevatorVelocityEntry.setDouble(elevatorMotor0.velocity.valueAsDouble)
+        elevatorHeightEntry.set(currentHeightInches)
+        elevatorSetpointEntry.set(heightSetpoint)
+        elevatorCurrentEntry.set(elevatorMotor0.statorCurrent.valueAsDouble)
+        elevatorVelocityEntry.set(elevatorMotor0.velocity.valueAsDouble)
 
-        armAngleEntry.setDouble(currentArmAngle)
-        armSetpointEntry.setDouble(armAngleSetpoint)
-        armCurrentEntry.setDouble(armMotor0.statorCurrent.valueAsDouble)
-        armVelocityEntry.setDouble(armMotor0.velocity.valueAsDouble)
+        armAngleEntry.set(currentArmAngle)
+        armSetpointEntry.set(armAngleSetpoint)
+        armCurrentEntry.set(armMotor0.statorCurrent.valueAsDouble)
+        armVelocityEntry.set(armMotor0.velocity.valueAsDouble)
         LoopLogger.record("Armavator pirdc")
     }
 

@@ -7,6 +7,8 @@ import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
+import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.drive.Drive
@@ -79,8 +81,14 @@ object OI: SubsystemBase("OI") {
         driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
 
 
-        driverController.y().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
-        driverController.a().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
+        driverController.y().whileTrue(defer {
+            Drive.joystickDriveAlongLine(
+                FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.pose.onOpposingAllianceSide() },
+                FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.pose.onOpposingAllianceSide() },
+                (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
+            ) })
+
+        driverController.a().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

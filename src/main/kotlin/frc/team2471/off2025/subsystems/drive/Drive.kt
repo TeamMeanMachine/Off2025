@@ -52,7 +52,7 @@ import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
-import frc.team2471.off2025.util.quix.Fiducials
+import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PhotonVisionCamera
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
@@ -77,7 +77,7 @@ object Drive: SubsystemBase("Drive") {
 
     @get:AutoLogOutput
     var heading: Rotation2d
-        get() = pose.rotation
+        get() = pose.rotation.wrap()
         set(value) = io.resetHeading(value.measure)
 
     @get:AutoLogOutput
@@ -403,6 +403,9 @@ object Drive: SubsystemBase("Drive") {
                 driveAtAngle(heading, wantedVelocity)
             }
 
+        }.finallyRun {
+            Logger.recordOutput("Drive/AlongLine/line", *arrayOf<Translation2d>())
+            Logger.recordOutput("Drive/AlongLine/closestPoint", Pose2d())
         }
     }
 

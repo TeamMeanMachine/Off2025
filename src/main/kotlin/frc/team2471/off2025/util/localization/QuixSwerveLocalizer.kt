@@ -9,9 +9,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.quix.AlignmentUtilities
-import frc.team2471.off2025.util.quix.Fiducials
-import frc.team2471.off2025.util.quix.InterpolatableChassisSpeeds
+import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.PipelineVisionPacket
 import frc.team2471.off2025.util.vision.QuixVisionCamera
@@ -339,7 +337,7 @@ class QuixSwerveLocalizer(
             return
         }
 
-        val tagID = AlignmentUtilities.determineClosestTagID(this.pose, DriverStation.getAlliance().get() == Alliance.Blue)
+        val tagID = Fiducials.determineClosestTagID(this.pose, DriverStation.getAlliance().get() == Alliance.Blue)
 
         // Get latest measurement from either camera with a target.
         var latestTimestamp = 0.0

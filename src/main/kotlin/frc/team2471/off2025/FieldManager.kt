@@ -1,14 +1,17 @@
 package frc.team2471.off2025
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout
+import edu.wpi.first.apriltag.AprilTagFields
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.asFeet
+import frc.team2471.off2025.util.asMeters
 import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.meters
@@ -18,7 +21,7 @@ import frc.team2471.off2025.util.toPose2d
 import org.littletonrobotics.junction.Logger
 
 object FieldManager {
-    val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadFromResource("2025-reefscape-welded.json")
+    val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
     val allAprilTags = aprilTagFieldLayout.tags
 
     val fieldWidth = aprilTagFieldLayout.fieldWidth.meters
@@ -43,37 +46,44 @@ object FieldManager {
     val reefCenterRed: Translation2d = (allAprilTags[9].pose.toPose2d().translation + allAprilTags[6].pose.toPose2d().translation) / 2.0
 
     // Align Point Arrays
-    val alignPositionsRightRed = mutableListOf<Pose2d>()
-    val alignPositionsLeftRed = mutableListOf<Pose2d>()
+    private val alignPositionsRightRed = mutableListOf<Pose2d>()
+    private val alignPositionsLeftRed = mutableListOf<Pose2d>()
 
-    val alignPositionsRightBlue = mutableListOf<Pose2d>()
-    val alignPositionsLeftBlue = mutableListOf<Pose2d>()
+    private val alignPositionsRightBlue = mutableListOf<Pose2d>()
+    private val alignPositionsLeftBlue = mutableListOf<Pose2d>()
 
-    val alignPositionsRightL4Red = mutableListOf<Pose2d>()
-    val alignPositionsLeftL4Red = mutableListOf<Pose2d>()
+    private val alignPositionsRightL4Red = mutableListOf<Pose2d>()
+    private val alignPositionsLeftL4Red = mutableListOf<Pose2d>()
 
-    val alignPositionsRightL4Blue = mutableListOf<Pose2d>()
-    val alignPositionsLeftL4Blue = mutableListOf<Pose2d>()
+    private val alignPositionsRightL4Blue = mutableListOf<Pose2d>()
+    private val alignPositionsLeftL4Blue = mutableListOf<Pose2d>()
 
-    val alignPositionsL1Red = mutableListOf<Pose2d>()
-    val alignPositionsL1Blue = mutableListOf<Pose2d>()
+    private val alignPositionsL1Red = mutableListOf<Pose2d>()
+    private val alignPositionsL1Blue = mutableListOf<Pose2d>()
 
-    val alignPositionsAlgaeRed = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
-    val alignPositionsAlgaeBlue = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
+    private val alignPositionsAlgaeRed = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
+    private val alignPositionsAlgaeBlue = mutableListOf<Pair<Pose2d, AlgaeLevel>>()
 
     // L3 and L2
-    val alignRightOffset = Transform2d(19.0.inches, 6.5.inches, Rotation2d()) //L2, L3
-    val alignLeftOffset = alignRightOffset.mirrorYAxis()
+    private val alignRightOffset = Transform2d(19.0.inches, 6.5.inches, Rotation2d()) //L2, L3
+    private val alignLeftOffset = alignRightOffset.mirrorYAxis()
 
     // L4
-    val alignRightL4Offset = Transform2d(25.0.inches, 6.5.inches, Rotation2d()) //L4 ONLY
-    val alignLeftL4Offset = alignRightL4Offset.mirrorYAxis()
+    private val alignRightL4Offset = Transform2d(25.0.inches, 6.5.inches, Rotation2d()) //L4 ONLY
+    private val alignLeftL4Offset = alignRightL4Offset.mirrorYAxis()
 
     // L1
-    val alignL1Offset = Transform2d(19.0.inches, 19.0.inches, Rotation2d())
+    private val alignL1Offset = Transform2d(19.0.inches, 19.0.inches, Rotation2d())
 
     // Algae
-    val alignAlgaeOffset = Transform2d(30.0.inches, -6.5.inches, Rotation2d())
+    private val alignAlgaeOffset = Transform2d(30.0.inches, -6.5.inches, Rotation2d())
+
+    // Barge
+    private val blueBargeAlignX = 25.0.feet
+    private val bargeAlignPointsBlue = Pair(Translation2d(blueBargeAlignX, 24.5.feet), Translation2d(blueBargeAlignX, 15.0.feet))
+    private val bargeAlignPointsRed = Pair(bargeAlignPointsBlue.first.rotateAroundField(), bargeAlignPointsBlue.second.rotateAroundField())
+
+    val bargeAlignPoints: Pair<Translation2d, Translation2d> get() = if (isRedAlliance) bargeAlignPointsRed else bargeAlignPointsBlue
 
     init {
         println("FieldManager init: I see ${allAprilTags.size} AprilTags and the field is ${fieldLength.asFeet.round(3)} feet long")
@@ -127,6 +137,9 @@ object FieldManager {
         Logger.recordOutput("FieldManager/fieldDimensions", fieldDimensions.toPose2d())
         Logger.recordOutput("FieldManager/allApriltags", *allAprilTags.map { it.pose }.toTypedArray())
 
+        Logger.recordOutput("FieldManager/blueBargeAlign", *arrayOf(bargeAlignPointsBlue.first, bargeAlignPointsBlue.second))
+        Logger.recordOutput("FieldManager/redBargeAlign", *arrayOf(bargeAlignPointsRed.first, bargeAlignPointsRed.second))
+
     }
 
 
@@ -175,6 +188,62 @@ object FieldManager {
 
         return algaeAndDistance.first!!
      }
+
+
+    /**
+     * Reflects [Translation2d] across the midline of the field. Useful for mirrored field layouts (2023, 2024).
+     * Units must be meters
+     * @param doReflect Supplier to perform reflection. Default: true
+     * @see Translation2d.rotateAroundField
+     */
+    fun Translation2d.reflectAcrossField(doReflect: () -> Boolean = { true }): Translation2d {
+        return if (doReflect()) Translation2d(fieldLength.asMeters - x, y) else this
+    }
+
+    /**
+     * Rotates the [Translation2d] 180 degrees around the center of the field. Useful for reflected field layouts (2022, 2025).
+     * Units must be meters
+     * @param doRotate Supplier to perform rotation. Default: true
+     * @see Translation2d.reflectAcrossField
+     */
+    fun Translation2d.rotateAroundField(doRotate: () -> Boolean = { true }): Translation2d {
+        return if (doRotate()) this.rotateAround(fieldCenter, 180.0.degrees.asRotation2d) else this
+    }
+
+    /**
+     * Returns if the [Translation2d] is on the red alliance side of the field.
+     */
+    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x
+    /**
+     * Returns if the [Translation2d] is on the blue alliance side of the field.
+     */
+    fun Translation2d.onBlueSide(): Boolean = !this.onRedSide()
+    /**
+     * Returns if the [Translation2d] is closer to your current alliance's side of the field.
+     */
+    fun Translation2d.onFriendlyAllianceSide() = this.onRedSide() == isRedAlliance
+    /**
+     * Returns if the [Translation2d] is closer to your opponent alliance's side of the field.
+     */
+    fun Translation2d.onOpposingAllianceSide() = !this.onFriendlyAllianceSide()
+
+    /**
+     * Returns if the [Pose2d] is on the red alliance side of the field.
+     */
+    fun Pose2d.onRedSide(): Boolean = this.translation.onRedSide()
+    /**
+     * Returns if the [Pose2d] is on the blue alliance side of the field.
+     */
+    fun Pose2d.onBlueSide(): Boolean = !this.onRedSide()
+    /**
+     * Returns if the [Pose2d] is closer to your current alliance's side of the field.
+     */
+    fun Pose2d.onFriendlyAllianceSide() = this.translation.onFriendlyAllianceSide()
+    /**
+     * Returns if the [Pose2d] is closer to your opponent alliance's side of the field.
+     */
+    fun Pose2d.onOpposingAllianceSide() = !this.onFriendlyAllianceSide()
+
 
 
     enum class Level {

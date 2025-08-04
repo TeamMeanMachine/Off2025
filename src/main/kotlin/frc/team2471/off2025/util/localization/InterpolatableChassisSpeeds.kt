@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util.quix
+package frc.team2471.off2025.util.localization
 
 import edu.wpi.first.math.interpolation.Interpolatable
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -7,7 +7,8 @@ class InterpolatableChassisSpeeds(
     vxMetersPerSecond: Double,
     vyMetersPerSecond: Double,
     omegaRadiansPerSecond: Double
-): ChassisSpeeds(vxMetersPerSecond, vyMetersPerSecond, omegaRadiansPerSecond), Interpolatable<InterpolatableChassisSpeeds> {
+): ChassisSpeeds(vxMetersPerSecond, vyMetersPerSecond, omegaRadiansPerSecond),
+    Interpolatable<InterpolatableChassisSpeeds> {
 
     override fun interpolate(endValue: InterpolatableChassisSpeeds, t: Double): InterpolatableChassisSpeeds? {
         if (t < 0) {
