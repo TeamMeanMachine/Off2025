@@ -70,7 +70,10 @@ object Drive: SubsystemBase("Drive") {
     @get:AutoLogOutput
     var pose: Pose2d
         get() = driveInputs.pose
-        set(value) = io.resetPose(value)
+        set(value) {
+            io.resetPose(value)
+            localizer.resetPose(value.rotation, driveInputs.modulePositions, value)
+        }
 
     @get:AutoLogOutput
     var heading: Rotation2d
@@ -150,7 +153,9 @@ object Drive: SubsystemBase("Drive") {
     override fun periodic() {
         LoopLogger.record("b4 Drive piodc")
         io.updateInputs(driveInputs)
+        LoopLogger.record("a update driveInputs")
         Logger.processInputs("Drive", driveInputs)
+        LoopLogger.record("a process driveInputs")
 
         Logger.recordOutput("moduleTranslations", *TunerConstants.moduleTranslationsMeters)
         gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
@@ -172,14 +177,18 @@ object Drive: SubsystemBase("Drive") {
         prevVelocity = currVelocity
         prevTime = currTime
 
+        LoopLogger.record("a speeds calc")
         //vision
         cameras.forEach {
             it.updateInputs()
         }
+        LoopLogger.record("a cam upd inp")
         localizer.updateWithLatestPoseEstimate()
+        LoopLogger.record("a update w latest")
         val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(headingLatencyCompensated, driveInputs.modulePositions)
         val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
         localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        LoopLogger.record("a localizer update")
 
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
@@ -438,7 +447,7 @@ object Drive: SubsystemBase("Drive") {
         val timer = Timer()
 
         return run {
-            val currentPose = pose
+            val currentPose = localizer.pose
             t = min(timer.get(), totalTime)
             val sample = path.sampleAt(t, false).get()
             val wantedPose = sample.pose

@@ -67,6 +67,7 @@ class DriveIOCTRE(
     }
 
     override fun updateInputs(inputs: DriveIO.DriveIOInputs) {
+        LoopLogger.record("a drive updateInputs")
         val s = this.stateCopy
         inputs.pose = s.Pose
         inputs.speeds = s.Speeds.robotToFieldCentric(s.Pose.rotation)
@@ -79,6 +80,7 @@ class DriveIOCTRE(
         inputs.successfulDaqs = s.SuccessfulDaqs
         inputs.failedDaqs = s.FailedDaqs
 
+        LoopLogger.record("a stateCopy")
         inputs.moduleInputs = Array(4) {
             val m = moduleSignals[it]
             DriveIO.ModuleInput(
@@ -102,6 +104,7 @@ class DriveIOCTRE(
                 encoderAbsoluteAngle = m.encoderAbsolutePosition.valueAsDouble.rotations
             )
         }
+        LoopLogger.record("a module")
 
         val g = gyroSignals
         inputs.gyroInputs.apply {
@@ -118,6 +121,7 @@ class DriveIOCTRE(
             xAccel = g.xAccel.valueAsDouble.Gs - g.xGrav.valueAsDouble.Gs
             yAccel = g.yAccel.valueAsDouble.Gs - g.yGrav.valueAsDouble.Gs
         }
+        LoopLogger.record("UpdateInputs Drive")
     }
 
     override fun setDriveRequest(request: SwerveRequest) = this.setControl(request)

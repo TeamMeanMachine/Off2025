@@ -254,9 +254,11 @@ class QuixSwerveLocalizer(
         }
         publishImmutableEntries()
         val endTimestamp = Timer.getFPGATimestamp()
-        Logger.recordOutput("Localizer/UpdateMs", (endTimestamp - startTimestamp) * 1000.0)
+        Logger.recordOutput("Localizer/Update seconds", (endTimestamp - startTimestamp))
 
+        val singleStartTime = Timer.getFPGATimestamp()
         computeSingleTagPose()
+        Logger.recordOutput("Localizer/SingleTag calc time", Timer.getFPGATimestamp() - singleStartTime)
     }
 
 
@@ -273,8 +275,7 @@ class QuixSwerveLocalizer(
 
         // Only incorporate estimate if it is new.
         if (idToTimeMap.isEmpty() || estimate.id == lastUpdatedId || idToTimeMap[estimate.id] == null || estimate.pose == null) {
-            val endTimestamp = Timer.getFPGATimestamp()
-            Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
+            Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimate seconds", (Timer.getFPGATimestamp() - startTimestamp))
             Logger.recordOutput("Localizer/visionCorrection (m)", 0.0)
             return
         }
@@ -297,8 +298,7 @@ class QuixSwerveLocalizer(
             playbackOdometry.update(lastMeasurement.gyroAngle, lastMeasurement.modulePositionStates)
             curTime = timeToOdometryMap.higherKey(curTime)
         }
-        val endTimestamp = Timer.getFPGATimestamp()
-        Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimateMs", (endTimestamp - startTimestamp) * 1000.0)
+        Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimate seconds", (Timer.getFPGATimestamp() - startTimestamp))
 
         // Log magnitude of correction
         val postCorrectionPose = this.pose
