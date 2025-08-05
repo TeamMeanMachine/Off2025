@@ -246,6 +246,62 @@ object FieldManager {
 
 
 
+    /**
+     * Reflects [Translation2d] across the midline of the field. Useful for mirrored field layouts (2023, 2024).
+     * Units must be meters
+     * @param doReflect Supplier to perform reflection. Default: true
+     * @see Translation2d.rotateAroundField
+     */
+    fun Translation2d.reflectAcrossField(doReflect: () -> Boolean = { true }): Translation2d {
+        return if (doReflect()) Translation2d(fieldLength.asMeters - x, y) else this
+    }
+
+    /**
+     * Rotates the [Translation2d] 180 degrees around the center of the field. Useful for reflected field layouts (2022, 2025).
+     * Units must be meters
+     * @param doRotate Supplier to perform rotation. Default: true
+     * @see Translation2d.reflectAcrossField
+     */
+    fun Translation2d.rotateAroundField(doRotate: () -> Boolean = { true }): Translation2d {
+        return if (doRotate()) this.rotateAround(fieldCenter, 180.0.degrees.asRotation2d) else this
+    }
+
+    /**
+     * Returns if the [Translation2d] is on the red alliance side of the field.
+     */
+    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x
+    /**
+     * Returns if the [Translation2d] is on the blue alliance side of the field.
+     */
+    fun Translation2d.onBlueSide(): Boolean = !this.onRedSide()
+    /**
+     * Returns if the [Translation2d] is closer to your current alliance's side of the field.
+     */
+    fun Translation2d.onFriendlyAllianceSide() = this.onRedSide() == isRedAlliance
+    /**
+     * Returns if the [Translation2d] is closer to your opponent alliance's side of the field.
+     */
+    fun Translation2d.onOpposingAllianceSide() = !this.onFriendlyAllianceSide()
+
+    /**
+     * Returns if the [Pose2d] is on the red alliance side of the field.
+     */
+    fun Pose2d.onRedSide(): Boolean = this.translation.onRedSide()
+    /**
+     * Returns if the [Pose2d] is on the blue alliance side of the field.
+     */
+    fun Pose2d.onBlueSide(): Boolean = !this.onRedSide()
+    /**
+     * Returns if the [Pose2d] is closer to your current alliance's side of the field.
+     */
+    fun Pose2d.onFriendlyAllianceSide() = this.translation.onFriendlyAllianceSide()
+    /**
+     * Returns if the [Pose2d] is closer to your opponent alliance's side of the field.
+     */
+    fun Pose2d.onOpposingAllianceSide() = !this.onFriendlyAllianceSide()
+
+
+
     enum class Level {
         L1,
         L2,

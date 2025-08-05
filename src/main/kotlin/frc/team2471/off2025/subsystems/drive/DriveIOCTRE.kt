@@ -10,7 +10,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveRequest
 import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
-import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
@@ -68,6 +67,7 @@ class DriveIOCTRE(
     }
 
     override fun updateInputs(inputs: DriveIO.DriveIOInputs) {
+        LoopLogger.record("a drive updateInputs")
         val s = this.stateCopy
         inputs.pose = s.Pose
         inputs.speeds = s.Speeds.robotToFieldCentric(s.Pose.rotation)
@@ -80,6 +80,7 @@ class DriveIOCTRE(
         inputs.successfulDaqs = s.SuccessfulDaqs
         inputs.failedDaqs = s.FailedDaqs
 
+        LoopLogger.record("a stateCopy")
         inputs.moduleInputs = Array(4) {
             val m = moduleSignals[it]
             DriveIO.ModuleInput(
@@ -103,6 +104,7 @@ class DriveIOCTRE(
                 encoderAbsoluteAngle = m.encoderAbsolutePosition.valueAsDouble.rotations
             )
         }
+        LoopLogger.record("a module")
 
         val g = gyroSignals
         inputs.gyroInputs.apply {
@@ -119,20 +121,21 @@ class DriveIOCTRE(
             xAccel = g.xAccel.valueAsDouble.Gs - g.xGrav.valueAsDouble.Gs
             yAccel = g.yAccel.valueAsDouble.Gs - g.yGrav.valueAsDouble.Gs
         }
+        LoopLogger.record("UpdateInputs Drive")
     }
 
     override fun setDriveRequest(request: SwerveRequest) = this.setControl(request)
 
     override fun resetPose(pose: Pose2d?) {
         val safePose = pose ?: Pose2d()
-        resetPosition(safePose.translation)
+        resetTranslation(safePose.translation)
         resetHeading(safePose.rotation.measure)
     }
 
-    override fun resetPosition(translation: Translation2d?) {
+//    override fun resetPosition(translation: Translation2d?) {
         //if translation is null, reset to (0, 0)
-        resetTranslation(translation ?: Translation2d())
-    }
+//        resetTranslation(translation ?: Translation2d())
+//    }
 
     override fun updateSim() {
         if (isSim) {
@@ -170,7 +173,9 @@ class DriveIOCTRE(
 
     override fun resetHeading(angle: Angle) {
         println("reseting heading to $angle")
-        resetRotation(angle.asRotation2d)
+//        resetRotation(180.0.degrees.asRotation2d)
+//        resetRotation(angle.asRotation2d - 180.0.degrees.asRotation2d)
+        pigeon2.setYaw(angle)
     }
 
 

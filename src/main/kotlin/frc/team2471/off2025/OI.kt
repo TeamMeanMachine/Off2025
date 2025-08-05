@@ -5,8 +5,10 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.Subsystem
+import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
+import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
+import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.drive.Drive
@@ -16,7 +18,7 @@ import kotlin.math.hypot
 import kotlin.math.sqrt
 import kotlin.math.withSign
 
-object OI: Subsystem {
+object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, true)
     val operatorController = MeanCommandXboxController(1)
 
@@ -70,6 +72,7 @@ object OI: Subsystem {
 
 
     init {
+        println("inside OI init")
         // Default command, normal field-relative drive
         Drive.defaultCommand = DriveCommands.joystickDrive()
 
@@ -78,8 +81,14 @@ object OI: Subsystem {
         driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
 
 
-        driverController.y().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
-        driverController.a().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
+        driverController.y().whileTrue(defer {
+            Drive.joystickDriveAlongLine(
+                FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
+                FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
+                (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
+            ) })
+
+        driverController.a().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose.translation, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT))})
 
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
@@ -92,6 +101,7 @@ object OI: Subsystem {
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             runOnceCommand(Drive) {
+                println("zero gyro")
                 Drive.zeroGyro()
             }.ignoringDisable(true))
 
@@ -103,8 +113,10 @@ object OI: Subsystem {
     }
 
     override fun periodic() {
+        LoopLogger.record("b4 OI piodc")
         driverNotConnectedAlert.set(driverDebouncer.calculate(driverController.isConnected))
         operatorNotConnectedAlert.set(operatorDebouncer.calculate(operatorController.isConnected))
+        LoopLogger.record("OI piodc")
     }
 
     /**

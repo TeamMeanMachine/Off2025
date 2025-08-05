@@ -1,0 +1,128 @@
+package frc.team2471.off2025.util.vision
+
+import edu.wpi.first.math.Matrix
+import edu.wpi.first.math.geometry.Transform3d
+import edu.wpi.first.math.numbers.N1
+import edu.wpi.first.math.numbers.N3
+import edu.wpi.first.math.numbers.N8
+import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.isReal
+import org.ejml.simple.SimpleMatrix
+import org.littletonrobotics.junction.LogTable
+import org.littletonrobotics.junction.Logger
+import org.littletonrobotics.junction.inputs.LoggableInputs
+import org.photonvision.PhotonCamera
+import org.photonvision.simulation.PhotonCameraSim
+import org.photonvision.targeting.PhotonPipelineResult
+import java.util.*
+
+class PhotonVisionCamera(
+    cameraName: String,
+    override val transform: Transform3d,
+    private val pipelineConfigs: Array<PipelineConfig>
+) : QuixVisionCamera {
+    override val cameraSim: PhotonCameraSim = PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
+
+    private val loggingName: String = "Inputs/PhotonVisionCamera [$cameraName]"
+    private val camera: PhotonCamera = if (isReal) PhotonCamera(cameraName) else cameraSim.camera
+
+    private val inputs = PhotonCameraInputs()
+
+
+    inner class PhotonCameraInputs : LoggableInputs {
+        // TODO: Monitor performance and consider not logging the whole PhotonPipelineResult.
+        var pipelineIndex: Int = 0
+        var latestResult: PhotonPipelineResult = PhotonPipelineResult()
+        var cameraMatrix: Optional<Matrix<N3, N3>> = Optional.empty<Matrix<N3, N3>>()
+        var distCoeffs: Optional<Matrix<N8, N1>> = Optional.empty<Matrix<N8, N1>>()
+
+        override fun toLog(table: LogTable) {
+            table.put("PipelineIndex", pipelineIndex)
+            table.put("LatestResult", latestResult)
+            table.put("CameraMatrixIsPresent", cameraMatrix.isPresent)
+            if (cameraMatrix.isPresent) table.put("CameraMatrixData", cameraMatrix.get().data)
+            table.put("DistCoeffsIsPresent", distCoeffs.isPresent)
+            if (distCoeffs.isPresent) table.put("DistCoeffsData", distCoeffs.get().data)
+        }
+
+        override fun fromLog(table: LogTable) {
+            pipelineIndex = table.get("PipelineIndex", pipelineIndex)
+            latestResult = table.get("LatestResult", latestResult)
+            cameraMatrix =
+                if (table.get("CameraMatrixIsPresent", false)) {
+                    Optional.of<Matrix<N3, N3>>(
+                        Matrix<N3, N3>(
+                            SimpleMatrix(3, 3, true, *table.get("CameraMatrixData", DoubleArray(9)))
+                        )
+                    )
+                } else { Optional.empty<Matrix<N3, N3>>() }
+            distCoeffs =
+                if (table.get("DistCoeffsIsPresent", false)) {
+                    Optional.of<Matrix<N8, N1>>(Matrix<N8, N1>(
+                        SimpleMatrix(8, 1, true, *table.get("DistCoeffsData", DoubleArray(8)))
+                    ))
+                } else { Optional.empty<Matrix<N8, N1>>() }
+        }
+    }
+
+    init {
+        setPipelineIndex(0)
+    }
+
+    override fun updateInputs() {
+        inputs.pipelineIndex = camera.pipelineIndex
+        // TODO: Handle all results, not just the latest.
+        val latestResults = camera.allUnreadResults
+        inputs.latestResult = if (latestResults.isNotEmpty()) latestResults[latestResults.size - 1] else PhotonPipelineResult()
+        // Only update these once, since they shouldn't be changing.
+        val cameraMatrix = camera.cameraMatrix
+        if (inputs.cameraMatrix.isEmpty && cameraMatrix.isPresent) {
+            inputs.cameraMatrix = cameraMatrix
+        }
+        val distCoeffs = camera.distCoeffs
+        if (inputs.distCoeffs.isEmpty && distCoeffs.isPresent) {
+            inputs.distCoeffs = distCoeffs
+        }
+        Logger.processInputs(loggingName, inputs)
+    }
+
+    override fun setPipelineIndex(index: Int) {
+        if (index > pipelineConfigs.size) {
+            println("Invalid pipeline index: $index")
+            return
+        }
+        camera.pipelineIndex = index
+    }
+
+    override val pipelineConfig: PipelineConfig
+        get() = pipelineConfigs[inputs.pipelineIndex]
+
+    override val cameraMatrix: Optional<Matrix<N3, N3>>
+        get() = inputs.cameraMatrix
+
+    override val distCoeffs: Optional<Matrix<N8, N1>>
+        get() = inputs.distCoeffs
+
+    override val fiducialType: Fiducial.Type
+        get() = pipelineConfig.fiducialType
+
+    override val latestMeasurement: PipelineVisionPacket
+        get() {
+            val startTimestamp = Timer.getFPGATimestamp()
+            val result = inputs.latestResult
+            val hasTargets = result.hasTargets()
+            if (!hasTargets) {
+                return PipelineVisionPacket(false, null, null, -1.0)
+            }
+
+            val endTimestamp = Timer.getFPGATimestamp()
+            Logger.recordOutput("$loggingName/GetLatestMeasurementMs", (endTimestamp - startTimestamp) * 1000.0)
+
+            return PipelineVisionPacket(
+                hasTargets,
+                result.getBestTarget(),
+                result.getTargets(),
+                result.timestampSeconds - 0.03
+            )
+        }
+}

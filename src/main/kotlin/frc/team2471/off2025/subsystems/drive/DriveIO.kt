@@ -3,7 +3,6 @@ package frc.team2471.off2025.subsystems.drive
 import com.ctre.phoenix6.swerve.SwerveRequest
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
-import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
@@ -24,8 +23,6 @@ interface DriveIO {
 
     fun resetHeading(angle: Angle)
 
-    fun resetPosition(translation: Translation2d?)
-
     fun updateSim()
 
     fun brakeMode()
@@ -37,7 +34,7 @@ interface DriveIO {
 
 
     open class DriveIOInputs: LoggableInputs {
-        @JvmField var pose = Pose2d()
+        @JvmField var pose: Pose2d = Pose2d()
         @JvmField var speeds = ChassisSpeeds()
         @JvmField var moduleStates = Array(4) { SwerveModuleState() }
         @JvmField var moduleTargets = Array(4) { SwerveModuleState() }

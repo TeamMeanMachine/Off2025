@@ -28,6 +28,7 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.units.LinearAccelerationUnit
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.units.Units
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
@@ -44,11 +45,20 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
+import frc.team2471.off2025.Constants
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Robot
 import frc.team2471.off2025.generated.TunerConstants
 import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
+import frc.team2471.off2025.util.vision.Fiducials
+import frc.team2471.off2025.util.vision.PhotonVisionCamera
+import frc.team2471.off2025.util.vision.PipelineConfig
+import frc.team2471.off2025.util.vision.QuixVisionCamera
+import frc.team2471.off2025.util.vision.QuixVisionSim
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.*
@@ -57,16 +67,22 @@ object Drive: SubsystemBase("Drive") {
     val io: DriveIO = DriveIOCTRE(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs)
     val driveInputs = DriveIO.DriveIOInputs()
 
+    @get:AutoLogOutput
     var pose: Pose2d
         get() = driveInputs.pose
-        set(value) = io.resetPose(value)
+        set(value) {
+            io.resetPose(value)
+            localizer.resetPose(value.rotation, driveInputs.modulePositions, value)
+        }
 
+    @get:AutoLogOutput
     var heading: Rotation2d
         get() = pose.rotation.wrap()
         set(value) = io.resetHeading(value.measure)
 
-    val headingLatencyCompensated: Angle
-        get() = driveInputs.gyroInputs.yaw
+    @get:AutoLogOutput
+    val headingLatencyCompensated: Rotation2d
+        get() = driveInputs.gyroInputs.yaw.asRotation2d
 
     val speeds: ChassisSpeeds
         get() = driveInputs.speeds
@@ -85,6 +101,21 @@ object Drive: SubsystemBase("Drive") {
     private set
 
     var prevTime = -0.02
+
+
+    val swerveKinematics = SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters)
+
+
+    val cameras: ArrayList<QuixVisionCamera> = arrayListOf(
+        PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
+        PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
+        PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
+        PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
+    )
+    val visionSim = QuixVisionSim(cameras, Fiducials.aprilTagFiducials)
+
+    val localizer = QuixSwerveLocalizer(swerveKinematics, 0.0.degrees.asRotation2d /* this number can be anything */, driveInputs.modulePositions, Pose2d() /* this can be anything */, Fiducials.aprilTagFiducials, cameras)
+
 
 
     private val pathXController = PIDController(7.0, 0.0, 0.0)
@@ -115,13 +146,18 @@ object Drive: SubsystemBase("Drive") {
     init {
         println("inside Drive init")
         zeroGyro()
+
+        localizer.trackAllTags()
     }
 
     override fun periodic() {
         LoopLogger.record("b4 Drive piodc")
         io.updateInputs(driveInputs)
+        LoopLogger.record("a update driveInputs")
         Logger.processInputs("Drive", driveInputs)
+        LoopLogger.record("a process driveInputs")
 
+        Logger.recordOutput("moduleTranslations", *TunerConstants.moduleTranslationsMeters)
         gyroDisconnectedAlert.set(!driveInputs.gyroInputs.gyroConnected)
         driveInputs.moduleInputs.forEachIndexed { i, mInput ->
             // Alert if any swerve motor or encoder is disconnected
@@ -140,6 +176,27 @@ object Drive: SubsystemBase("Drive") {
 
         prevVelocity = currVelocity
         prevTime = currTime
+
+        LoopLogger.record("a speeds calc")
+        //vision
+        cameras.forEach {
+            it.updateInputs()
+        }
+        LoopLogger.record("a cam upd inp")
+        localizer.updateWithLatestPoseEstimate()
+        LoopLogger.record("a update w latest")
+        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(headingLatencyCompensated, driveInputs.modulePositions)
+        val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
+        localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        LoopLogger.record("a localizer update")
+
+        Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
+        Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
+        Logger.recordOutput("Swerve/Localizer", localizer.pose)
+        Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
+
+
+
 
         if (Robot.isDisabled) {
             stop()
@@ -182,8 +239,10 @@ object Drive: SubsystemBase("Drive") {
     fun xPose() = io.setDriveRequest(SwerveDriveBrake())
 
     fun zeroGyro() {
-        println("zero gyro isRedAlliance  $isRedAlliance")
-        io.resetHeading(if (isRedAlliance) 180.0.degrees else 0.0.degrees)
+        val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
+        println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
+        heading = wantedAngle
+        println("heading: ${heading.degrees}")
     }
 
     fun updateSim() {
@@ -260,16 +319,15 @@ object Drive: SubsystemBase("Drive") {
 
         return run {
             val start = RobotController.getFPGATime()
-            val translationToPose = wantedPose.translation.minus(pose.translation)
+            val translationToPose = wantedPose.translation.minus(localizer.singleTagPose.translation)
             distanceToPose = translationToPose.norm
             val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
-            println("time: ${RobotController.getFPGATime() - start}")
             driveAtAngle(wantedPose.rotation, wantedVelocity)
         }.until {
             val distanceError = distanceToPose.meters
-            val headingError = (wantedPose.rotation - pose.rotation).measure.absoluteValue()
+            val headingError = (wantedPose.rotation - localizer.singleTagPose.rotation).measure.absoluteValue()
 
             Logger.recordOutput("Drive/DriveToPoint/DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint/HeadingError", headingError)
@@ -316,7 +374,7 @@ object Drive: SubsystemBase("Drive") {
         val lineAngle = (pointTwo - pointOne).angle
 
         return run {
-            val currentPose = pose
+            val currentPose = localizer.pose
             val linePoint = findClosestPointOnLine(pointOne, pointTwo, currentPose.translation)
             val translationToPose = linePoint.minus(currentPose.translation)
             val driveToPointPower = min(abs(teleopDriveToPointController.calculate(translationToPose.norm, 0.0)), maxVelocity.asMetersPerSecond)
@@ -391,7 +449,7 @@ object Drive: SubsystemBase("Drive") {
         val timer = Timer()
 
         return run {
-            val currentPose = pose
+            val currentPose = localizer.pose
             t = min(timer.get(), totalTime)
             val sample = path.sampleAt(t, false).get()
             val wantedPose = sample.pose
@@ -510,4 +568,13 @@ object Drive: SubsystemBase("Drive") {
         // Dynamic forward and reverse
         sysIDSteerDynamic(SysIdRoutine.Direction.kForward), sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
     )
+
+
+    override fun simulationPeriodic() {
+        LoopLogger.record("b4 Drive Sim piodic")
+        GlobalScope.launch {
+            visionSim.updatePose(pose)
+        }
+        LoopLogger.record("Drive Sim piodic")
+    }
 }
