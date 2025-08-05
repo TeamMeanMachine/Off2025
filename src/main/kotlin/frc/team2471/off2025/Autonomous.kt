@@ -26,8 +26,6 @@ object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        addOption("8 Foot Straight", eightFootTest())
-        addOption("3 L4 Right", threeL4Right())
         addOption("ExampleCommand", ExampleCommand())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
@@ -101,28 +99,4 @@ object Autonomous {
         }
     }
 
-
-    fun threeL4Right(): Command {
-        val path = paths["3 L4"]!!
-        return sequenceCommand(
-            runOnceCommand { println("three L4") },
-            Drive.driveAlongChoreoPath(path.getSplit(0).get(), true),
-            runOnceCommand { println("Score preload 1") },
-            Drive.driveAlongChoreoPath(path.getSplit(1).get()),
-            runOnceCommand { println("Intake 1") },
-            Drive.driveAlongChoreoPath(path.getSplit(2).get()),
-            runOnceCommand { println("Score 2") },
-            Drive.driveAlongChoreoPath(path.getSplit(3).get()),
-            runOnceCommand { println("Intake 2") },
-            Drive.driveAlongChoreoPath(path.getSplit(4).get()),
-            runOnceCommand { println("Score 3 yay") },
-        )
-    }
-
-    fun eightFootTest(): Command {
-        return sequenceCommand(
-            runOnceCommand { println("Starting eight foot test") },
-            Drive.driveAlongChoreoPath(paths["8 Foot"]!!, true)
-        )
-    }
 }
