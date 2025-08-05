@@ -319,16 +319,15 @@ object Drive: SubsystemBase("Drive") {
 
         return run {
             val start = RobotController.getFPGATime()
-            val translationToPose = wantedPose.translation.minus(pose.translation)
+            val translationToPose = wantedPose.translation.minus(localizer.singleTagPose.translation)
             distanceToPose = translationToPose.norm
             val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
-            println("time: ${RobotController.getFPGATime() - start}")
             driveAtAngle(wantedPose.rotation, wantedVelocity)
         }.until {
             val distanceError = distanceToPose.meters
-            val headingError = (wantedPose.rotation - pose.rotation).measure.absoluteValue()
+            val headingError = (wantedPose.rotation - localizer.singleTagPose.rotation).measure.absoluteValue()
 
             Logger.recordOutput("Drive/DriveToPoint/DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint/HeadingError", headingError)
@@ -375,7 +374,7 @@ object Drive: SubsystemBase("Drive") {
         val lineAngle = (pointTwo - pointOne).angle
 
         return run {
-            val currentPose = pose
+            val currentPose = localizer.pose
             val linePoint = findClosestPointOnLine(pointOne, pointTwo, currentPose.translation)
             val translationToPose = linePoint.minus(currentPose.translation)
             val driveToPointPower = min(abs(teleopDriveToPointController.calculate(translationToPose.norm, 0.0)), maxVelocity.asMetersPerSecond)
