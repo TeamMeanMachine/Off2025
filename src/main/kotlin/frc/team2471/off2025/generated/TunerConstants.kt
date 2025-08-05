@@ -53,7 +53,7 @@ object TunerConstants {
     // All swerve devices must share the same CAN bus
     val driveCANBus: CANBus = CANBus("rio", "./logs/example.hoot")
 
-    private const val driveGearRatio = 6.746031746031747
+    private const val driveGearRatio = 6.746031746031747 * 0.950495049505
     private const val steerGearRatio = 21.428571428571427
 
     // Theoretical free speed (m/s) at 12 V applied output;

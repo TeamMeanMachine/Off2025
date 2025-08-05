@@ -26,7 +26,8 @@ object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        addOption("ExampleCommand", ExampleCommand())
+        addOption("eightfootstrait", eightFootStrait())
+        addOption("squarePathTest", squarePathTest())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
@@ -99,4 +100,10 @@ object Autonomous {
         }
     }
 
+    fun eightFootStrait (): Command {
+        return Drive.driveAlongChoreoPath(paths["8 foot"]!!,true)
+    }
+    fun squarePathTest (): Command {
+        return Drive.driveAlongChoreoPath(paths["square"]!!,true)
+    }
 }
