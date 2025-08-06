@@ -8,14 +8,11 @@ import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import frc.team2471.off2025.commands.ExampleCommand
-import frc.team2471.off2025.commands.joystickTest
+import frc.team2471.off2025.tests.joystickTest
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.round
-import frc.team2471.off2025.util.runOnceCommand
-import frc.team2471.off2025.util.sequenceCommand
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import kotlin.collections.forEach
 import kotlin.io.path.listDirectoryEntries
@@ -26,8 +23,8 @@ object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        addOption("eightfootstrait", eightFootStrait())
-        addOption("squarePathTest", squarePathTest())
+        addOption("8 Foot Straight", eightFootStraight())
+        addOption("6x6 Square", squarePathTest())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
@@ -100,7 +97,7 @@ object Autonomous {
         }
     }
 
-    fun eightFootStrait (): Command {
+    fun eightFootStraight (): Command {
         return Drive.driveAlongChoreoPath(paths["8 foot"]!!,true)
     }
     fun squarePathTest (): Command {

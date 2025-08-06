@@ -15,6 +15,10 @@ package frc.team2471.off2025.util
 import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
+import com.ctre.phoenix6.swerve.SwerveDrivetrain
+import com.ctre.phoenix6.swerve.SwerveModule
+import com.ctre.phoenix6.swerve.SwerveRequest
+import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.DriverStation
 import java.util.function.Supplier
@@ -34,6 +38,24 @@ object PhoenixUtil {
     }
 }
 
+/**
+ * Swerve request to set the individual module states.
+ *
+ * If no value is passed in, the module is set to its current angle with 0 speed
+ */
+class ApplyModuleStates(vararg val moduleStates: SwerveModuleState? = arrayOf()): SwerveRequest {
+    override fun apply(
+        parameters: SwerveDrivetrain.SwerveControlParameters?,
+        vararg modulesToApply: SwerveModule<*, *, *>
+    ): StatusCode {
+        modulesToApply.forEachIndexed { index, module ->
+            val wantedState = moduleStates.getOrNull(index) ?: SwerveModuleState(0.0, module.currentState.angle)
+            module.apply(SwerveModule.ModuleRequest().withState(wantedState))
+        }
+
+        return StatusCode.OK
+    }
+}
 
 /** Grabs the MagnetOffset from the [CANcoder]. */
 fun CANcoder.getMagnetSensorOffset(): Angle {

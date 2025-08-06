@@ -1,4 +1,4 @@
-package frc.team2471.off2025.commands
+package frc.team2471.off2025.tests
 
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -10,7 +10,6 @@ import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger
-import java.util.*
 
 
 fun joystickTest(): Command {

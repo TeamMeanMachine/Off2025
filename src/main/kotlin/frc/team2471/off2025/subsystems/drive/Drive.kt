@@ -48,8 +48,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.Constants
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Robot
-import frc.team2471.off2025.generated.TunerConstants
-import frc.team2471.off2025.generated.TunerConstants.maxAngularSpeedRadPerSec
+import frc.team2471.off2025.TunerConstants
+import frc.team2471.off2025.TunerConstants.maxAngularSpeedRadPerSec
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
 import frc.team2471.off2025.util.vision.Fiducials
@@ -199,7 +199,7 @@ object Drive: SubsystemBase("Drive") {
 
 
         if (Robot.isDisabled) {
-            stop()
+            io.setDriveRequest(ApplyModuleStates()) //set module setpoints to their current position
         }
 
         Logger.recordOutput("Drive/speeds", speeds.translation.toPose2d(speeds.omegaRadiansPerSecond.radians.asRotation2d))
@@ -283,6 +283,26 @@ object Drive: SubsystemBase("Drive") {
             omegaRadiansPerSecond *= maxAngularSpeedRadPerSec.asRadiansPerSecond
         }
 
+    fun joystickDrive(): Command {
+        return Commands.run({
+            LoopLogger.record("b4 joystickDrive")
+            // Get linear velocity
+            val chassisSpeeds = getChassisSpeedsFromJoystick().apply {
+                if (isBlueAlliance) {
+                    vxMetersPerSecond *= -1.0
+                    vyMetersPerSecond *= -1.0
+                }
+            }
+
+            //send it
+            driveVelocity(chassisSpeeds)
+
+            LoopLogger.record("joystickDrive")
+        },
+            Drive
+        )
+    }
+
     // All of these driveAtAngle function variations exist to make syntax good when calling the function
     fun driveAtAngle(angle: Rotation2d): Command = driveAtAngle { angle }
     fun driveAtAngle(angle: () -> Rotation2d): Command = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
@@ -318,7 +338,6 @@ object Drive: SubsystemBase("Drive") {
 
 
         return run {
-            val start = RobotController.getFPGATime()
             val translationToPose = wantedPose.translation.minus(localizer.singleTagPose.translation)
             distanceToPose = translationToPose.norm
             val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController

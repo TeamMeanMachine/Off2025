@@ -132,11 +132,6 @@ class DriveIOCTRE(
         resetHeading(safePose.rotation.measure)
     }
 
-//    override fun resetPosition(translation: Translation2d?) {
-        //if translation is null, reset to (0, 0)
-//        resetTranslation(translation ?: Translation2d())
-//    }
-
     override fun updateSim() {
         if (isSim) {
             updateSimState(0.02, 12.0)

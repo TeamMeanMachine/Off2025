@@ -1,20 +1,36 @@
-package frc.team2471.off2025.generated
+package frc.team2471.off2025
 
 import com.ctre.phoenix6.CANBus
-import com.ctre.phoenix6.configs.*
+import com.ctre.phoenix6.configs.CANcoderConfiguration
+import com.ctre.phoenix6.configs.Slot0Configs
+import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstants
-import com.ctre.phoenix6.swerve.SwerveModuleConstants.DriveMotorArrangement
-import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerMotorArrangement
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.units.measure.*
+import edu.wpi.first.units.measure.AngularVelocity
+import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Preferences
-import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.asDegrees
+import frc.team2471.off2025.util.asFeet
+import frc.team2471.off2025.util.asMeters
+import frc.team2471.off2025.util.asMetersPerSecond
+import frc.team2471.off2025.util.asRadiansPerSecond
+import frc.team2471.off2025.util.asVolts
+import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.feetPerSecond
+import frc.team2471.off2025.util.getMagnetSensorOffset
+import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.meters
+import frc.team2471.off2025.util.radiansPerSecond
+import frc.team2471.off2025.util.round
+import frc.team2471.off2025.util.rpm
+import frc.team2471.off2025.util.volts
 import org.team2471.frc2025.CANCoders
 import org.team2471.frc2025.CANSensors
 import org.team2471.frc2025.Falcons
@@ -128,8 +144,8 @@ object TunerConstants {
              * Type of motor controller
              * The type of motor used for the drive/steer motor
             */
-            DriveMotorType = DriveMotorArrangement.TalonFX_Integrated
-            SteerMotorType = SteerMotorArrangement.TalonFX_Integrated
+            DriveMotorType = SwerveModuleConstants.DriveMotorArrangement.TalonFX_Integrated
+            SteerMotorType = SwerveModuleConstants.SteerMotorArrangement.TalonFX_Integrated
 
             /**
              * How to use the CANCoder. (Remote, Fused, or Synced)

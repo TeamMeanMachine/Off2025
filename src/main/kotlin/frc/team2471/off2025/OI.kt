@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import frc.team2471.off2025.commands.DriveCommands
 import frc.team2471.off2025.subsystems.Armavator
 import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
@@ -74,7 +73,7 @@ object OI: SubsystemBase("OI") {
     init {
         println("inside OI init")
         // Default command, normal field-relative drive
-        Drive.defaultCommand = DriveCommands.joystickDrive()
+        Drive.defaultCommand = Drive.joystickDrive()
 
 
 
