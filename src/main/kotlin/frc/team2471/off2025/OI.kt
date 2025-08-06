@@ -9,8 +9,6 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import frc.team2471.off2025.subsystems.Armavator
-import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
@@ -18,7 +16,7 @@ import kotlin.math.sqrt
 import kotlin.math.withSign
 
 object OI: SubsystemBase("OI") {
-    val driverController = MeanCommandXboxController(0, true)
+    val driverController = MeanCommandXboxController(0, false)
     val operatorController = MeanCommandXboxController(1)
 
     val deadbandDriver = 0.08

@@ -7,9 +7,6 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.subsystems.Armavator
-import frc.team2471.off2025.subsystems.ExampleSubsystem
-import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
@@ -42,9 +39,8 @@ object Robot : LoggedRobot() {
     val drive = Drive
     val oi = OI
     val armavator = Armavator
-    val exampleSubsystem = ExampleSubsystem
 
-    var allSubsystems = arrayOf(drive, oi, armavator, exampleSubsystem)
+    var allSubsystems = arrayOf(drive, oi, armavator)
 
     init {
         // Set up data receivers & replay source
@@ -151,7 +147,6 @@ object Robot : LoggedRobot() {
     /** This function is called periodically whilst in simulation.  */
     override fun simulationPeriodic() {
         GlobalScope.launch {
-            Drive.updateSim()
             MasterMotor.simPeriodic()
         }
     }

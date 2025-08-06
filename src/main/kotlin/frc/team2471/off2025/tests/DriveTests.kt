@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.OI.dPad
-import frc.team2471.off2025.subsystems.drive.Drive
+import frc.team2471.off2025.Drive
 import frc.team2471.off2025.util.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger

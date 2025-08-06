@@ -9,7 +9,6 @@ import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.tests.joystickTest
-import frc.team2471.off2025.subsystems.drive.Drive
 import frc.team2471.off2025.util.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.round
@@ -98,9 +97,9 @@ object Autonomous {
     }
 
     fun eightFootStraight (): Command {
-        return Drive.driveAlongChoreoPath(paths["8 foot"]!!,true)
+        return Drive.driveAlongChoreoPath(paths["8 foot"]!!, resetOdometry = true)
     }
     fun squarePathTest (): Command {
-        return Drive.driveAlongChoreoPath(paths["square"]!!,true)
+        return Drive.driveAlongChoreoPath(paths["square"]!!, resetOdometry = true)
     }
 }

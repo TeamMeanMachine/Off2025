@@ -1,4 +1,4 @@
-package frc.team2471.off2025.subsystems
+package frc.team2471.off2025
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.DutyCycleOut

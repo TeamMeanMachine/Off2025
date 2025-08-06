@@ -67,6 +67,7 @@ class PhotonVisionCamera(
 
     init {
         setPipelineIndex(0)
+        QuixVisionSim.addCamera(this)
     }
 
     override fun updateInputs() {
