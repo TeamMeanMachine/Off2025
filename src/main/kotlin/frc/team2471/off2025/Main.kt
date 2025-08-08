@@ -60,6 +60,7 @@ object Robot : LoggedRobot() {
 
         DriverStation.silenceJoystickConnectionWarning(true)
 
+        SignalLogger.setPath("")
         SignalLogger.start()
 
         // Start AdvantageKit logger

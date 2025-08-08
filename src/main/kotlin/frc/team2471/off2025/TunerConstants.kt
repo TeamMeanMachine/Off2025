@@ -42,13 +42,16 @@ object TunerConstants {
     val driveMotor = DCMotor.getKrakenX60Foc(1)!!
     val steerMotor = DCMotor(12.0, 4.05, 275.0, 1.4, 7530.0.rpm.asRadiansPerSecond, 1) //x44
 
+    private const val driveGearRatio = 6.746031746031747 * 0.950495049505
+    private const val steerGearRatio = 21.428571428571427
+
     // The steer motor uses any SwerveModule.SteerRequestType control request with the
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
     private val steerGains: Slot0Configs = Slot0Configs().apply {
-        kP = 70.0
+        kP = 2.4817 * steerGearRatio
         kI = 0.0
         kD = 0.0
-        kS = 0.2
+        kS = 0.073174
         kV = 2.6622
         kA = 0.05389
         StaticFeedforwardSign = StaticFeedforwardSignValue.UseClosedLoopSign
@@ -68,9 +71,6 @@ object TunerConstants {
     // CAN bus that the devices are located on;
     // All swerve devices must share the same CAN bus
     val driveCANBus: CANBus = CANBus("rio", "./logs/example.hoot")
-
-    private const val driveGearRatio = 6.746031746031747 * 0.950495049505
-    private const val steerGearRatio = 21.428571428571427
 
     // Theoretical free speed (m/s) at 12 V applied output;
     // This needs to be tuned to your individual robot

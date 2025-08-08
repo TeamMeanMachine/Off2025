@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.absoluteValue
 import frc.team2471.off2025.util.asFeet
 import frc.team2471.off2025.util.asMeters
 import frc.team2471.off2025.util.asRotation2d
@@ -18,6 +19,7 @@ import frc.team2471.off2025.util.meters
 import frc.team2471.off2025.util.mirrorYAxis
 import frc.team2471.off2025.util.round
 import frc.team2471.off2025.util.toPose2d
+import frc.team2471.off2025.util.wrap
 import org.littletonrobotics.junction.Logger
 
 object FieldManager {
@@ -144,7 +146,7 @@ object FieldManager {
 
 
 
-    fun closestAlignPoint(pose: Translation2d, level: Level, side: ScoringSide? = null): Pose2d {
+    fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pose2d {
         val isRed = isRedAlliance
         val alignPositions = when (level) {
             Level.L4 -> {
@@ -165,15 +167,19 @@ object FieldManager {
         }
 
         //Calculate closest distance
-        var poseAndDistance: Pair<Pose2d?, Double> = Pair(null, Double.MAX_VALUE)
+        var poseAndDistance: Pair<Pose2d, Double> = Pair(Pose2d(), Double.MAX_VALUE)
         alignPositions.forEach {
-            val distance = it.translation.getDistance(pose)
+            val distance = it.translation.getDistance(pose.translation)
             if (distance < poseAndDistance.second) {
                 poseAndDistance = Pair(it, distance)
             }
         }
+        var closestPose = poseAndDistance.first
+        if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
+        }
 
-        return poseAndDistance.first!!
+        return closestPose
     }
 
 

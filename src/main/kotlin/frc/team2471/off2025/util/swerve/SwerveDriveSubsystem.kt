@@ -299,7 +299,7 @@ abstract class SwerveDriveSubsystem(
 
     override fun resetRotation(rotation: Rotation2d) {
         println("resting heading to $rotation")
-//        super.resetRotation(rotation)
+        super.resetRotation(rotation)
         gyro.setYaw(rotation.measure)
     }
 
@@ -358,7 +358,7 @@ abstract class SwerveDriveSubsystem(
     fun driveToPoint(
         wantedPose: Pose2d,
         poseSupplier: () -> Pose2d = { pose },
-        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.5.inches && headingError < 1.0.degrees },
+        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.75.inches && headingError < 1.0.degrees },
         maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY

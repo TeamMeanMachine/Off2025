@@ -59,7 +59,7 @@ class ApplyModuleStates(vararg val moduleStates: SwerveModuleState? = arrayOf())
 
 /** Grabs the MagnetOffset from the [CANcoder]. */
 fun CANcoder.getMagnetSensorOffset(): Angle {
-    if (this.isConnected || isSim) return 0.0.degrees
+    if (!this.isConnected || isSim) return 0.0.degrees
     val initialConfigs = CANcoderConfiguration()
     PhoenixUtil.tryUntilOk(5) { this.configurator.refresh(initialConfigs) }
 
