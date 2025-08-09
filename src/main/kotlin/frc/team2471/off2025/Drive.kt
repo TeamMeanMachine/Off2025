@@ -56,13 +56,13 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val autoDriveToPointController = PIDController(3.0, 0.0, 0.1)
     override val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
-    override val driveAtAnglePIDController = PhoenixPIDController(5.0, 0.0, 0.0)
+    override val driveAtAnglePIDController = PhoenixPIDController(7.445574589, 0.0, 0.0)
 
     /**
      * Returns [edu.wpi.first.math.kinematics.ChassisSpeeds] with a percentage power from the driver controller.
      * Performs [OI.unsnapAndDesaturateJoystick] to undo axis snapping and does squaring/cubing on the vectors.
      */
-    override fun getChassisPercentSpeedsFromJoystick(): ChassisSpeeds {
+    override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
         //make joystick pure circle
         val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
 

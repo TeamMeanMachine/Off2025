@@ -12,6 +12,7 @@ import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.LoopLogger
+import org.littletonrobotics.junction.AutoLogOutput
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
 
@@ -19,13 +20,9 @@ object Armavator: SubsystemBase() {
 
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
     private val elevatorCurrentEntry = table.getDoubleTopic("Elevator Current").publish()
-    private val elevatorHeightEntry = table.getDoubleTopic("Elevator Motor Height").publish()
-    private val elevatorSetpointEntry = table.getDoubleTopic("Elevator Setpoint").publish()
     private val elevatorVelocityEntry = table.getDoubleTopic("Elevator Velocity").publish()
 
     private val armCurrentEntry = table.getDoubleTopic("Arm Current").publish()
-    private val armAngleEntry = table.getDoubleTopic("Arm Motor Angle").publish()
-    private val armSetpointEntry = table.getDoubleTopic("Arm Setpoint").publish()
     private val armVelocityEntry = table.getDoubleTopic("Arm Velocity").publish()
 
     val elevatorMotor0 = TalonFX(Falcons.ELEVATOR_0, CANivores.ELEVATOR_CAN)
@@ -44,9 +41,11 @@ object Armavator: SubsystemBase() {
     const val MIN_ARM_ANGLE_DEGREES = 0.0
     const val MAX_ARM_ANGLE_DEGREES = 180.0
 
+    @get:AutoLogOutput
     inline val currentHeightInches: Double
         get() = elevatorMotor0.position.valueAsDouble / REVOLUTIONS_PER_INCH
 
+    @get:AutoLogOutput
     var heightSetpoint: Double = 0.0
         set(value) {
             val safeValue = MathUtil.clamp(value, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES)
@@ -55,9 +54,11 @@ object Armavator: SubsystemBase() {
             field = value
         }
 
+    @get:AutoLogOutput
     inline val currentArmAngle: Double
         get() = armMotor0.position.valueAsDouble / ARM_GEAR_RATIO
 
+    @get:AutoLogOutput
     var armAngleSetpoint: Double = 0.0
         set(value) {
             val safeValue = MathUtil.clamp(value, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES)
@@ -125,13 +126,9 @@ object Armavator: SubsystemBase() {
     override fun periodic() {
         LoopLogger.record("b4 Armavator pirdc")
         // This method will be called once per scheduler run
-        elevatorHeightEntry.set(currentHeightInches)
-        elevatorSetpointEntry.set(heightSetpoint)
         elevatorCurrentEntry.set(elevatorMotor0.statorCurrent.valueAsDouble)
         elevatorVelocityEntry.set(elevatorMotor0.velocity.valueAsDouble)
 
-        armAngleEntry.set(currentArmAngle)
-        armSetpointEntry.set(armAngleSetpoint)
         armCurrentEntry.set(armMotor0.statorCurrent.valueAsDouble)
         armVelocityEntry.set(armMotor0.velocity.valueAsDouble)
         LoopLogger.record("Armavator pirdc")

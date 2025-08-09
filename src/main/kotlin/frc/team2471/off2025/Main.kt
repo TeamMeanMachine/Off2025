@@ -5,6 +5,7 @@ import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.Threads
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.LoopLogger
@@ -49,7 +50,10 @@ object Robot : LoggedRobot() {
                 Logger.addDataReceiver(WPILOGWriter())
                 Logger.addDataReceiver(NT4Publisher())
             }
-            RobotMode.SIM -> Logger.addDataReceiver(NT4Publisher()) // Running a physics simulator, log to NT
+            RobotMode.SIM -> {
+                Logger.addDataReceiver(NT4Publisher())
+                Logger.addDataReceiver(WPILOGWriter())
+            } // Running a physics simulator, log to NT
             RobotMode.REPLAY -> { // Replaying a log, set up replay source
                 setUseTiming(false) // Run as fast as possible
                 val logPath = LogFileUtil.findReplayLog()

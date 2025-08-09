@@ -68,7 +68,7 @@ abstract class SwerveDriveSubsystem(
     *moduleConstants
 ), Subsystem {
 
-    abstract fun getChassisPercentSpeedsFromJoystick(): ChassisSpeeds
+    abstract fun getJoystickPercentageSpeeds(): ChassisSpeeds
 
     abstract val localizer: QuixSwerveLocalizer
     abstract val autoPilot: Autopilot
@@ -93,7 +93,7 @@ abstract class SwerveDriveSubsystem(
         }
 
     var heading: Rotation2d
-        get() = pose.rotation.wrap()
+        get() = pose.rotation
         set(value) {
             resetRotation(value)
         }
@@ -259,7 +259,7 @@ abstract class SwerveDriveSubsystem(
     }
 
 
-    fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getChassisPercentSpeedsFromJoystick().apply {
+    fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getJoystickPercentageSpeeds().apply {
         vxMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
         vyMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
         omegaRadiansPerSecond *= maxAngularSpeedRadPerSec.asRadiansPerSecond
@@ -577,7 +577,10 @@ abstract class SwerveDriveSubsystem(
             null,
             7.0.volts,
             5.0.seconds
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdTranslation_State", state.toString())},
+        ) { state: SysIdRoutineLog.State ->
+            SignalLogger.writeString("SysIdTranslation_State", state.toString())
+            Logger.recordOutput("SysIdTranslation_State", state.toString())
+          },
         Mechanism({ output: Voltage -> setControl(SysIdSwerveTranslation().withVolts(output))}, null, this)
     )
     //used to find driveAtAngleRequest PID
@@ -586,12 +589,16 @@ abstract class SwerveDriveSubsystem(
             Units.Volts.of(Math.PI / 6).per(Units.Second),
             Math.PI.volts,
             5.0.seconds
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdRotation_State", state.toString())},
+        ) { state: SysIdRoutineLog.State ->
+            SignalLogger.writeString("SysIdRotation_State", state.toString())
+            Logger.recordOutput("SysIdRotation_State", state.toString())
+          },
         Mechanism({ output: Voltage ->
             /* output is actually radians per second, but SysId only supports "volts" */
             setControl(SysIdSwerveRotation().withRotationalRate(output.asVolts))
             /* also log the requested output for SysId */
             SignalLogger.writeDouble("Rotational_Rate", output.asVolts)
+            Logger.recordOutput("Rotational_Rate", output.asVolts)
         }, null, this)
     )
     private val steerSysIdRoutine = SysIdRoutine(
@@ -599,7 +606,10 @@ abstract class SwerveDriveSubsystem(
             null,
             7.0.volts,
             null
-        ) { state: SysIdRoutineLog.State -> SignalLogger.writeString("SysIdSteer_State", state.toString()) },
+        ) { state: SysIdRoutineLog.State ->
+            SignalLogger.writeString("SysIdSteer_State", state.toString())
+            Logger.recordOutput("SysIdSteer_State", state.toString())
+          },
         Mechanism({ volts: Voltage? -> setControl(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
     )
 
