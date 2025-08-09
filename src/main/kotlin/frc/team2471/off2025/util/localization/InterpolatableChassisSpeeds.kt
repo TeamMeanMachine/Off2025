@@ -10,7 +10,7 @@ class InterpolatableChassisSpeeds(
 ): ChassisSpeeds(vxMetersPerSecond, vyMetersPerSecond, omegaRadiansPerSecond),
     Interpolatable<InterpolatableChassisSpeeds> {
 
-    override fun interpolate(endValue: InterpolatableChassisSpeeds, t: Double): InterpolatableChassisSpeeds? {
+    override fun interpolate(endValue: InterpolatableChassisSpeeds, t: Double): InterpolatableChassisSpeeds {
         if (t < 0) {
             return this
         }

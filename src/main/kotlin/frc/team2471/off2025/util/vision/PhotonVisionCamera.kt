@@ -29,7 +29,7 @@ class PhotonVisionCamera(
     private val inputs = PhotonCameraInputs()
 
 
-    inner class PhotonCameraInputs : LoggableInputs {
+    class PhotonCameraInputs : LoggableInputs {
         // TODO: Monitor performance and consider not logging the whole PhotonPipelineResult.
         var pipelineIndex: Int = 0
         var latestResult: PhotonPipelineResult = PhotonPipelineResult()
