@@ -12,23 +12,36 @@ import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
-import frc.team2471.off2025.util.radians
 import frc.team2471.off2025.util.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
-import frc.team2471.off2025.util.toPose2d
-import frc.team2471.off2025.util.translation
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PhotonVisionCamera
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
 import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
+
+    override var pose: Pose2d
+        get() = savedState.Pose
+        set(value) {
+            resetPose(value)
+            localizer.resetPose(value.rotation, modulePositions, value)
+        }
+
+    override var heading: Rotation2d
+        get() = pose.rotation
+        set(value) {
+            println("resting heading to $value")
+            resetRotation(value)
+        }
 
     // Vision
     val cameras: ArrayList<QuixVisionCamera> = arrayListOf(
@@ -38,12 +51,13 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
     )
 
-    override val localizer = QuixSwerveLocalizer(
+    val localizer = QuixSwerveLocalizer(
         SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters),
         Rotation2d() /* this number can be anything */,
         modulePositions,
         Pose2d() /* this can be anything */,
-        Fiducials.aprilTagFiducials, cameras
+        Fiducials.aprilTagFiducials,
+        cameras
     )
 
     // Drive Feedback controllers
@@ -56,7 +70,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val autoDriveToPointController = PIDController(3.0, 0.0, 0.1)
     override val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
-    override val driveAtAnglePIDController = PhoenixPIDController(7.445574589, 0.0, 0.0)
+    override val driveAtAnglePIDController = PhoenixPIDController(7.4, 0.0, 0.0)
 
     /**
      * Returns [edu.wpi.first.math.kinematics.ChassisSpeeds] with a percentage power from the driver controller.
@@ -100,21 +114,31 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         cameras.forEach {
             it.updateInputs()
         }
+        LoopLogger.record("Drive camera updateInputs")
         localizer.updateWithLatestPoseEstimate()
-        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(gyroYaw.asRotation2d, modulePositions)
+        LoopLogger.record("Drive updateWithLatestPose")
+        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(heading, modulePositions)
         val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
+        LoopLogger.record("Drive b4 localizer")
         localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        LoopLogger.record("Drive localizer")
 
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
 
-        Logger.recordOutput("Drive/speeds", speeds.translation.toPose2d(speeds.omegaRadiansPerSecond.radians.asRotation2d))
-
         LoopLogger.record("Drive pirdc")
     }
 
+    fun zeroGyro() {
+        val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
+        println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
+        heading = wantedAngle
+        println("yaw: $gyroYaw")
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
     override fun simulationPeriodic() {
         LoopLogger.record("b4 Drive Sim piodic")
         GlobalScope.launch {

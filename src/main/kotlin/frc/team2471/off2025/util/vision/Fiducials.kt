@@ -25,7 +25,7 @@ object Fiducials {
 
         // Evaluate each canidate
         var closestTagIndex = 0 // Is this the right initial value?
-        var closestTagDist = Double.Companion.POSITIVE_INFINITY
+        var closestTagDist = Double.POSITIVE_INFINITY
         for (tagIndex in tagIndices) {
             val tag: Pose2d = aprilTagFiducials[tagIndex].pose.toPose2d()
             val tagDist: Double = tag.translation.getDistance(robotPose.translation)

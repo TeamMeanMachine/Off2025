@@ -29,7 +29,7 @@ object OI: SubsystemBase("OI") {
         get() = driverController.leftX.deadband(deadbandDriver)
 
     val driveRotation: Double
-        get() = -driverController.rightX
+        get() = -driverController.rightX.deadband(deadbandDriver)
 
     val driveLeftTrigger: Double
         get() = driverController.leftTriggerAxis

@@ -14,10 +14,7 @@ object QuixVisionSim {
     init {
         if (!isReal) {
             aprilTags.forEach {
-                m_visionSim.addVisionTargets(
-                    "apriltag",
-                    VisionTargetSim(it.pose, TargetModel.kAprilTag36h11, it.id)
-                )
+                m_visionSim.addVisionTargets("apriltag", VisionTargetSim(it.pose, TargetModel.kAprilTag36h11, it.id))
             }
         }
     }
@@ -27,7 +24,7 @@ object QuixVisionSim {
         println("vision sim has ${m_visionSim.cameraSims.size} cameras")
     }
 
-    fun resetSimPose(pose: Pose2d?) {
+    fun resetSimPose(pose: Pose2d) {
         m_visionSim.resetRobotPose(pose)
     }
 
@@ -35,6 +32,6 @@ object QuixVisionSim {
         m_visionSim.update(pose)
     }
 
-    val simField: Field2d?
+    val simField: Field2d
         get() = m_visionSim.debugField
 }
