@@ -258,7 +258,11 @@ abstract class SwerveDriveSubsystem(
         )
     }
 
-
+    /**
+     * Returns the wanted chassis speeds from the joystick.
+     * @see getJoystickPercentageSpeeds
+     * @see TunerConstants.kSpeedAt12Volts
+     */
     fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getJoystickPercentageSpeeds().apply {
         vxMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
         vyMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
@@ -275,6 +279,9 @@ abstract class SwerveDriveSubsystem(
     ): Command = run {
         driveAtAngle(angle(), translation())
     }
+    /**
+     * Uses the [driveAtAnglePIDController] to drive the robot with a specified angle and translation.
+     */
     fun driveAtAngle(angle: Rotation2d, translation: Translation2d) {
         setControl(
             driveAtAngleRequest.apply {
@@ -285,7 +292,14 @@ abstract class SwerveDriveSubsystem(
         )
     }
 
+    /**
+     * Set the swerve drive module states to point inward on the robot in an "X" fashion.
+     */
     fun xPose() = setControl(SwerveDriveBrake())
+
+    /**
+     * Applies a 0v output to the drivetrain.
+     */
     fun stop() = driveVoltage(ChassisSpeeds())
 
 
@@ -301,6 +315,9 @@ abstract class SwerveDriveSubsystem(
 //        gyro.setYaw(rotation.measure)
     }
 
+    /**
+     * Set all the drive and steer motors to brake mode.
+     */
     fun brakeMode() {
         modules.forEach {
             it.steerMotor.brakeMode()
@@ -308,6 +325,9 @@ abstract class SwerveDriveSubsystem(
         }
     }
 
+    /**
+     * Set all the drive and steer motors to coast mode.
+     */
     fun coastMode() {
         modules.forEach {
             it.steerMotor.coastMode()
@@ -315,6 +335,9 @@ abstract class SwerveDriveSubsystem(
         }
     }
 
+    /**
+     * Set the module offsets to the current position of the module.
+     */
     fun setAngleOffsets(): Command = runOnce {
         val offsets = modules.map { it.encoder.setCANCoderAngle(0.0.degrees) }
         offsets.forEachIndexed { i, offset ->
@@ -323,6 +346,9 @@ abstract class SwerveDriveSubsystem(
     }
 
 
+    /**
+     * Drives the robot using the joystick.
+     */
     fun joystickDrive(): Command {
         return Commands.run({
             LoopLogger.record("b4 joystickDrive")
@@ -344,7 +370,12 @@ abstract class SwerveDriveSubsystem(
     }
 
     /**
-     * Drives the robot to a [wantedPose]
+     * Drives the robot to a [wantedPose]. Uses the [autoDriveToPointController] or [teleopDriveToPointController]
+     *
+     * @param wantedPose The pose to drive to
+     * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
+     * @param exitSupplier A function that returns true if the command should abort. The default value ends when the robot is within 0.75 meters of the target.
+     * @param maxVelocity The maximum velocity of the robot. The default value is defined in [TunerConstants]
      */
     fun driveToPoint(
         wantedPose: Pose2d,
@@ -378,6 +409,15 @@ abstract class SwerveDriveSubsystem(
         }.withName("DriveToPoint")
     }
 
+    /**
+     * Drives the robot to a [wantedPose] using Autopilot. Uses [autoPilot] to control the robot.
+     *
+     * Finishes when the [Autopilot.atTarget] method returns true.
+     *
+     * @param wantedPose The position to drive to
+     * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
+     * @param entryAngle The angle [Autopilot] will try to enter the wantedPose at. The default value is null.
+     */
     fun driveToAutopilotPoint(
         wantedPose: Pose2d,
         poseSupplier: () -> Pose2d = { pose },
@@ -406,7 +446,15 @@ abstract class SwerveDriveSubsystem(
 
 
     /**
-     * Drives the robot to the closest point along a line but also lets the driver control the robot along it
+     * Drives the robot to the closest point along a line but also lets the driver control the robot along it. Uses the [autoDriveToPointController] or [teleopDriveToPointController]
+     *
+     * @param pointOne The first line endpoint.
+     * @param pointTwo The second line endpoint.
+     * @param heading The wanted heading of the robot to align to. The default value doesn't restrict the heading and allows joystick rotation control.
+     * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
+     * @param maxVelocity The maximum velocity of the robot. The default value is defined in [TunerConstants]
+     *
+     * @see driveToPoint
      */
     fun joystickDriveAlongLine(
         pointOne: Translation2d,
@@ -486,7 +534,14 @@ abstract class SwerveDriveSubsystem(
         }
     }
 
-
+    /**
+     * Drives the robot along a path from Choreo. Uses the [pathXController], [pathYController], and [pathThetaController] to control the robot.
+     *
+     * @param path The path to drive along
+     * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
+     * @param resetOdometry Whether to reset the odometry to the start of the path. The default value is false.
+     * @param exitSupplier A function that returns true if the command should abort. The default value ends when the path duration finishes.
+     */
     fun driveAlongChoreoPath(
         path: Trajectory<SwerveSample>,
         poseSupplier: () -> Pose2d = { pose },
@@ -554,7 +609,20 @@ abstract class SwerveDriveSubsystem(
 
 
 
-
+    /**
+     * Simple constructor for creating an Autopilot object.
+     *
+     * @param maxVelocity The maximum velocity Autopilot will allow. meters/sec
+     * @param maxAcceleration The maximum acceleration Autopilot will allow. meters/sec^2
+     * @param maxJerk The maximum jerk Autopilot will allow. meters/sec^3
+     * @param xyTolerance The xy translation tolerance for the robot to be at the target position, effects [Autopilot.atTarget]. Meters
+     * @param thetaTolerance The theta rotation tolerance for the robot to be at the target position, effects [Autopilot.atTarget]. Radians
+     * @param beelineRadius The beeline radius is a distance where, under that range, an entry angle is no longer respected. Default value 8 cm
+     *
+     * @see Autopilot
+     * @see APConstraints
+     * @see APProfile
+     */
     fun createAPObject(maxVelocity: Double, maxAcceleration: Double, maxJerk: Double, xyTolerance: Distance, thetaTolerance: Angle, beelineRadius: Distance = 8.0.centimeters): Autopilot {
         return Autopilot(APProfile(APConstraints(maxVelocity, maxAcceleration, maxJerk))
             .withErrorXY(xyTolerance).withErrorTheta(thetaTolerance).withBeelineRadius(beelineRadius)

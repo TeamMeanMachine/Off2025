@@ -44,6 +44,15 @@ fun Command.beforeRun(vararg requirements: Subsystem, action: () -> Unit): Seque
 fun runOnceCommand(vararg requirements: Subsystem, action: () -> Unit): Command = Commands.runOnce(action, *requirements)
 
 /**
+ * Constructs a command that runs an action once and finishes.
+ * @param action the action to run
+ * @param requirements subsystems the action requires
+ * @return the command
+ * @see edu.wpi.first.wpilibj2.command.InstantCommand
+ */
+fun runOnce(vararg requirements: Subsystem, action: () -> Unit): Command = runOnceCommand(*requirements, action = action)
+
+/**
  * Constructs a command that runs an action every iteration until interrupted.
  * @param action the action to run
  * @param requirements subsystems the action requires

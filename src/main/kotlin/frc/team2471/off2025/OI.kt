@@ -100,7 +100,7 @@ object OI: SubsystemBase("OI") {
 //        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
 //        driverController.povDown().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
 
-        // Reset gyro to 0° when B button is pressed
+        // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             runOnceCommand(Drive) {
                 println("zero gyro")
