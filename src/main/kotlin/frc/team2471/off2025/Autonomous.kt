@@ -22,22 +22,20 @@ import kotlin.jvm.optionals.getOrNull
 object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
-    // Dashboard dropdown chooser for selecting autonomous commands
+    // Dashboard dropdown chooser for selecting AUTONOMOUS commands.
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        // Add the 8 ft straight as the default option in the chooser
-        addDefaultOption("8 Foot Straight", eightFootStraight())
+        // Adds the printHelloAuto command as an option on the autonomous chooser.
+        addOption("Print Hello Auto", printHelloAuto())
 
-        // Add the 6x6 square path as an option
-        addOption("6x6 Square", squarePathTest())
+        // Add other auto commands to the chooser here...
 
-        // Add the 8 ft spin path as an option
-        addOption("8 Foot Spin", eightFootSpin())
 
-        // Add the circle path as an option
-        addOption("6 foot circle", circlePathTest())
+
     }
+
+    // Dashboard dropdown chooser for TEST commands.
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
-        // Set up SysId routines and test command options
+        // Set up SysId routines and test command dashboard options
         addOption("Drive Translation SysId ALL", Drive.sysIDTranslationAll())
         addOption("Drive Rotation SysId ALL", Drive.sysIDRotationAll())
         addOption("Drive Steer SysId ALL", Drive.sysIDSteerAll())
@@ -103,45 +101,30 @@ object Autonomous {
         }
     }
 
-    // Run the 8 foot straight path
-    fun eightFootStraight(): Command {
-        // Simple path used for tuning the drivetrain
-        return Drive.driveAlongChoreoPath(paths["8 foot straight"]!!, resetOdometry = true)
-    }
+    /*
 
-    // Run the 6 foot square path
-    fun squarePathTest(): Command {
-        // Saves the full path to a variable for easy typing
-        val path = paths["6 foot square"]!!
+    AUTONOMOUS COMMANDS GO UNDER HERE
+
+     */
+
+
+    fun printHelloAuto(): Command {
         return sequenceCommand(
-            // Drive along the first split of the path and reset the robot position to the start of the path
-            Drive.driveAlongChoreoPath(path.getSplit(0).get(), resetOdometry = true),
-
-            runOnce { println("finished split 0") }, // Usually a robot action would be run in between splits (like scoring or picking up a game piece)
-
-            // Drive along the second split of the path, we do not need to reset the robot position
-            Drive.driveAlongChoreoPath(path.getSplit(1).get(), resetOdometry = false),
-
-            runOnce { println("finished split 1") },
-
-            // Continue to drive along the rest of the path
-            Drive.driveAlongChoreoPath(path.getSplit(2).get(), resetOdometry = false),
-
-            runOnce { println("finished split 2") },
-
-            Drive.driveAlongChoreoPath(path.getSplit(3).get(), resetOdometry = false),
-
-            runOnce { println("finished the path") },
+            runOnce { println("Hello I am an autonomous function!") },
+            runOnce { println("I am the second command in the sequence!") },
+            runOnce { println("Ok bye!") }
         )
     }
 
-    // Run the 8 foot spin path
-    fun eightFootSpin(): Command {
-        return Drive.driveAlongChoreoPath(paths["8 foot spin"]!!, resetOdometry = true)
-    }
+    // Create custom driveAlongChoreoPath routines here
 
-    // Run the 6 foot circle path
-    fun circlePathTest(): Command {
-        return Drive.driveAlongChoreoPath(paths["6 foot circle"]!!, resetOdometry = true)
-    }
+
+
+
+
+
+
+
+
+
 }
