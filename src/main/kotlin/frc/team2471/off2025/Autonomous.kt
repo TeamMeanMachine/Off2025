@@ -27,8 +27,7 @@ object Autonomous {
         // Adds the printHelloAuto command as an option on the autonomous chooser.
         addOption("Print Hello Auto", printHelloAuto())
 
-        // Add other auto commands to the chooser here...
-
+        // TODO: Add other auto commands to the chooser here...
 
 
     }
@@ -116,13 +115,7 @@ object Autonomous {
         )
     }
 
-    // Create custom driveAlongChoreoPath routines here
-
-
-
-
-
-
+    // TODO: Create custom driveAlongChoreoPath routines here
 
 
 
