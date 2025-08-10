@@ -7,8 +7,6 @@ import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
-import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
-import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
@@ -74,31 +72,9 @@ object OI: SubsystemBase("OI") {
         Drive.defaultCommand = Drive.joystickDrive()
 
 
-
-        driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
-
-
-        driverController.y().whileTrue(defer {
-            Drive.joystickDriveAlongLine(
-                FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
-                FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
-                (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
-            ) })
-
-        driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
-        driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
-        driverController.povUp ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
-        driverController.povRight ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
-        driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
-        driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
-
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
-//        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
-//        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
-//        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
-//        driverController.povDown().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
 
         // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(

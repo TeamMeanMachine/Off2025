@@ -5,7 +5,6 @@ import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.Threads
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.LoopLogger
@@ -39,9 +38,8 @@ object Robot : LoggedRobot() {
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
     val drive = Drive
     val oi = OI
-    val armavator = Armavator
 
-    var allSubsystems = arrayOf(drive, oi, armavator)
+    var allSubsystems = arrayOf(drive, oi)
 
     init {
         // Set up data receivers & replay source
@@ -71,7 +69,6 @@ object Robot : LoggedRobot() {
         Logger.start()
         // Call all subsystems, make sure their init's run
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
-        FieldManager
     }
 
     /** This function is called periodically during all modes.  */

@@ -200,11 +200,8 @@ abstract class SwerveDriveSubsystem(
     }
 
     override fun periodic() {
-        LoopLogger.record("b4 super drive")
         savedState = stateCopy //This line takes a long time when data acquisitions fail
-        LoopLogger.record("drive state set")
         gyroDisconnectedAlert.set(!gyro.isConnected)
-        LoopLogger.record("b4 gyro connect")
 
         // Check if a part of any modules have been disconnected. Save on cycle time by only checking one module every loop.
         val module = modules[moduleErrorIndex]
@@ -216,11 +213,8 @@ abstract class SwerveDriveSubsystem(
         LoopLogger.record("drive modules")
 
         val currTime = Timer.getFPGATimestamp()
-        LoopLogger.record("drive timetime")
         val currVelocity = velocity
-        LoopLogger.record("drive getVelocity")
         val prevAcceleration = acceleration
-        LoopLogger.record("drive setPrevAccel")
         val deltaTime = currTime - prevTime
 
         LoopLogger.record("drive get time")
@@ -236,7 +230,7 @@ abstract class SwerveDriveSubsystem(
      * @param speeds Speeds in meters/sec
      */
     fun driveVelocity(speeds: ChassisSpeeds) {
-        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(gyroYaw.asRotation2d))
+        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds)
         setControl(
             ApplyFieldSpeeds().apply{
                 Speeds = speeds

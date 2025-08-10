@@ -5,7 +5,6 @@ import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import frc.team2471.off2025.util.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
@@ -13,18 +12,11 @@ import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
 import frc.team2471.off2025.util.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
-import frc.team2471.off2025.util.vision.Fiducials
-import frc.team2471.off2025.util.vision.PhotonVisionCamera
-import frc.team2471.off2025.util.vision.PipelineConfig
-import frc.team2471.off2025.util.vision.QuixVisionCamera
-import frc.team2471.off2025.util.vision.QuixVisionSim
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.littletonrobotics.junction.Logger
 import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
@@ -33,7 +25,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         get() = savedState.Pose
         set(value) {
             resetPose(value)
-            localizer.resetPose(value.rotation, modulePositions, value)
         }
 
     override var heading: Rotation2d
@@ -42,23 +33,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             println("resting heading to $value")
             resetRotation(value)
         }
-
-    // Vision
-    val cameras: ArrayList<QuixVisionCamera> = arrayListOf(
-        PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
-    )
-
-    val localizer = QuixSwerveLocalizer(
-        SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters),
-        Rotation2d() /* this number can be anything */,
-        modulePositions,
-        Pose2d() /* this can be anything */,
-        Fiducials.aprilTagFiducials,
-        cameras
-    )
 
     // Drive Feedback controllers
     override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 20.0, 0.5, 0.5.inches, 1.0.degrees)
@@ -94,41 +68,19 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         println("inside Drive init")
         zeroGyro()
 
-        localizer.trackAllTags()
-
         finalInitialization()
     }
 
     override fun periodic() {
-        LoopLogger.record("b4 Drive piodc")
         // Must call this v
         super.periodic()
-        LoopLogger.record("super Drive piodc")
 
         // Disabled actions
         if (Robot.isDisabled) {
             setControl(ApplyModuleStates()) //set module setpoints to their current position
         }
 
-        // Update Vision
-        cameras.forEach {
-            it.updateInputs()
-        }
-        LoopLogger.record("Drive camera updateInputs")
-        localizer.updateWithLatestPoseEstimate()
-        LoopLogger.record("Drive updateWithLatestPose")
-        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(heading, modulePositions)
-        val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
-        LoopLogger.record("Drive b4 localizer")
-        localizer.update(odometryMeasurement, visionMeasurements, speeds)
-        LoopLogger.record("Drive localizer")
-
-        Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
-        Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
-        Logger.recordOutput("Swerve/Localizer", localizer.pose)
-        Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
-
-        LoopLogger.record("Drive pirdc")
+        LoopLogger.record("Drive periodic")
     }
 
     fun zeroGyro() {
@@ -140,11 +92,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun simulationPeriodic() {
-        LoopLogger.record("b4 Drive Sim piodic")
         GlobalScope.launch {
             updateSimState(0.02, 12.0)
-            QuixVisionSim.updatePose(pose)
         }
-        LoopLogger.record("Drive Sim piodic")
     }
 }
