@@ -179,9 +179,9 @@ abstract class SwerveDriveSubsystem(
 
 
     private val gyroDisconnectedAlert = Alert("Gyro Disconnected", Alert.AlertType.kError)
-    private val driveDisconnectAlerts = Array(4) { Alert("Module $it Drive Motor Disconnected", Alert.AlertType.kError) }
-    private val steerDisconnectAlerts = Array(4) { Alert("Module $it Steer Motor Disconnected", Alert.AlertType.kError) }
-    private val encoderDisconnectAlerts = Array(4) { Alert("Module $it Encoder Disconnected", Alert.AlertType.kError) }
+    private val driveDisconnectAlerts = Array(moduleConstants.size) { Alert("Module $it Drive Motor Disconnected", Alert.AlertType.kError) }
+    private val steerDisconnectAlerts = Array(moduleConstants.size) { Alert("Module $it Steer Motor Disconnected", Alert.AlertType.kError) }
+    private val encoderDisconnectAlerts = Array(moduleConstants.size) { Alert("Module $it Encoder Disconnected", Alert.AlertType.kError) }
     private var moduleErrorIndex = 0
 
     init {
@@ -211,7 +211,7 @@ abstract class SwerveDriveSubsystem(
         driveDisconnectAlerts[moduleErrorIndex].set(!module.driveMotor.isConnected)
         steerDisconnectAlerts[moduleErrorIndex].set(!module.steerMotor.isConnected)
         encoderDisconnectAlerts[moduleErrorIndex].set(!module.encoder.isConnected)
-        moduleErrorIndex = (moduleErrorIndex + 1) % 4
+        moduleErrorIndex = (moduleErrorIndex + 1) % modules.size
 
         LoopLogger.record("drive modules")
 
