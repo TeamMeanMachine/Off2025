@@ -22,6 +22,7 @@ import kotlin.jvm.optionals.getOrNull
 object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
+    // Dashboard dropdown chooser for selecting autonomous commands
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
         // Add the 8 ft straight as the default option in the chooser
         addDefaultOption("8 Foot Straight", eightFootStraight())
@@ -36,9 +37,7 @@ object Autonomous {
         addOption("6 foot circle", circlePathTest())
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
-        // Set up SysId routines
-//        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
-//        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
+        // Set up SysId routines and test command options
         addOption("Drive Translation SysId ALL", Drive.sysIDTranslationAll())
         addOption("Drive Rotation SysId ALL", Drive.sysIDRotationAll())
         addOption("Drive Steer SysId ALL", Drive.sysIDSteerAll())
@@ -48,7 +47,6 @@ object Autonomous {
     val autonomousCommand: Command? get() = autoChooser.get()
     val testCommand: Command? get() = testChooser.get()
 
-    //load choreo paths
 
     private var isPathsRed = false //All paths start blue. Switch to true if all paths made in choreo are on the red side.
     private var prevPathRed: Boolean? = null
@@ -66,6 +64,7 @@ object Autonomous {
         println("reading ${paths.size} paths took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(6)} seconds.")
     }
 
+    // Checks if the alliance color has changed and flips the paths if so
     fun flipPathsIfAllianceChange() {
         if (prevPathRed != null) {
             if (prevPathRed != isRedAlliance) {
@@ -79,12 +78,14 @@ object Autonomous {
         prevPathRed = isPathsRed
     }
 
+    // Flip the path so it is correct for the alliance color
     private fun flipPaths() {
         println("flipping paths")
         paths.replaceAll { _, t -> t.flipped() }
         println(paths.map { it.value.sampleAt(0.1, false)?.get()?.chassisSpeeds})
     }
 
+    // Find all the paths in the choreo directory and return a list of them
     fun findChoreoPaths(): MutableMap<String, Trajectory<SwerveSample>> {
         return try {
             val map: MutableMap<String, Trajectory<SwerveSample>> = mutableMapOf()

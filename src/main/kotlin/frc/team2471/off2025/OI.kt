@@ -76,7 +76,7 @@ object OI: SubsystemBase("OI") {
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
 
-        // Reset gyro to 0° when B button is pressed
+        // Reset gyro to 0° when B button is pressed
         driverController.back().onTrue(
             runOnceCommand(Drive) {
                 println("zero gyro")
