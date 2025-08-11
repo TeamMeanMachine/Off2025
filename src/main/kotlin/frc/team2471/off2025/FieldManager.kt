@@ -87,6 +87,11 @@ object FieldManager {
 
     val bargeAlignPoints: Pair<Translation2d, Translation2d> get() = if (isRedAlliance) bargeAlignPointsRed else bargeAlignPointsBlue
 
+    // Amp
+    private val ampAlignPointBlue: Pose2d = Pose2d(19.6.feet, 0.75.meters, 90.0.degrees.asRotation2d)
+    private val ampAlignPointRed: Pose2d = ampAlignPointBlue.rotateAround(fieldCenter, 180.0.degrees.asRotation2d)
+
+
     init {
         println("FieldManager init: I see ${allAprilTags.size} AprilTags and the field is ${fieldLength.asFeet.round(3)} feet long")
         val startTime = Timer.getFPGATimestamp()
@@ -126,6 +131,8 @@ object FieldManager {
         alignPositionsL1Blue.toCollection(allAlignPositions)
         alignPositionsAlgaeRed.map { it.first }.toCollection(allAlignPositions)
         alignPositionsAlgaeBlue.map { it.first }.toCollection(allAlignPositions)
+        allAlignPositions.add(ampAlignPointRed)
+        allAlignPositions.add(ampAlignPointBlue)
 
         println("Created ${allAlignPositions.size} align positions in ${(Timer.getFPGATimestamp() - startTime).round(4)} seconds")
 
@@ -180,6 +187,10 @@ object FieldManager {
         }
 
         return closestPose
+    }
+
+    fun ampAlignPoint(robotPose: Pose2d): Pose2d {
+        return if (robotPose.onRedSide()) ampAlignPointRed else ampAlignPointBlue
     }
 
 

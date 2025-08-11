@@ -45,10 +45,6 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
-import frc.team2471.off2025.Robot
-import frc.team2471.off2025.TunerConstants
-import frc.team2471.off2025.TunerConstants.maxAngularSpeedRadPerSec
-import frc.team2471.off2025.Drive
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.logged.LoggedTalonFX
 import org.littletonrobotics.junction.AutoLogOutput
@@ -175,6 +171,18 @@ abstract class SwerveDriveSubsystem(
         get() = (gyro.accelerationY.valueAsDouble - gyro.gravityVectorY.valueAsDouble).Gs
 
 
+    /** Returns an array of module translations. */
+    val moduleTranslationsMeters = moduleConstants.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }.toTypedArray()
+
+    val driveBaseRadius = moduleTranslationsMeters.maxOf { it.norm }.meters
+
+    /** Returns the maximum linear speed */
+    val maxSpeed: LinearVelocity = moduleConstants.first().SpeedAt12Volts.metersPerSecond
+
+    /** Returns the maximum angular speed in radians per sec.  */
+    val maxAngularSpeedRadPerSec: AngularVelocity = (maxSpeed.asMetersPerSecond / driveBaseRadius.asMeters).radiansPerSecond
+
+
     private val driveAtAngleRequest = FieldCentricFacingAngle()
 
 
@@ -232,11 +240,11 @@ abstract class SwerveDriveSubsystem(
     }
 
     /**
-     * Runs the drive at the desired velocity.
+     * Runs the drive at the desired velocity. Field centric
      * @param speeds Speeds in meters/sec
      */
     fun driveVelocity(speeds: ChassisSpeeds) {
-        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(gyroYaw.asRotation2d))
+        Logger.recordOutput("Drive/Wanted ChassisSpeeds", speeds.fieldToRobotCentric(heading))
         setControl(
             ApplyFieldSpeeds().apply{
                 Speeds = speeds
@@ -246,7 +254,7 @@ abstract class SwerveDriveSubsystem(
     }
 
     /**
-     * Runs the drive at the desired voltage.
+     * Runs the drive at the desired voltage. Field centric
      * @param speedsInVolts Speeds in volts
      */
     fun driveVoltage(speedsInVolts: ChassisSpeeds) {
@@ -261,11 +269,11 @@ abstract class SwerveDriveSubsystem(
     /**
      * Returns the wanted chassis speeds from the joystick.
      * @see getJoystickPercentageSpeeds
-     * @see TunerConstants.kSpeedAt12Volts
+     * @see maxSpeed
      */
     fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getJoystickPercentageSpeeds().apply {
-        vxMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
-        vyMetersPerSecond *= TunerConstants.kSpeedAt12Volts.asMetersPerSecond
+        vxMetersPerSecond *= maxSpeed.asMetersPerSecond
+        vyMetersPerSecond *= maxSpeed.asMetersPerSecond
         omegaRadiansPerSecond *= maxAngularSpeedRadPerSec.asRadiansPerSecond
     }
 
@@ -365,7 +373,7 @@ abstract class SwerveDriveSubsystem(
 
             LoopLogger.record("joystickDrive")
         },
-            Drive
+            this
         )
     }
 
@@ -375,13 +383,13 @@ abstract class SwerveDriveSubsystem(
      * @param wantedPose The pose to drive to
      * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
      * @param exitSupplier A function that returns true if the command should abort. The default value ends when the robot is within 0.75 meters of the target.
-     * @param maxVelocity The maximum velocity of the robot. The default value is defined in [TunerConstants]
+     * @param maxVelocity The maximum velocity of the robot. The default value is [maxSpeed] from constants.
      */
     fun driveToPoint(
         wantedPose: Pose2d,
         poseSupplier: () -> Pose2d = { pose },
         exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.75.inches && headingError < 1.0.degrees },
-        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+        maxVelocity: LinearVelocity = maxSpeed
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY
 
@@ -391,7 +399,7 @@ abstract class SwerveDriveSubsystem(
         return run {
             val translationToPose = wantedPose.translation.minus(poseSupplier().translation)
             distanceToPose = translationToPose.norm
-            val pidController = if (Robot.isAutonomous) autoDriveToPointController else teleopDriveToPointController
+            val pidController = if (DriverStation.isAutonomous()) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
             driveAtAngle(wantedPose.rotation, wantedVelocity)
@@ -452,7 +460,7 @@ abstract class SwerveDriveSubsystem(
      * @param pointTwo The second line endpoint.
      * @param heading The wanted heading of the robot to align to. The default value doesn't restrict the heading and allows joystick rotation control.
      * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
-     * @param maxVelocity The maximum velocity of the robot. The default value is defined in [TunerConstants]
+     * @param maxVelocity The maximum velocity of the robot. The default value is [maxSpeed] from constants.
      *
      * @see driveToPoint
      */
@@ -461,7 +469,8 @@ abstract class SwerveDriveSubsystem(
         pointTwo: Translation2d,
         heading: Rotation2d? = null,
         poseSupplier: () -> Pose2d = { pose },
-        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+        lineTolerance: Distance = 0.5.inches,
+        maxVelocity: LinearVelocity = maxSpeed
     ): Command {
         val lineAngle = (pointTwo - pointOne).angle
 
@@ -469,7 +478,8 @@ abstract class SwerveDriveSubsystem(
             val currentPose = poseSupplier()
             val linePoint = findClosestPointOnLine(pointOne, pointTwo, currentPose.translation)
             val translationToPose = linePoint.minus(currentPose.translation)
-            val driveToPointPower = min(abs(teleopDriveToPointController.calculate(translationToPose.norm, 0.0)), maxVelocity.asMetersPerSecond)
+            val distanceToPose = translationToPose.norm.deadband(lineTolerance.asMeters)
+            val driveToPointPower = min(abs(teleopDriveToPointController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
 
             val driveToPointVelocity = translationToPose.normalize() * driveToPointPower
             val teleopChassisSpeeds = getChassisSpeedsFromJoystick().apply {
@@ -511,7 +521,7 @@ abstract class SwerveDriveSubsystem(
         heading: Rotation2d,
         poseSupplier: () -> Pose2d = { pose },
         exitSupplier: ((Distance, Angle) -> Boolean)? = null,
-        maxVelocity: LinearVelocity = TunerConstants.kSpeedAt12Volts
+        maxVelocity: LinearVelocity = maxSpeed
     ): Command {
         var closestPoseOnLine: Pose2d? = null
 
@@ -672,12 +682,12 @@ abstract class SwerveDriveSubsystem(
         Mechanism({ volts: Voltage? -> setControl(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
     )
 
-    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction) = translationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
-    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction) = rotationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
-    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction) = steerSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.dynamic(direction).finallyWait(1.0)
+    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.quasistatic(direction).finallyWait(1.0)
 
     fun sysIDTranslationAll() = sequenceCommand(
         // Quasistatic forward and reverse

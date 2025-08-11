@@ -137,7 +137,7 @@ object TunerConstants {
             */
             SlipCurrent = 120.0
 
-            /** The max speed of the robot when driven with 12 volts. */
+            /** The max speed of the robot when driven with 12 volts. m/s */
             SpeedAt12Volts = kSpeedAt12Volts.asMetersPerSecond
 
             /**

@@ -197,6 +197,7 @@ fun Rotation2d.wrap() = measure.wrap().asRotation2d
 fun Rotation2d.unWrap(nearByAngle: Angle) = measure.unWrap(nearByAngle).asRotation2d
 
 fun Angle.absoluteValue() = asDegrees.absoluteValue.degrees
+fun Rotation2d.absoluteValue() = degrees.absoluteValue.degrees.asRotation2d
 fun Distance.absoluteValue() = asFeet.absoluteValue.feet
 fun AngularVelocity.absoluteValue() = asDegreesPerSecond.absoluteValue.degreesPerSecond
 fun LinearVelocity.absoluteValue() = asFeetPerSecond.absoluteValue.feetPerSecond
