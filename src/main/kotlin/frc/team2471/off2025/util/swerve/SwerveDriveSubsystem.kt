@@ -645,7 +645,7 @@ abstract class SwerveDriveSubsystem(
         SysIdRoutine.Config(
             null,
             7.0.volts,
-            5.0.seconds
+            2.0.seconds
         ) { state: SysIdRoutineLog.State ->
             SignalLogger.writeString("SysIdTranslation_State", state.toString())
             Logger.recordOutput("SysIdTranslation_State", state.toString())
@@ -666,8 +666,8 @@ abstract class SwerveDriveSubsystem(
             /* output is actually radians per second, but SysId only supports "volts" */
             setControl(SysIdSwerveRotation().withRotationalRate(output.asVolts))
             /* also log the requested output for SysId */
-            SignalLogger.writeDouble("Rotational_Rate", output.asVolts)
-            Logger.recordOutput("Rotational_Rate", output.asVolts)
+            SignalLogger.writeDouble("Rotational_Rate", output.asVolts + Math.random() * 0.0001) //value needs to constantly be updating for sysid to pickup new samples
+            Logger.recordOutput("Rotational_Rate", output.asVolts + Math.random() * 0.0001)
         }, null, this)
     )
     private val steerSysIdRoutine = SysIdRoutine(

@@ -70,7 +70,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val autoDriveToPointController = PIDController(3.0, 0.0, 0.1)
     override val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
-    override val driveAtAnglePIDController = PhoenixPIDController(7.4, 0.0, 0.0)
+    override val driveAtAnglePIDController = PhoenixPIDController(7.7, 0.0, 0.072)
 
     /**
      * Returns [edu.wpi.first.math.kinematics.ChassisSpeeds] with a percentage power from the driver controller.

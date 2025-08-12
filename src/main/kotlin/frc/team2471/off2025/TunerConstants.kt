@@ -60,12 +60,12 @@ object TunerConstants {
     // When using closed-loop control, the drive motor uses the control
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     private val driveGains: Slot0Configs = Slot0Configs().apply {
-        kP = 0.09418
+        kP = 0.135
         kI = 0.0
         kD = 0.0
-        kS = 0.1619
-        kV = 0.1255
-        kA = 0.0036533
+        kS = 0.3
+        kV = 0.087
+        kA = 0.00892
     }
 
     // CAN bus that the devices are located on;
