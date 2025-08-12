@@ -30,8 +30,8 @@ object Armavator: SubsystemBase() {
     val elevatorMotor2 = TalonFX(Falcons.ELEVATOR_2, CANivores.ELEVATOR_CAN)
     val elevatorMotor3 = TalonFX(Falcons.ELEVATOR_3, CANivores.ELEVATOR_CAN)
 
-    val armMotor0 = TalonFX(Falcons.ARM_MOTOR_0)
-    val armMotor1 = TalonFX(Falcons.ARM_MOTOR_1)
+    val armMotor0 = TalonFX(Falcons.ARM_MOTOR_0, CANivores.ELEVATOR_CAN)
+    val armMotor1 = TalonFX(Falcons.ARM_MOTOR_1, CANivores.ELEVATOR_CAN)
 
     const val REVOLUTIONS_PER_INCH = 1.6
     const val MIN_HEIGHT_INCHES = 0.0
