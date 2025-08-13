@@ -6,7 +6,6 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import frc.team2471.off2025.util.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
@@ -14,7 +13,7 @@ import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
+import frc.team2471.off2025.util.localization.PoseLocalizer
 import frc.team2471.off2025.util.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
 import frc.team2471.off2025.util.vision.Fiducials
@@ -36,7 +35,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         get() = savedState.Pose
         set(value) {
             resetPose(value)
-            localizer.resetPose(value.rotation, modulePositions, value)
             quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
 
@@ -73,11 +71,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     val questPose: Pose2d
         get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
 
-    val localizer = QuixSwerveLocalizer(
-        SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters),
-        Rotation2d() /* this number can be anything */,
-        modulePositions,
-        Pose2d() /* this can be anything */,
+    val localizer = PoseLocalizer(
+        Pose2d(),
         Fiducials.aprilTagFiducials,
         cameras
     )
@@ -136,15 +131,16 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             it.updateInputs()
         }
         LoopLogger.record("Drive camera updateInputs")
-        localizer.updateWithLatestPoseEstimate()
+        val questResult = latestQuestResult
+        val questEstimate = PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
+        localizer.updateWithLatestPoseEstimate(if (quest.isTracking) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
-        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(heading, modulePositions)
-        val visionMeasurements = cameras.map { it.latestMeasurement }
-        LoopLogger.record("Drive b4 localizer")
-        localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
 
-        Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
+        Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
+        Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose)
+        Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
