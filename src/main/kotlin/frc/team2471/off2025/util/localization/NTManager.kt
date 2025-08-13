@@ -107,7 +107,7 @@ class NTManager {
      * published. Each camera's transform, camera matrix, and distortion coefficients will be used
      * to create a CameraInfo object, which will then be published.
      */
-    fun publishCameras(cameras: ArrayList<QuixVisionCamera>) {
+    fun publishCameras(cameras: List<QuixVisionCamera>) {
         val array = cameras.map {
             CameraInfo(it.transform, it.cameraMatrix, it.distCoeffs)
         }.toTypedArray()

@@ -224,7 +224,7 @@ abstract class SwerveDriveSubsystem(
         LoopLogger.record("drive modules")
 
         val currTime = Timer.getFPGATimestamp()
-        LoopLogger.record("drive timetime")
+        LoopLogger.record("drive currTime")
         val currVelocity = velocity
         LoopLogger.record("drive getVelocity")
         val prevAcceleration = acceleration

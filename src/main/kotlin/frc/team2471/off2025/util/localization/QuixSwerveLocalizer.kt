@@ -75,7 +75,7 @@ class QuixSwerveLocalizer(
     modulePositions: Array<SwerveModulePosition>,
     initialPose: Pose2d,
     targets: Array<Fiducial>,
-    val cameras: ArrayList<QuixVisionCamera>
+    val cameras: List<QuixVisionCamera>
 ) {
     // Manages sending and receiving from NetworkTables.
     private val networktable = NTManager()
@@ -171,7 +171,7 @@ class QuixSwerveLocalizer(
         get() = latestRawEstimate.pose ?: Pose2d()
 
     /** Update with odometry and optional vision.  */
-    fun update(odometry: SwerveOdometryMeasurement, visionPackets: ArrayList<PipelineVisionPacket>, chassisSpeeds: ChassisSpeeds) {
+    fun update(odometry: SwerveOdometryMeasurement, visionPackets: List<PipelineVisionPacket>, chassisSpeeds: ChassisSpeeds) {
         networktable.publishCameras(cameras)
 
         val startTimestamp = Timer.getFPGATimestamp()

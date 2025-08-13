@@ -4,6 +4,7 @@ import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
+import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import frc.team2471.off2025.util.ApplyModuleStates
@@ -21,6 +22,8 @@ import frc.team2471.off2025.util.vision.PhotonVisionCamera
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
+import gg.questnav.questnav.PoseFrame
+import gg.questnav.questnav.QuestNav
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -34,22 +37,41 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         set(value) {
             resetPose(value)
             localizer.resetPose(value.rotation, modulePositions, value)
+            quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
 
     override var heading: Rotation2d
         get() = pose.rotation
         set(value) {
-            println("resting heading to $value")
+            println("resting heading to ${value.degrees}")
             resetRotation(value)
+            // localizer reads delta rotation, it doesn't need to be called here
+            quest.setPose(Pose2d(questPose.translation, value))
         }
 
     // Vision
-    val cameras: ArrayList<QuixVisionCamera> = arrayListOf(
+    val cameras: List<QuixVisionCamera> = listOf(
         PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
         PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
         PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
         PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
     )
+
+    val quest = QuestNav()
+    val robotToQuestTransformMeters = Transform2d(0.0.inches, 0.0.inches, Rotation2d()) // Rotation 2d should be 0
+    var latestQuestResult: PoseFrame = PoseFrame(pose.transformBy(robotToQuestTransformMeters), 0.0, 0.0, 0)
+        get() {
+            val newData = quest.allUnreadPoseFrames
+            if (newData.isNotEmpty()) {
+                newData.sortByDescending { it.dataTimestamp }
+                field = newData.first() ?: field
+            }
+            return field
+        }
+        private set
+
+    val questPose: Pose2d
+        get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
 
     val localizer = QuixSwerveLocalizer(
         SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters),
@@ -73,7 +95,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val driveAtAnglePIDController = PhoenixPIDController(7.7, 0.0, 0.072)
 
     /**
-     * Returns [edu.wpi.first.math.kinematics.ChassisSpeeds] with a percentage power from the driver controller.
+     * Returns [ChassisSpeeds] with a percentage power from the driver controller.
      * Performs [OI.unsnapAndDesaturateJoystick] to undo axis snapping and does squaring/cubing on the vectors.
      */
     override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
@@ -101,8 +123,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     override fun periodic() {
         LoopLogger.record("b4 Drive piodc")
-        // Must call this v
-        super.periodic()
+        super.periodic() // Must call this
         LoopLogger.record("super Drive piodc")
 
         // Disabled actions
@@ -118,7 +139,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         localizer.updateWithLatestPoseEstimate()
         LoopLogger.record("Drive updateWithLatestPose")
         val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(heading, modulePositions)
-        val visionMeasurements = cameras.map { it.latestMeasurement }.toCollection(ArrayList())
+        val visionMeasurements = cameras.map { it.latestMeasurement }
         LoopLogger.record("Drive b4 localizer")
         localizer.update(odometryMeasurement, visionMeasurements, speeds)
         LoopLogger.record("Drive localizer")
