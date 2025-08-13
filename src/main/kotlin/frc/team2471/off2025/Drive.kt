@@ -135,7 +135,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
         println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
         heading = wantedAngle
-        println("yaw: $gyroYaw")
+        println("heading: $heading")
     }
 
     @OptIn(DelicateCoroutinesApi::class)

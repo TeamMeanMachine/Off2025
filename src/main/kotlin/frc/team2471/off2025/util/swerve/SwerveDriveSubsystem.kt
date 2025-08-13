@@ -142,7 +142,7 @@ abstract class SwerveDriveSubsystem(
         get() = pigeon2
 
     @get:AutoLogOutput(key = "Drive/Gyro/Yaw")
-    val gyroYaw: Angle
+    val rawGyroYaw: Angle
         get() = BaseStatusSignal.getLatencyCompensatedValueAsDouble(gyro.yaw, gyro.angularVelocityZWorld).degrees.wrap()
 
     @get:AutoLogOutput(key = "Drive/Gyro/Pitch")
@@ -311,16 +311,9 @@ abstract class SwerveDriveSubsystem(
     fun stop() = driveVoltage(ChassisSpeeds())
 
 
-
-
     override fun resetPose(pose2d: Pose2d) {
         resetTranslation(pose2d.translation)
         heading = pose2d.rotation
-    }
-
-    override fun resetRotation(rotation: Rotation2d) {
-        super.resetRotation(rotation)
-//        gyro.setYaw(rotation.measure)
     }
 
     /**
