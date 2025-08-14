@@ -194,7 +194,7 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
         rawOdometryPoseBuffer.addSample(currentTime, rawOdometryPose)
         chassisSpeedsBuffer.addSample(currentTime, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
 
-        timeToMeasurementMap[currentTime] = Measurement(currVisionPose)
+        timeToMeasurementMap[currentTime] = Measurement(currFusedPose)
 
         for (cameraID in visionPackets.indices) {
             val detectedTags = ArrayList<Translation3d>()
