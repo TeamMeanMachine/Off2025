@@ -21,6 +21,7 @@ import org.photonvision.targeting.PhotonTrackedTarget
 import java.util.ArrayList
 import java.util.HashMap
 import java.util.HashSet
+import java.util.NavigableMap
 import java.util.TreeMap
 import kotlin.jvm.optionals.getOrNull
 import kotlin.math.abs
@@ -94,39 +95,20 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
     fun updateWithLatestPoseEstimate(questEstimate: QuestNavMeasurement? = null) {
         val startTimestamp = Timer.getFPGATimestamp()
 
+        // Apply quest data to the buffers
         if (questEstimate != null && questEstimate.dataTimestamp > lastQuestTimestamp) {
             val questEstimateTime = questEstimate.dataTimestamp
             val questDeltaPose = questEstimate.robotPose.minus(rawQuestPose)
-            val fusedPoseAtEstimateTime = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()
-            val singleTagPoseAtEstimateTime = singleTagOdometryBuffer.getSample(questEstimateTime).getOrNull()
-            val visionPoseAtEstimateTime = visionOdometryBuffer.getSample(questEstimateTime).getOrNull()
+            val odometryDeltaPose = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()?.minus(fusedOdometryBuffer.getSample(lastQuestTimestamp).getOrNull())
+//            println("questDeltaPose: $questDeltaPose")
+//            println("odometryDeltaPose: $odometryDeltaPose")
 
-            // Update buffers by adding a delta quest pose
-            if (fusedPoseAtEstimateTime != null) {
-                var bufferKey = fusedOdometryBuffer.internalBuffer.ceilingKey(questEstimateTime)
-                while (bufferKey != null) {
-                    val oldPose = fusedOdometryBuffer.internalBuffer[bufferKey]!!
-                    fusedOdometryBuffer.internalBuffer[bufferKey] = oldPose.plus(questDeltaPose)
-                    bufferKey = fusedOdometryBuffer.internalBuffer.higherKey(bufferKey)
-                }
-            }
+            if (odometryDeltaPose != null) {
+                val questCorrectionDelta = Transform2d(questDeltaPose.translation - odometryDeltaPose.translation, questDeltaPose.rotation - odometryDeltaPose.rotation)
 
-            if (singleTagPoseAtEstimateTime != null) {
-                var bufferKey = singleTagOdometryBuffer.internalBuffer.ceilingKey(questEstimateTime)
-                while (bufferKey != null) {
-                    val oldPose = singleTagOdometryBuffer.internalBuffer[bufferKey]!!
-                    singleTagOdometryBuffer.internalBuffer[bufferKey] = oldPose.plus(questDeltaPose)
-                    bufferKey = singleTagOdometryBuffer.internalBuffer.higherKey(bufferKey)
-                }
-            }
-
-            if (visionPoseAtEstimateTime != null) {
-                var bufferKey = visionOdometryBuffer.internalBuffer.ceilingKey(questEstimateTime)
-                while (bufferKey != null) {
-                    val oldPose = visionOdometryBuffer.internalBuffer[bufferKey]!!
-                    visionOdometryBuffer.internalBuffer[bufferKey] = oldPose.plus(questDeltaPose)
-                    bufferKey = visionOdometryBuffer.internalBuffer.higherKey(bufferKey)
-                }
+                fusedOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
+                singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
+                visionOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
             }
 
             lastQuestTimestamp = questEstimateTime
@@ -158,13 +140,7 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
             return
         }
         val odometryPoseOffset = estimate.pose.minus(odometryAtEstimateTime)
-        var bufferKey = visionOdometryBuffer.internalBuffer.ceilingKey(visionEstimateTime)
-
-        while (bufferKey != null) {
-            val oldPose = visionOdometryBuffer.internalBuffer[bufferKey]!!
-            visionOdometryBuffer.internalBuffer[bufferKey] = oldPose.plus(odometryPoseOffset)
-            bufferKey = visionOdometryBuffer.internalBuffer.higherKey(bufferKey)
-        }
+        visionOdometryBuffer.internalBuffer.offsetFutureSamplesBy(odometryPoseOffset, visionEstimateTime)
 
         Logger.recordOutput("Localizer/UpdateWithLatestPoseEstimate seconds", (Timer.getFPGATimestamp() - startTimestamp))
 
@@ -358,12 +334,7 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
             return
         }
         val odometryPoseOffset = robotPose.minus(odometryAtEstimateTime)
-        var bufferKey = singleTagOdometryBuffer.internalBuffer.ceilingKey(latestTimestamp)
-        while (bufferKey != null) {
-            val oldPose = singleTagOdometryBuffer.internalBuffer[bufferKey]!!
-            singleTagOdometryBuffer.internalBuffer[bufferKey] = oldPose.plus(odometryPoseOffset)
-            bufferKey = singleTagOdometryBuffer.internalBuffer.higherKey(bufferKey)
-        }
+        singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(odometryPoseOffset, latestTimestamp)
     }
 
     init {
@@ -382,4 +353,26 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
     }
 
     data class QuestNavMeasurement(val robotPose: Pose2d, val dataTimestamp: Double)
+
+    /**
+     *  Applies a transform to all samples with a timestamp >= [timestamp].
+     *
+     *  @param offset The offset to apply. In meters
+     *  @param timestamp The oldest timestamp to start applying the offset at. In seconds.
+     *
+     *  @see NavigableMap.tailMap
+     */
+    fun NavigableMap<Double, Pose2d>.offsetFutureSamplesBy(offset: Transform2d, timestamp: Double) {
+        // Exit early if the offset is zero
+        if (offset.translation.x == 0.0 && offset.translation.y == 0.0 && offset.rotation.radians == 0.0) return
+
+        // I think using a tailMap is faster
+        tailMap(timestamp, true).replaceAll { _, pose -> pose.plus(offset) }
+
+//        var higherKey = ceilingKey(timestamp)
+//        while (higherKey != null) {
+//            this[higherKey] = this[higherKey]!!.plus(offset)
+//            higherKey = this.higherKey(higherKey)
+//        }
+    }
 }

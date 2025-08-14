@@ -1,18 +1,22 @@
 package frc.team2471.off2025
 
+import com.ctre.phoenix6.Utils
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
+import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
+import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.localization.PoseLocalizer
 import frc.team2471.off2025.util.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
@@ -27,6 +31,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
+import kotlin.jvm.optionals.getOrNull
 import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
@@ -132,8 +137,14 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         }
         LoopLogger.record("Drive camera updateInputs")
         val questResult = latestQuestResult
-        val questEstimate = PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
-        localizer.updateWithLatestPoseEstimate(if (quest.isTracking) questEstimate else null)
+        val questEstimate = if (isReal) {
+            PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
+        } else {
+            val timestamp = Utils.fpgaToCurrentTime(Timer.getTimestamp()) - 0.04
+            val simQuestPose = samplePoseAt(timestamp).getOrNull()
+            if (simQuestPose == null) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
+        }
+        localizer.updateWithLatestPoseEstimate(if (quest.isTracking || isSim) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
         localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
