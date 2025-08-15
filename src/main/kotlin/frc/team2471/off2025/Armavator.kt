@@ -10,8 +10,14 @@ import com.ctre.phoenix6.signals.InvertedValue
 import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
+import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.asDegrees
+import frc.team2471.off2025.util.asInches
+import frc.team2471.off2025.util.asRotations
+import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.rotations
 import org.littletonrobotics.junction.AutoLogOutput
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
@@ -55,15 +61,15 @@ object Armavator: SubsystemBase() {
         }
 
     @get:AutoLogOutput
-    inline val currentArmAngle: Double
-        get() = armMotor0.position.valueAsDouble / ARM_GEAR_RATIO
+    inline val currentArmAngle: Angle
+        get() = (armMotor0.position.valueAsDouble / ARM_GEAR_RATIO).rotations
 
     @get:AutoLogOutput
-    var armAngleSetpoint: Double = 0.0
+    var armAngleSetpoint: Angle = 0.0.degrees
         set(value) {
-            val safeValue = MathUtil.clamp(value, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES)
-            armMotor0.setControl(MotionMagicDutyCycle(safeValue * ARM_GEAR_RATIO))
-            println("arm angle setpoint: $value")
+            val safeValue = MathUtil.clamp(value.asDegrees, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES)
+            armMotor0.setControl(MotionMagicDutyCycle(safeValue.degrees.asRotations * ARM_GEAR_RATIO))
+            println("arm angle setpoint: ${value.asDegrees}")
             field = value
         }
 
@@ -140,5 +146,10 @@ object Armavator: SubsystemBase() {
     fun setElevatorPercentOut(percent: Double) {
         elevatorMotor0.setControl(DutyCycleOut(percent))
         println("elevator percentage: $percent")
+    }
+    fun goToPose(pose: Pose) {
+        heightSetpoint = pose.elevatorHeight.asInches
+        armAngleSetpoint = pose.armAngle
+
     }
 }

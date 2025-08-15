@@ -74,8 +74,8 @@ object OI: SubsystemBase("OI") {
         Drive.defaultCommand = Drive.joystickDrive()
 
 
-
-        driverController.b().whileTrue(Drive.driveToPoint(Pose2d(4.0, 4.0, 90.0.degrees.asRotation2d)))
+        driverController.a().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE)})
+        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
 
 
         driverController.y().whileTrue(defer {
