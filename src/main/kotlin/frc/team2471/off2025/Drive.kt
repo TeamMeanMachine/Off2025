@@ -12,6 +12,7 @@ import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
@@ -114,7 +115,10 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     init {
         println("inside Drive init")
-        zeroGyro()
+        val zeroedHeading = zeroGyro()
+
+        pose = Pose2d(4.0.feet, 4.0.feet, zeroedHeading)
+
 
         localizer.trackAllTags()
 
@@ -152,11 +156,12 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         LoopLogger.record("Drive pirdc")
     }
 
-    fun zeroGyro() {
+    fun zeroGyro(): Rotation2d {
         val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
         println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
         heading = wantedAngle
         println("heading: $heading")
+        return wantedAngle
     }
 
     @OptIn(DelicateCoroutinesApi::class)
