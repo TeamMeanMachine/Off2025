@@ -5,13 +5,13 @@ import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.Threads
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
@@ -123,6 +123,7 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
+        Autonomous.flipPathsIfAllianceChange() // This is only needed in for sim edge case (Instantly swapping between Disconnected and Autonomous)
         (Autonomous.autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
     }
 
@@ -150,6 +151,7 @@ object Robot : LoggedRobot() {
     override fun simulationInit() {}
 
     /** This function is called periodically whilst in simulation.  */
+    @OptIn(DelicateCoroutinesApi::class)
     override fun simulationPeriodic() {
         GlobalScope.launch {
             MasterMotor.simPeriodic()

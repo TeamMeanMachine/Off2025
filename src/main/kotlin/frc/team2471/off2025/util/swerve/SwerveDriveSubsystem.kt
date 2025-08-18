@@ -75,7 +75,7 @@ abstract class SwerveDriveSubsystem(
     abstract val autoDriveToPointController: PIDController //= PIDController(3.0, 0.0, 0.1)
     abstract val teleopDriveToPointController: PIDController //= PIDController(3.0, 0.0, 0.1)
 
-    abstract val driveAtAnglePIDController: PhoenixPIDController
+    abstract val driveAtAnglePIDController: PhoenixPIDController //= PhoenixPIDController(7.7, 0.0, 0.072)
 
     var savedState: SwerveDriveState = stateCopy
 
@@ -209,7 +209,7 @@ abstract class SwerveDriveSubsystem(
 
     override fun periodic() {
         LoopLogger.record("b4 super drive")
-        savedState = stateCopy //This line takes a long time when data acquisitions fail
+        updateSavedState()
         LoopLogger.record("drive state set")
         gyroDisconnectedAlert.set(!gyro.isConnected)
         LoopLogger.record("b4 gyro connect")
@@ -237,6 +237,25 @@ abstract class SwerveDriveSubsystem(
 
         prevVelocity = currVelocity
         prevTime = currTime
+    }
+
+    /**
+     *  Refreshes the savedState to the current state of the swerve.
+     *
+     *  Sometimes takes a long time when data acquisitions fail, this is why it's not a getter.
+     */
+    fun updateSavedState() {
+        savedState = stateCopy
+    }
+
+    override fun resetTranslation(translation: Translation2d?) {
+        super.resetTranslation(translation)
+        updateSavedState() // Refresh so we see an instant response.
+    }
+
+    override fun resetRotation(rotation: Rotation2d?) {
+        super.resetRotation(rotation)
+        updateSavedState() // Refresh so we see an instant response.
     }
 
     /**
@@ -301,7 +320,7 @@ abstract class SwerveDriveSubsystem(
     }
 
     /**
-     * Set the swerve drive module states to point inward on the robot in an "X" fashion.
+     * Set the swerve drive modules to point inward in an "X" fashion.
      */
     fun xPose() = setControl(SwerveDriveBrake())
 
@@ -563,12 +582,14 @@ abstract class SwerveDriveSubsystem(
             val wantedSpeeds = sample.chassisSpeeds
             val moduleForcesX = sample.moduleForcesX()
             val moduleForcesY = sample.moduleForcesY()
+            val pathErrorMeters = (wantedPose - currentPose).translation.norm
 
             Logger.recordOutput("Drive/Path/Time", t)
             Logger.recordOutput("Drive/Path/Pose", wantedPose)
             Logger.recordOutput("Drive/Path/Speeds", wantedSpeeds)
             Logger.recordOutput("Drive/Path/Module Forces X", moduleForcesX)
             Logger.recordOutput("Drive/Path/Module Forces Y", moduleForcesY)
+            Logger.recordOutput("Drive/Path/Pose Error m", pathErrorMeters)
 
             wantedSpeeds.apply {
                 vxMetersPerSecond += pathXController.calculate(currentPose.x, wantedPose.x)

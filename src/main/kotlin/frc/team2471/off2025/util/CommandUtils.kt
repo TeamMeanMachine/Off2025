@@ -3,6 +3,7 @@ package frc.team2471.off2025.util
 import edu.wpi.first.units.measure.Time
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
+import edu.wpi.first.wpilibj2.command.DeferredCommand
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.WrapperCommand
@@ -31,7 +32,7 @@ fun Command.finallyWait(seconds: Double) = this.andThen(waitCommand(seconds))
  * @see Command.beforeStarting
  */
 fun Command.beforeRun(vararg requirements: Subsystem, action: () -> Unit): SequentialCommandGroup =
-    this.beforeStarting(action)
+    this.beforeStarting(action, *requirements)
 
 
 /**
@@ -183,10 +184,12 @@ fun runEndCommand(vararg requirements: Subsystem, run: () -> Unit, end: () -> Un
 fun <K> selectCommand(commands: Map<K, Command>, selector: () -> K): Command = Commands.select<K>(commands, selector)
 
 /**
- * Runs the command supplied by the supplier.
- * @param supplier the command supplier
- * @param requirements the set of requirements for this command
- * @return the command
+ * Turns the command into a [DeferredCommand], a command that gets constructed at runtime.
+ *
+ * The most similar type of command to 2025 Meanlib's "use" function.
+ *
+ * Although make sure to
+ *
  * @see edu.wpi.first.wpilibj2.command.DeferredCommand
  */
-fun deferCommand(supplier: () -> Command, requirements: MutableSet<Subsystem>): Command = Commands.defer(supplier, requirements)
+//fun Command.asDefer(): Command = DeferredCommand({ this }, requirements)
