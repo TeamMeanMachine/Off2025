@@ -38,6 +38,7 @@ import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
 import edu.wpi.first.wpilibj.Timer
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
@@ -83,6 +84,11 @@ abstract class SwerveDriveSubsystem(
     abstract var pose: Pose2d // Abstract to allow for other pose sources (cameras) to also reset when this gets set.
 
     abstract var heading: Rotation2d
+
+    val demoSpeed: Double
+        get() = SmartDashboard.getNumber("DemoSpeed", 1.0).coerceIn(0.0, 1.0)
+    val demoMode: Boolean
+        get() = demoSpeed < 1.0
 
     @get:AutoLogOutput(key = "Drive/Speeds")
     val speeds: ChassisSpeeds
@@ -195,6 +201,12 @@ abstract class SwerveDriveSubsystem(
     init {
         //Register the subsystem into the CommandScheduler so periodic methods can be called.
         CommandScheduler.getInstance().registerSubsystem(this)
+
+        if (!SmartDashboard.containsKey("DemoSpeed")) {
+            println("DemoSpeed does not exist, setting it to 1.0")
+            SmartDashboard.getEntry("DemoSpeed").setDouble(1.0)
+            SmartDashboard.setPersistent("DemoSpeed")
+        }
     }
 
     fun finalInitialization() {

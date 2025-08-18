@@ -13,7 +13,6 @@ import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
@@ -106,11 +105,11 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
 
         //square drive input
-        val power = hypot(cx, cy).square()
+        val power = hypot(cx, cy).square() * demoSpeed
         val (x, y) = Pair(cx * power, cy * power)
 
         //cube rotation input
-        val omega = OI.driveRotation.cube()
+        val omega = OI.driveRotation.cube() * demoSpeed
 
         return ChassisSpeeds(x, y, omega)
     }
