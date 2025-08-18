@@ -32,6 +32,12 @@ import kotlin.math.max
 
 /**
  *  Class that handles combining vision, Quest, and odometry data into a single pose estimate. Inspired by Team 604's QuixSwerveLocalizer
+ *
+ *  Swerve odometry measurements are treated as relative pose sources with no latency. Measurements get continuously added onto each other.
+ *
+ *  Quest measurements are treated as an "absolute relative" pose source and correct for odometry drift. Offset the estimated pose by the difference between Quest pose change and odometry pose change.
+ *
+ *  Particle filter and single tag measurements are used as absolute pose sources. Offset the estimated pose by the camera estimate
  */
 class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
     private val networkTable = NTManager()
@@ -45,7 +51,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     private val rawOdometryPoseBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
     // Buffer of swerve odometry pose fused with Quest pose.
     private val fusedOdometryBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
-    // Buffer of swerve odometry, Quest, single tag pose.
+    // Buffer of swerve odometry, Quest, and single tag pose.
     private val singleTagOdometryBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
     // Buffer of the swerve odometry, Quest, and vision measurements.
     private val visionOdometryBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
@@ -54,7 +60,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     private val chassisSpeedsBuffer = TimeInterpolatableBuffer.createBuffer<InterpolatableChassisSpeeds>(bufferHistorySeconds)
 
 
-    // ID of the current measurement. Used to sync between Robot and DriverStation.
+    // ID of the current measurement. Used to sync between Robot and Particle Filter.
     private var currentId = 0
 
     // Map of {id: time}
@@ -66,28 +72,33 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     // ID of the last measurement that was updated.
     private var lastUpdatedId = -1
 
-    // Latest raw localization estimate from DS.
+    // Latest raw localization estimate from Particle Filter.
     private var latestRawEstimate = PoseEstimate()
 
     // Measurements within |kMutableTimeBuffer| of the current time are not considered final.
-    // This gives us a chance to associate new vision measurements with an past interpolated
-    // odometry measurements.
+    // This gives us a chance to associate new vision measurements with past interpolated odometry measurements.
     private val kMutableTimeBuffer = 0.05 // seconds
 
     var lastQuestMeasurement: QuestNavMeasurement? = null
 
-    val rawOdometryPose: Pose2d // Just swerve odometry
+    /** Only Swerve odometry */
+    val rawOdometryPose: Pose2d
         get() = rawOdometryPoseBuffer.internalBuffer.lastEntry().value ?: Pose2d()
-    val rawQuestPose: Pose2d? // Just Quest
+    /** Latest pose reported by the Quest */
+    val rawQuestPose: Pose2d?
         get() = lastQuestMeasurement?.robotPose
-    val fusedOdometryPose: Pose2d // Swerve odometry + quest
+    /** Swerve odometry fused with Quest measurements */
+    val fusedOdometryPose: Pose2d
         get() = fusedOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
-    val singleTagPose: Pose2d // fusedOdometryPose + single tag calc
+    /** Pose that only uses the closest apriltag to correct itself. Used for precision but needs good tag visibility. */
+    val singleTagPose: Pose2d
         get() = singleTagOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
-    val pose: Pose2d // fusedOdometryPose + vision pf estimate
+    /** Pose from the particle filter, used for full field localization but can be more jittery. */
+    val pose: Pose2d
         get() = visionOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
 
-    val rawPose: Pose2d // Just the last vision pose, before latency compensation
+    /** Lastest estimate from the particle filter, before latency compensation. */
+    val rawPose: Pose2d
         get() = latestRawEstimate.pose ?: Pose2d()
 
 

@@ -36,11 +36,12 @@ import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
 
+    // To reset position use this, also add other pose sources that need reset here.
     override var pose: Pose2d
         get() = savedState.Pose
         set(value) {
             resetPose(value)
-            localizer.resetPose(value)
+            localizer.resetPose(value) // Possibly not needed, but good for a quick response.
 //            quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
 
@@ -155,6 +156,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         LoopLogger.record("Drive updateWithLatestPose")
         localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
+        quest.commandPeriodic()
 
         Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
         Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose ?: Pose2d())
