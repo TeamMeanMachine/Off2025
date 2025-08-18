@@ -85,6 +85,11 @@ object OI: SubsystemBase("OI") {
                 (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
             ) })
 
+/*        driverController.a().onTrue(runOnce {
+            Drive.questSimConnected = !Drive.questSimConnected
+            println("questSimConnected = ${Drive.questSimConnected}")
+        })*/
+
         driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
         driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
         driverController.povUp ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
@@ -110,7 +115,7 @@ object OI: SubsystemBase("OI") {
         // Reset position to zero
         driverController.start().onTrue(
             runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Translation2d(), Drive.heading)
+                Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
             }.ignoringDisable(true))
     }
 

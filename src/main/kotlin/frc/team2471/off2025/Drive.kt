@@ -40,7 +40,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         get() = savedState.Pose
         set(value) {
             resetPose(value)
-            quest.setPose(value.transformBy(robotToQuestTransformMeters))
+            localizer.resetPose(value)
+//            quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
 
     override var heading: Rotation2d
@@ -61,6 +62,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     )
 
     val quest = QuestNav()
+    var questSimConnected = true
     val robotToQuestTransformMeters = Transform2d(0.0.inches, 0.0.inches, Rotation2d()) // Rotation 2d should be 0
     var latestQuestResult: PoseFrame = PoseFrame(pose.transformBy(robotToQuestTransformMeters), 0.0, 0.0, 0)
         get() {
@@ -77,7 +79,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
 
     val localizer = PoseLocalizer(
-        Pose2d(),
+//        Pose2d(),
         Fiducials.aprilTagFiducials,
         cameras
     )
@@ -114,6 +116,10 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     init {
         println("inside Drive init")
+
+        // MUST start inside the field on bootup for accurate measurements due to a vision localizer bug.
+        pose = Pose2d(3.0, 3.0, heading)
+
         zeroGyro()
 
         localizer.trackAllTags()
@@ -142,15 +148,16 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         } else {
             val timestamp = Utils.fpgaToCurrentTime(Timer.getTimestamp()) - 0.04
             val simQuestPose = samplePoseAt(timestamp).getOrNull()
-            if (simQuestPose == null) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
+            if (simQuestPose == null || !questSimConnected) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
         }
+        LoopLogger.record("Drive get questEstimate")
         localizer.updateWithLatestPoseEstimate(if (quest.isTracking || isSim) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
         localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
 
         Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
-        Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose)
+        Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose ?: Pose2d())
         Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)

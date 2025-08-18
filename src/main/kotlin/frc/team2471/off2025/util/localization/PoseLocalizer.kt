@@ -6,12 +6,14 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Transform3d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.geometry.Translation3d
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineVisionPacket
@@ -31,7 +33,7 @@ import kotlin.math.max
 /**
  *  Class that handles combining vision, Quest, and odometry data into a single pose estimate. Inspired by Team 604's QuixSwerveLocalizer
  */
-class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
+class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
     private val networkTable = NTManager()
 
     // If empty, uses all tags.
@@ -72,22 +74,37 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
     // odometry measurements.
     private val kMutableTimeBuffer = 0.05 // seconds
 
-    var lastQuestTimestamp: Double = 0.0
+    var lastQuestMeasurement: QuestNavMeasurement? = null
 
-
-    var rawOdometryPose: Pose2d = initialPosition // Just swerve odometry
-        private set
-    var rawQuestPose: Pose2d = initialPosition // Just Quest
-        private set
+    val rawOdometryPose: Pose2d // Just swerve odometry
+        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+    val rawQuestPose: Pose2d? // Just Quest
+        get() = lastQuestMeasurement?.robotPose
     val fusedOdometryPose: Pose2d // Swerve odometry + quest
-        get() = fusedOdometryBuffer.getSample(Double.MAX_VALUE).getOrNull() ?: Pose2d()
+        get() = fusedOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
     val singleTagPose: Pose2d // fusedOdometryPose + single tag calc
-        get() = singleTagOdometryBuffer.getSample(Double.MAX_VALUE).getOrNull() ?: Pose2d()
+        get() = singleTagOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
     val pose: Pose2d // fusedOdometryPose + vision pf estimate
-        get() = visionOdometryBuffer.getSample(Double.MAX_VALUE).getOrNull() ?: Pose2d() // fusedOdometryPose + vision pf
+        get() = visionOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+
     val rawPose: Pose2d // Just the last vision pose, before latency compensation
         get() = latestRawEstimate.pose ?: Pose2d()
 
+
+    fun resetPose(pose: Pose2d) {
+        rawOdometryPoseBuffer.clear()
+        fusedOdometryBuffer.clear()
+        singleTagOdometryBuffer.clear()
+        visionOdometryBuffer.clear()
+
+        lastQuestMeasurement = null
+
+        val currentTime = Timer.getTimestamp()
+        rawOdometryPoseBuffer.addSample(currentTime, pose)
+        fusedOdometryBuffer.addSample(currentTime, pose)
+        singleTagOdometryBuffer.addSample(currentTime, pose)
+        visionOdometryBuffer.addSample(currentTime, pose)
+    }
 
     /**
      * Uses the latest pose estimate over NetworkTables and replays the latest odometry on top of it.
@@ -95,11 +112,13 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
     fun updateWithLatestPoseEstimate(questEstimate: QuestNavMeasurement? = null) {
         val startTimestamp = Timer.getFPGATimestamp()
 
+        LoopLogger.record("Before Quest correction")
         // Apply quest data to the buffers
-        if (questEstimate != null && questEstimate.dataTimestamp > lastQuestTimestamp) {
+        val prevQuestEstimateTime = lastQuestMeasurement?.dataTimestamp
+        if (questEstimate != null && prevQuestEstimateTime != null && fusedOdometryBuffer.internalBuffer.firstKey() < prevQuestEstimateTime && questEstimate.dataTimestamp > prevQuestEstimateTime) {
             val questEstimateTime = questEstimate.dataTimestamp
             val questDeltaPose = questEstimate.robotPose.minus(rawQuestPose)
-            val odometryDeltaPose = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()?.minus(fusedOdometryBuffer.getSample(lastQuestTimestamp).getOrNull())
+            val odometryDeltaPose = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()?.minus(fusedOdometryBuffer.getSample(prevQuestEstimateTime).getOrNull())
 //            println("questDeltaPose: $questDeltaPose")
 //            println("odometryDeltaPose: $odometryDeltaPose")
 
@@ -109,14 +128,18 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
                 fusedOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
                 singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
                 visionOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
+            } else {
+                println("quest odometryDeltaPose = null")
             }
-
-            lastQuestTimestamp = questEstimateTime
-            rawQuestPose = questEstimate.robotPose
         }
+        lastQuestMeasurement = questEstimate
+        LoopLogger.record("After Quest correction")
 
+        // Apply Vision data to buffers
 
         networkTable.updateInputs()
+        LoopLogger.record("After nt updateInputs")
+
         val estimate = networkTable.latestPoseEstimate
 
         // Save for plotting/debugging purposes.
@@ -134,6 +157,10 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
         val preCorrectionPose = this.pose
 
         val visionEstimateTime: Double = idToTimeMap[estimate.id]!!
+        if (visionOdometryBuffer.internalBuffer.firstKey() > visionEstimateTime) {
+//            println("vision measurement is too far in the past")
+            return
+        }
         val odometryAtEstimateTime = visionOdometryBuffer.getSample(visionEstimateTime).getOrNull()
         if (odometryAtEstimateTime == null) {
             println("odometryAtEstimateTime is null")
@@ -151,26 +178,29 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
 
     fun update(odometryPose: Pose2d, visionPackets: List<PipelineVisionPacket>, chassisSpeeds: ChassisSpeeds) {
         networkTable.publishCameras(cameras)
+        LoopLogger.record("After nt publishCameras")
 
         val startTimestamp = Timer.getFPGATimestamp()
         val currentTime = Timer.getTimestamp()
 
         val poseDelta = odometryPose.minus(rawOdometryPose)
-        rawOdometryPose = odometryPose
 
         // Add odometry pose delta to all buffers that use it
-        val currVisionPose = pose.plus(poseDelta)
-        val currSingleTagPose = singleTagPose.plus(poseDelta)
+        val currOdomPose = rawOdometryPose.plus(poseDelta)
         val currFusedPose = fusedOdometryPose.plus(poseDelta)
+        val currSingleTagPose = singleTagPose.plus(poseDelta)
+        val currVisionPose = pose.plus(poseDelta)
 
+        rawOdometryPoseBuffer.addSample(currentTime, currOdomPose)
         fusedOdometryBuffer.addSample(currentTime, currFusedPose)
         singleTagOdometryBuffer.addSample(currentTime, currSingleTagPose)
         visionOdometryBuffer.addSample(currentTime, currVisionPose)
 
-        rawOdometryPoseBuffer.addSample(currentTime, rawOdometryPose)
         chassisSpeedsBuffer.addSample(currentTime, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
 
-        timeToMeasurementMap[currentTime] = Measurement(currFusedPose)
+        timeToMeasurementMap[currentTime] = Measurement(currFusedPose) // Using fused pose for the particle filter odometry reference
+
+        LoopLogger.record("After adding odom samples")
 
         for (cameraID in visionPackets.indices) {
             val detectedTags = ArrayList<Translation3d>()
@@ -232,12 +262,15 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
             detectedTags.toArray<Translation3d>(array)
             Logger.recordOutput<Translation3d>("Localizer/detectedTags[$cameraID]", *array)
         }
+        LoopLogger.record("After camera for loop")
         publishImmutableEntries()
+        LoopLogger.record("After pubImmutableEntries()")
         val endTimestamp = Timer.getFPGATimestamp()
         Logger.recordOutput("Localizer/Update seconds", (endTimestamp - startTimestamp))
 
         val singleStartTime = Timer.getFPGATimestamp()
         computeSingleTagPose()
+        LoopLogger.record("After computeSingleTagPose()")
         Logger.recordOutput("Localizer/SingleTag calc time", Timer.getFPGATimestamp() - singleStartTime)
     }
 
@@ -271,6 +304,7 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
     // TODO: This is semi-hardcoded for 2025
     private fun computeSingleTagPose() {
         if (DriverStation.getAlliance().isEmpty) {
+            Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
             return
         }
 
@@ -299,6 +333,12 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
         }
 
         if (latestTarget == null || cam == null) {
+            Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
+            return
+        }
+        if (fusedOdometryBuffer.internalBuffer.firstKey() > latestTimestamp) {
+            Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
+//            println("single tag result is too far in the past")
             return
         }
 
@@ -314,6 +354,7 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
 
         val tagPose2d = Fiducials.aprilTagFiducials[latestTarget.fiducialId - 1].pose.toPose2d()
         if (tagPose2d == null) {
+            Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
             return
         }
 
@@ -331,10 +372,12 @@ class PoseLocalizer(initialPosition: Pose2d, targets: Array<Fiducial>, val camer
         val odometryAtEstimateTime = singleTagOdometryBuffer.getSample(latestTimestamp).getOrNull()
         if (odometryAtEstimateTime == null) {
             println("single tag odometryAtEstimateTime is null")
+            Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
             return
         }
         val odometryPoseOffset = robotPose.minus(odometryAtEstimateTime)
         singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(odometryPoseOffset, latestTimestamp)
+        Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf(tagPose2d.translation))
     }
 
     init {
