@@ -16,5 +16,8 @@ data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngl
         val SCORE_L2 = Pose(0.0.inches, 20.2.degrees, 90.0.degrees)
         val SCORE_L3 = Pose(16.75.inches, 20.2.degrees, 90.0.degrees)
         val SCORE_L4 = Pose(58.0.inches, 57.0.degrees, 90.0.degrees)
+
+        val INTAKE_GROUND = Pose(0.0.inches, 113.0.degrees, 180.0.degrees)
+
     }
 }

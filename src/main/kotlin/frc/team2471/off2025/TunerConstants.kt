@@ -63,7 +63,7 @@ object TunerConstants {
         kP = 0.135
         kI = 0.0
         kD = 0.0
-        kS = 0.3
+        kS = 0.15
         kV = 0.087
         kA = 0.00892
     }
