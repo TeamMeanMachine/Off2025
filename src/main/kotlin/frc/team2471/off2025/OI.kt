@@ -76,6 +76,11 @@ object OI: SubsystemBase("OI") {
 
         driverController.a().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE)})
         driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
+    //    driverController.rightBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.INTAKING})
+    //    driverController.leftBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.HOLDING})
+    //    driverController.rightTrigger().onTrue(runOnceCommand{Intake.intakeState = IntakeState.SCORING})
+    //    driverController.leftTrigger().onTrue(runOnceCommand{Intake.intakeState = IntakeState.REVERSING})
+
 
 
         driverController.y().whileTrue(defer {

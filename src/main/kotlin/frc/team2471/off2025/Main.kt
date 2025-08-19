@@ -40,8 +40,8 @@ object Robot : LoggedRobot() {
     val drive = Drive
     val oi = OI
     val armavator = Armavator
-
-    var allSubsystems = arrayOf(drive, oi, armavator)
+    val intake = Intake
+    var allSubsystems = arrayOf(drive, oi, armavator, intake)
 
     init {
         // Set up data receivers & replay source

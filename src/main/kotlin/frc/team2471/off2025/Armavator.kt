@@ -18,6 +18,7 @@ import frc.team2471.off2025.util.asInches
 import frc.team2471.off2025.util.asRotations
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.rotations
+import frc.team2471.off2025.util.wrap
 import org.littletonrobotics.junction.AutoLogOutput
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
@@ -72,7 +73,12 @@ object Armavator: SubsystemBase() {
             println("arm angle setpoint: ${value.asDegrees}")
             field = value
         }
-
+    val isArmFlipped: Boolean
+        get() = currentArmAngle < 0.0.degrees
+    val isPivitFlipped: Boolean
+        get() = 0.0.degrees.wrap() < 0.0.degrees
+    val reverseSpitDirection: Boolean
+        get() = isArmFlipped != isPivitFlipped
     init {
         println("inside Armavator init")
         val elevatorMotorConfigs = TalonFXConfiguration().apply {
