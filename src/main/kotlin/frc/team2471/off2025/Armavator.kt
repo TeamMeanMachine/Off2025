@@ -11,6 +11,7 @@ import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asDegrees
@@ -18,6 +19,7 @@ import frc.team2471.off2025.util.asInches
 import frc.team2471.off2025.util.asRotations
 import frc.team2471.off2025.util.cos
 import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.rotations
@@ -107,7 +109,12 @@ object Armavator: SubsystemBase() {
 //            println("pivot angle setpoint: ${value.asDegrees}")
             field = value
         }
-
+    val isArmFlipped: Boolean
+        get() = currentArmAngle < 0.0.degrees
+    val isPivotFlipped: Boolean
+        get() = 0.0.degrees.wrap() < 0.0.degrees
+    val reverseSpitDirection: Boolean
+        get() = isArmFlipped != isPivotFlipped
     init {
         println("inside Armavator init")
         val elevatorMotorConfigs = TalonFXConfiguration().apply {
