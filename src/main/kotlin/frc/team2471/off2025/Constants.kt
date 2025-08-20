@@ -15,9 +15,9 @@ package frc.team2471.off2025
 import edu.wpi.first.math.geometry.Rotation3d
 import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.geometry.Translation3d
-import frc.team2471.off2025.util.asMeters
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.units.asMeters
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
 
 /**
  * This class defines the runtime mode used by AdvantageKit. The mode is always "real" when running

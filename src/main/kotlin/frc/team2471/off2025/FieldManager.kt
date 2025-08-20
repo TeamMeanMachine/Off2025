@@ -7,19 +7,19 @@ import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.absoluteValue
-import frc.team2471.off2025.util.asFeet
-import frc.team2471.off2025.util.asMeters
-import frc.team2471.off2025.util.asRotation2d
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.feet
-import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.asFeet
+import frc.team2471.off2025.util.units.asMeters
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.meters
+import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.mirrorYAxis
 import frc.team2471.off2025.util.round
 import frc.team2471.off2025.util.toPose2d
-import frc.team2471.off2025.util.wrap
+import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.Logger
 
 object FieldManager {

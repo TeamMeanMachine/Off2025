@@ -11,20 +11,19 @@ import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
-import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.LoopLogger
-import frc.team2471.off2025.util.asDegrees
-import frc.team2471.off2025.util.asInches
-import frc.team2471.off2025.util.asRotations
-import frc.team2471.off2025.util.cos
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.inches
-import frc.team2471.off2025.util.feet
-import frc.team2471.off2025.util.inches
-import frc.team2471.off2025.util.rotations
-import frc.team2471.off2025.util.sin
-import frc.team2471.off2025.util.wrap
+import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
+import frc.team2471.off2025.util.units.asInches
+import frc.team2471.off2025.util.units.asRotations
+import frc.team2471.off2025.util.units.cos
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
+import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.rotations
+import frc.team2471.off2025.util.units.sin
+import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.AutoLogOutput
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
@@ -80,8 +79,8 @@ object Armavator: SubsystemBase() {
 
     const val PIVOT_STATIC_FEED_FORWARD = 0.015
     val pivotFeedForward: Double get() = (0.055 * currentPivotAngle.wrap().sin()) * currentPivotAngle.sin()
-    val armFeedForward: Double get() = 0.05 * (1.0 + (elevatorMotor0.acceleration.valueAsDouble * ELEVATOR_REVOLUTIONS_PER_INCH / 32.0.feet.asInches)) * -(currentArmAngle + (10.0.degrees * (currentPivotAngle + 90.0.degrees).sin())).sin()/* +
-            0.04 * (Drive.acceleration.rotate(-Drive.heading).x / 32.0) * currentArmAngle.cos()*/
+    val armFeedForward: Double get() = 0.05 * (1.0 + (elevatorMotor0.acceleration.valueAsDouble * ELEVATOR_REVOLUTIONS_PER_INCH / 32.0.feet.asInches)) * -(currentArmAngle + (10.0.degrees * (currentPivotAngle + 90.0.degrees).sin())).sin() +
+            0.04 * (Drive.acceleration.rotateBy(-Drive.heading).x.asFeetPerSecondPerSecond / 32.0) * currentArmAngle.cos()
 
 
     @get:AutoLogOutput

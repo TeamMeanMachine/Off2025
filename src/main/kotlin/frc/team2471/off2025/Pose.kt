@@ -2,10 +2,8 @@ package frc.team2471.off2025
 
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.inches
-import frc.team2471.off2025.util.rotations
-import kotlin.unaryMinus
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
 
 data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngle: Angle, ) {
     companion object {

@@ -25,15 +25,8 @@ import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveModulePosition
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import edu.wpi.first.units.LinearAccelerationUnit
-import edu.wpi.first.units.Units
-import edu.wpi.first.units.measure.Angle
-import edu.wpi.first.units.measure.AngularVelocity
-import edu.wpi.first.units.measure.Distance
-import edu.wpi.first.units.measure.LinearAcceleration
-import edu.wpi.first.units.measure.LinearVelocity
-import edu.wpi.first.units.measure.Velocity
-import edu.wpi.first.units.measure.Voltage
+import edu.wpi.first.units.*
+import edu.wpi.first.units.measure.*
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Preferences
@@ -48,10 +41,30 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.logged.LoggedTalonFX
+import frc.team2471.off2025.util.units.Gs
+import frc.team2471.off2025.util.units.UTranslation2d
+import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asMeters
+import frc.team2471.off2025.util.units.asMetersPerSecond
+import frc.team2471.off2025.util.units.asRadiansPerSecond
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.asVolts
+import frc.team2471.off2025.util.units.centimeters
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.degreesPerSecond
+import frc.team2471.off2025.util.units.feetPerSecondPerSecond
+import frc.team2471.off2025.util.units.inches
+import frc.team2471.off2025.util.units.meters
+import frc.team2471.off2025.util.units.metersPerSecond
+import frc.team2471.off2025.util.units.perSecond
+import frc.team2471.off2025.util.units.radiansPerSecond
+import frc.team2471.off2025.util.units.seconds
+import frc.team2471.off2025.util.units.volts
+import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.AutoLogOutput
 import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
-import kotlin.math.hypot
 import kotlin.math.min
 
 abstract class SwerveDriveSubsystem(
@@ -95,19 +108,16 @@ abstract class SwerveDriveSubsystem(
         get() = savedState.Speeds.robotToFieldCentric(pose.rotation)
 
     @get:AutoLogOutput(key = "Drive/Velocity")
-    val velocity: LinearVelocity
-        get() {
-            val speed = savedState.Speeds
-            return hypot(speed.vxMetersPerSecond, speed.vyMetersPerSecond).metersPerSecond
-        }
+    val velocity: UTranslation2d<LinearVelocityUnit>
+        get() = speeds.translation.metersPerSecond
     private var prevVelocity = velocity
 
     @get:AutoLogOutput(key = "Drive/Acceleration")
-    var acceleration: LinearAcceleration = 0.0.feetPerSecondPerSecond
+    var acceleration: UTranslation2d<LinearAccelerationUnit> = Translation2d(0.0, 0.0).feetPerSecondPerSecond
         private set
 
     @get:AutoLogOutput(key = "Drive/Jerk")
-    var jerk: Velocity<LinearAccelerationUnit> = 0.0.feetPerSecondPerSecond.perSecond
+    var jerk: UTranslation2d<VelocityUnit<LinearAccelerationUnit>> = Translation2d(0.0, 0.0).feetPerSecondPerSecond.perSecond
         private set
 
     private var prevTime = -0.02

@@ -10,10 +10,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
-import frc.team2471.off2025.util.asRotation2d
+import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.cube
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.isSim

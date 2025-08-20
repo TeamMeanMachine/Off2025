@@ -21,6 +21,9 @@ import com.ctre.phoenix6.swerve.SwerveRequest
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.DriverStation
+import frc.team2471.off2025.util.units.asRotations
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.rotations
 import java.util.function.Supplier
 
 object PhoenixUtil {

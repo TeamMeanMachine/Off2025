@@ -3,6 +3,12 @@ package frc.team2471.off2025.util
 import edu.wpi.first.wpilibj.Timer
 import org.littletonrobotics.junction.Logger
 
+/**
+ * Publishes loop times to NetworkTables.
+ *
+ * Period is the time between the named loop
+ * SinceReset is the time between reset was called and the loop got recorded. Usually reset should be called first thing in main periodic.
+ */
 object LoopLogger {
     private val prevTimes = mutableMapOf<String, Double>()
     private var startTime = Timer.getFPGATimestamp()
