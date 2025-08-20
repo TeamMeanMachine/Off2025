@@ -189,7 +189,7 @@ fun atan(value: Double) = kotlin.math.atan(value).radians
 fun atan2(y: Measure<DistanceUnit>, x: Measure<DistanceUnit>) = atan2(y.asInches, x.asInches).radians
 
 fun Angle.wrap() = asDegrees.IEEErem(360.0).degrees
-fun Angle.unWrap(nearByAngle: Angle) = nearByAngle + (this - nearByAngle).wrap()
+fun Angle.unWrap(nearByAngle: Angle): Angle = nearByAngle + (this - nearByAngle).wrap()
 
 fun Rotation2d.wrap() = measure.wrap().asRotation2d
 fun Rotation2d.unWrap(nearByAngle: Angle) = measure.unWrap(nearByAngle).asRotation2d

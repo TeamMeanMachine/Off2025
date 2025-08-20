@@ -24,18 +24,10 @@ import frc.team2471.off2025.util.units.feet
 import frc.team2471.off2025.util.units.rotations
 import frc.team2471.off2025.util.units.sin
 import frc.team2471.off2025.util.units.wrap
-import org.littletonrobotics.junction.AutoLogOutput
-import org.team2471.frc2025.CANivores
-import org.team2471.frc2025.Falcons
+import org.littletonrobotics.junction.Logger
 
 object Armavator: SubsystemBase() {
-
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
-    private val elevatorCurrentEntry = table.getDoubleTopic("Elevator Current").publish()
-    private val elevatorVelocityEntry = table.getDoubleTopic("Elevator Velocity").publish()
-
-    private val armCurrentEntry = table.getDoubleTopic("Arm Current").publish()
-    private val armVelocityEntry = table.getDoubleTopic("Arm Velocity").publish()
 
     val elevatorMotor0 = TalonFX(Falcons.ELEVATOR_0, CANivores.ELEVATOR_CAN)
     val elevatorMotor1 = TalonFX(Falcons.ELEVATOR_1, CANivores.ELEVATOR_CAN)
@@ -57,33 +49,29 @@ object Armavator: SubsystemBase() {
 
     const val PIVOT_GEAR_RATIO = 360.0 / (33.0 + 1.0/3.0)
 
-    @get:AutoLogOutput
-    inline val currentHeightInches: Double
-        get() = elevatorMotor0.position.valueAsDouble / ELEVATOR_REVOLUTIONS_PER_INCH
+    inline val currentHeight: Distance
+        get() = (elevatorMotor0.position.valueAsDouble / ELEVATOR_REVOLUTIONS_PER_INCH).inches
 
-    @get:AutoLogOutput
     inline val currentArmAngle: Angle
         get() = (armMotor0.position.valueAsDouble / ARM_GEAR_RATIO).rotations
 
-    @get:AutoLogOutput
     inline val currentPivotAngle: Angle
         get() = (pivotMotor.position.valueAsDouble / PIVOT_GEAR_RATIO).rotations
 
 
     val elevatorFeedforward: Double
-        get() = if (currentHeightInches < 20.0) {
+        get() = if (currentHeight < 20.0.inches) {
             -0.04
         } else {
             0.04
         }
 
     const val PIVOT_STATIC_FEED_FORWARD = 0.015
-    val pivotFeedForward: Double get() = (0.055 * currentPivotAngle.wrap().sin()) * currentPivotAngle.sin()
+    val pivotFeedForward: Double get() = (0.055 * currentPivotAngle.wrap().sin()) * currentArmAngle.sin()
     val armFeedForward: Double get() = 0.05 * (1.0 + (elevatorMotor0.acceleration.valueAsDouble * ELEVATOR_REVOLUTIONS_PER_INCH / 32.0.feet.asInches)) * -(currentArmAngle + (10.0.degrees * (currentPivotAngle + 90.0.degrees).sin())).sin() +
             0.04 * (Drive.acceleration.rotateBy(-Drive.heading).x.asFeetPerSecondPerSecond / 32.0) * currentArmAngle.cos()
 
 
-    @get:AutoLogOutput
     var heightSetpoint: Distance = 0.0.inches
         set(value) {
             val safeValue = MathUtil.clamp(value.asInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES)
@@ -92,7 +80,6 @@ object Armavator: SubsystemBase() {
             field = value
         }
 
-    @get:AutoLogOutput
     var armAngleSetpoint: Angle = 0.0.degrees
         set(value) {
             val safeValue = MathUtil.clamp(value.asDegrees, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES)
@@ -101,7 +88,6 @@ object Armavator: SubsystemBase() {
             field = value
         }
 
-    @get:AutoLogOutput
     var pivotAngleSetpoint: Angle = 0.0.degrees
         set(value) {
 //            pivotMotor.setControl(MotionMagicDutyCycle(value.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward + PIVOT_STATIC_FEED_FORWARD))
@@ -172,12 +158,26 @@ object Armavator: SubsystemBase() {
 
     override fun periodic() {
         LoopLogger.record("b4 Armavator pirdc")
-        // This method will be called once per scheduler run
-        elevatorCurrentEntry.set(elevatorMotor0.statorCurrent.valueAsDouble)
-        elevatorVelocityEntry.set(elevatorMotor0.velocity.valueAsDouble)
 
-        armCurrentEntry.set(armMotor0.statorCurrent.valueAsDouble)
-        armVelocityEntry.set(armMotor0.velocity.valueAsDouble)
+        Logger.recordOutput("Armavator/currentHeight", currentHeight.asInches)
+        Logger.recordOutput("Armavator/currentArmAngle", currentArmAngle.asDegrees)
+        Logger.recordOutput("Armavator/currentPivotAngle", currentPivotAngle.asDegrees)
+
+        Logger.recordOutput("Armavator/heightSetpoint", heightSetpoint.asInches)
+        Logger.recordOutput("Armavator/armAngleSetpoint", armAngleSetpoint.asDegrees)
+        Logger.recordOutput("Armavator/pivotAngleSetpoint", pivotAngleSetpoint.asDegrees)
+
+        Logger.recordOutput("Armavator/elevatorCurrent", elevatorMotor0.supplyCurrent.valueAsDouble)
+        Logger.recordOutput("Armavator/armCurrent", armMotor0.supplyCurrent.valueAsDouble)
+        Logger.recordOutput("Armavator/pivotCurrent", pivotMotor.supplyCurrent.valueAsDouble)
+
+        Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor0.velocity.valueAsDouble)
+        Logger.recordOutput("Armavator/armVelocity", armMotor0.velocity.valueAsDouble)
+        Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
+
+        Logger.recordOutput("Armavator/elevatorFeedforward", elevatorFeedforward)
+        Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
+        Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
 
         heightSetpoint = heightSetpoint
         armAngleSetpoint = armAngleSetpoint

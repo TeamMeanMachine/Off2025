@@ -8,7 +8,7 @@ import frc.team2471.off2025.util.units.inches
 data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngle: Angle, ) {
     companion object {
         val current: Pose
-            get() = Pose(Armavator.currentHeightInches.inches, Armavator.currentArmAngle, 0.0.degrees)
+            get() = Pose(Armavator.currentHeight, Armavator.currentArmAngle, 0.0.degrees)
         val DRIVE = Pose(0.0.inches, 0.0.degrees, -90.0.degrees)
         val SCORE_L1 = Pose(0.0.inches, 60.0.degrees, -150.0.degrees)
         val SCORE_L2 = Pose(0.0.inches, 20.2.degrees, 90.0.degrees)

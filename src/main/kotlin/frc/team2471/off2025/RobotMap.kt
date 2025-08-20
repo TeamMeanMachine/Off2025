@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package org.team2471.frc2025
+package frc.team2471.off2025
 
 object Sparks {
 }

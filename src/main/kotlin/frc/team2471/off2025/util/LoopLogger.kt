@@ -18,7 +18,7 @@ object LoopLogger {
         startTime = Timer.getFPGATimestamp()
     }
 
-    /** Log the period and the time of the function.  */
+    /** Log the period and the time of the named loop at the current moment.  */
     fun record(loopName: String): Pair<Double, Double> {
         val loopIndex: Int = loopsAndIndex.getOrPut(loopName) { loopsAndIndex.size }
         val now = Timer.getFPGATimestamp()

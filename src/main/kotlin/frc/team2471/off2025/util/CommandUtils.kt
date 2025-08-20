@@ -22,7 +22,7 @@ fun Command.finallyRun(run: (Boolean) -> Unit): WrapperCommand =
  * @see Command.andThen
  * @see Commands.waitSeconds
  */
-fun Command.finallyWait(seconds: Double) = this.andThen(waitCommand(seconds))
+fun Command.finallyWait(seconds: Double) = this.andThen(waitCommand(seconds))!!
 
 /**
  * Before the command starts, run this [action] first.
@@ -116,7 +116,7 @@ fun waitUntilCommand(condition: () -> Boolean): Command = Commands.waitUntil(con
  * @param requirements Subsystems to require
  * @return the command
  */
-fun idleCommand(vararg requirements: Subsystem) = Commands.idle(*requirements)
+fun idleCommand(vararg requirements: Subsystem) = Commands.idle(*requirements)!!
 
 /**
  * Runs a group of commands at the same time. Ends once a specific command finishes, and cancels the others.
