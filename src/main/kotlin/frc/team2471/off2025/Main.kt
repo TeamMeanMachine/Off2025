@@ -7,11 +7,10 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.commands.ExampleCommand
-import frc.team2471.off2025.subsystems.Shooter
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
+import frc.team2471.off2025.util.runOnceCommand
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -45,7 +44,7 @@ object Robot : LoggedRobot() {
 
     // Dashboard inputs
     private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
-        addOption("ExampleCommand", ExampleCommand())
+        addOption("HI", runOnceCommand { println("hi auto")})
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
