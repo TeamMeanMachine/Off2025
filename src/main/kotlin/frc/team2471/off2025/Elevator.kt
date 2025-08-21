@@ -1,9 +1,8 @@
-package frc.team2471.off2025.subsystems
+package frc.team2471.off2025
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.controls.Follower
-import com.ctre.phoenix6.controls.MotionMagicDutyCycle
 import com.ctre.phoenix6.controls.PositionDutyCycle
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.GravityTypeValue
@@ -11,7 +10,6 @@ import com.ctre.phoenix6.signals.InvertedValue
 import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
-import edu.wpi.first.units.measure.Current
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import org.team2471.frc2025.CANivores
 import org.team2471.frc2025.Falcons
@@ -90,7 +88,15 @@ object Elevator: SubsystemBase() {
     }
 
     fun setPosition(inches: Double) {
-        motor0.setControl(PositionDutyCycle(MathUtil.clamp(inches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES) * revolutionsPerInch))
+        motor0.setControl(
+            PositionDutyCycle(
+                MathUtil.clamp(
+                    inches,
+                    MIN_HEIGHT_INCHES,
+                    MAX_HEIGHT_INCHES
+                ) * revolutionsPerInch
+            )
+        )
         println("position: $inches")
         heightSetpoint = inches
     }
@@ -98,7 +104,15 @@ object Elevator: SubsystemBase() {
 
     //TODO: Make a set motionMagic function that sets position using motionMagic
     fun setMotionMagic(inches: Double) {
-        motor0.setControl(PositionDutyCycle(MathUtil.clamp(inches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES) * revolutionsPerInch))
+        motor0.setControl(
+            PositionDutyCycle(
+                MathUtil.clamp(
+                    inches,
+                    MIN_HEIGHT_INCHES,
+                    MAX_HEIGHT_INCHES
+                ) * revolutionsPerInch
+            )
+        )
         println("position: $inches")
         heightSetpoint = inches
     }

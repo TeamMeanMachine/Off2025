@@ -138,7 +138,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 // Create version file
-project.compileJava.dependsOn(createVersionFile)
+//project.compileJava.dependsOn(createVersionFile)
 gversion {
     srcDir       = "src/main/java/"
     classPackage = "frc.robot"
