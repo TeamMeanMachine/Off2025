@@ -13,7 +13,11 @@ import edu.wpi.first.units.Unit
 import edu.wpi.first.units.VelocityUnit
 import edu.wpi.first.util.struct.StructSerializable
 
-/** Unit Translation2d */
+/**
+ * Unit Translation2D
+ *
+ * Preserves the type of unit that it got constructed with. Inherits from WPILib Translation2D so can be used as a drop in replacement.
+ * */
 class UTranslation2d<U : Unit>(x: Measure<U>, y: Measure<U>): Translation2d(x.baseUnitMagnitude(), y.baseUnitMagnitude()), StructSerializable {
     private val unit = x.unit().baseUnit
 

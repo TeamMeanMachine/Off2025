@@ -78,25 +78,34 @@ abstract class SwerveDriveSubsystem(
     *moduleConstants
 ), Subsystem {
 
+    /** Percentage of max speed to drive using the joysticks. */
     abstract fun getJoystickPercentageSpeeds(): ChassisSpeeds
 
+    /** Autopilot limits velocity, acceleration, and jerk when driving to a point. It can also respect an approach angle. Alternative to [driveToPoint], use [driveToAutopilotPoint] instead. Use [createAPObject] to construct an instance. */
     abstract val autoPilot: Autopilot
 
+    /** Path following x error pid controller. Used in [driveAlongChoreoPath]. Error in meters -> added x velocity m/s. */
     abstract val pathXController: PIDController //= PIDController(7.0, 0.0, 0.0)
+    /** Path following y error pid controller. Used in [driveAlongChoreoPath]. Error in meters -> added y velocity m/s. */
     abstract val pathYController: PIDController //= PIDController(7.0, 0.0, 0.0)
+    /** Path following heading error pid controller. Used in [driveAlongChoreoPath]. Error in radians -> added rotational velocity rad/s. */
     abstract val pathThetaController: PIDController //= PIDController(7.0, 0.0, 0.0)
 
+    /** [driveToPoint] pid controller in auto. Error in meters -> applied speed m/s. */
     abstract val autoDriveToPointController: PIDController //= PIDController(3.0, 0.0, 0.1)
+    /** [driveToPoint] pid controller in teleop. Error in meters -> applied speed m/s. */
     abstract val teleopDriveToPointController: PIDController //= PIDController(3.0, 0.0, 0.1)
 
+    /** [driveAtAngle] pid controller, used in anything that the robot automatically moves heading excluding path following. Error in radians -> applied rotational speed rad/s. */
     abstract val driveAtAnglePIDController: PhoenixPIDController //= PhoenixPIDController(7.7, 0.0, 0.072)
-
-    var savedState: SwerveDriveState = stateCopy
 
     @get:AutoLogOutput(key = "Drive/Pose")
     abstract var pose: Pose2d // Abstract to allow for other pose sources (cameras) to also reset when this gets set.
 
-    abstract var heading: Rotation2d
+    abstract var heading: Rotation2d // Abstract to allow for other heading sources to also reset when this gets set.
+
+    var savedState: SwerveDriveState = stateCopy
+        private set
 
     val demoSpeed: Double
         get() = SmartDashboard.getNumber("DemoSpeed", 1.0).coerceIn(0.0, 1.0)
@@ -219,6 +228,11 @@ abstract class SwerveDriveSubsystem(
         }
     }
 
+    /**
+     * MUST be called from the inherited drivetrain object's init. Otherwise, [driveAtAngle] will not work, and I think you want it to work.
+     *
+     * Code will crash if this function is called inside this class's init
+     */
     fun finalInitialization() {
         driveAtAngleRequest.apply {
             HeadingController = driveAtAnglePIDController.apply {
@@ -229,9 +243,14 @@ abstract class SwerveDriveSubsystem(
         pathThetaController.enableContinuousInput(-Math.PI, Math.PI)
     }
 
+    /**
+     * MUST CALL THIS FUNCTION from the inherited drivetrain object using super.periodic()!! Otherwise, the swerve WILL NOT WORK!
+     *
+     * This is responsible for refreshing the swerve state (VERY important), providing disconnect warnings, and more good things.
+     */
     override fun periodic() {
         LoopLogger.record("b4 super drive")
-        updateSavedState()
+        updateSavedState() // Refresh so we get current data
         LoopLogger.record("drive state set")
         gyroDisconnectedAlert.set(!gyro.isConnected)
         LoopLogger.record("b4 gyro connect")
@@ -245,15 +264,12 @@ abstract class SwerveDriveSubsystem(
 
         LoopLogger.record("drive modules")
 
+        // Calculate acceleration and jerk
         val currTime = Timer.getFPGATimestamp()
-        LoopLogger.record("drive currTime")
         val currVelocity = velocity
-        LoopLogger.record("drive getVelocity")
         val prevAcceleration = acceleration
-        LoopLogger.record("drive setPrevAccel")
         val deltaTime = currTime - prevTime
 
-        LoopLogger.record("drive get time")
         acceleration = ((currVelocity - prevVelocity) / deltaTime).perSecond
         jerk = ((acceleration - prevAcceleration) / deltaTime).perSecond
 
@@ -392,7 +408,7 @@ abstract class SwerveDriveSubsystem(
      * Drives the robot using the joystick.
      */
     fun joystickDrive(): Command {
-        return Commands.run({
+        return run {
             LoopLogger.record("b4 joystickDrive")
             // Get linear velocity
             val chassisSpeeds = getChassisSpeedsFromJoystick().apply {
@@ -406,9 +422,7 @@ abstract class SwerveDriveSubsystem(
             driveVelocity(chassisSpeeds)
 
             LoopLogger.record("joystickDrive")
-        },
-            this
-        )
+        }
     }
 
     /**
@@ -476,14 +490,13 @@ abstract class SwerveDriveSubsystem(
             val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
             Logger.recordOutput("Drive/AutoPilot/Velocity", velocity.norm)
 
-//            println("output ${velocity.norm}")
             driveAtAngle(output.targetAngle(), velocity)
         }.until {
             autoPilot.atTarget(poseSupplier(), target)
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/AutoPilot/Target", Pose2d())
-        }
+        }.withName("DriveToAutopilotPoint")
     }
 
 
@@ -517,7 +530,7 @@ abstract class SwerveDriveSubsystem(
 
             val driveToPointVelocity = translationToPose.normalize() * driveToPointPower
             val teleopChassisSpeeds = getChassisSpeedsFromJoystick().apply {
-                //Limit joystick speeds to be along the line
+                // Limit joystick speeds to be along the line
                 val modifiedTranslation = translation.rotateBy(-lineAngle)
                 val lineCentricTranslation = Translation2d(modifiedTranslation.x, 0.0).rotateBy(lineAngle)
                 vxMetersPerSecond = lineCentricTranslation.x
@@ -541,12 +554,19 @@ abstract class SwerveDriveSubsystem(
         }.finallyRun {
             Logger.recordOutput("Drive/AlongLine/line", *arrayOf<Translation2d>())
             Logger.recordOutput("Drive/AlongLine/closestPoint", Pose2d())
-        }
+        }.withName("JoystickDriveAlongLine")
     }
 
 
     /**
      * Drives the robot to the closest point along a line specified by [pointOne] and [pointTwo]
+     *
+     * @param pointOne The first line endpoint.
+     * @param pointTwo The second line endpoint.
+     * @param heading The wanted heading of the robot to align to.
+     * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
+     * @param maxVelocity The maximum velocity of the robot. The default value is [maxSpeed] from constants.
+     *
      * @see driveToPoint
      */
     fun driveToLine(
@@ -575,7 +595,7 @@ abstract class SwerveDriveSubsystem(
         ).finallyRun {
             Logger.recordOutput("Drive/ToPointOnLine/Points", *arrayOf<Translation2d>())
             Logger.recordOutput("Drive/ToPointOnLine/ClosestPose", *arrayOf<Pose2d>())
-        }
+        }.withName("DriveToLine")
     }
 
     /**
@@ -656,7 +676,7 @@ abstract class SwerveDriveSubsystem(
 
 
     /**
-     * Simple constructor for creating an Autopilot object.
+     * Simple constructor for creating an [Autopilot] object.
      *
      * @param maxVelocity The maximum velocity Autopilot will allow. meters/sec
      * @param maxAcceleration The maximum acceleration Autopilot will allow. meters/sec^2
@@ -675,8 +695,9 @@ abstract class SwerveDriveSubsystem(
         )
     }
 
-    // sysID
+    // SysID Routines
 
+    /** Used to find drive motor PID and SVA constants. */
     private val translationSysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             null,
@@ -688,7 +709,7 @@ abstract class SwerveDriveSubsystem(
           },
         Mechanism({ output: Voltage -> setControl(SysIdSwerveTranslation().withVolts(output))}, null, this)
     )
-    //used to find driveAtAngleRequest PID
+    /** Used to find [driveAtAnglePIDController] PID values. */
     private val rotationSysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             Units.Volts.of(Math.PI / 6).per(Units.Second),
@@ -702,10 +723,11 @@ abstract class SwerveDriveSubsystem(
             /* output is actually radians per second, but SysId only supports "volts" */
             setControl(SysIdSwerveRotation().withRotationalRate(output.asVolts))
             /* also log the requested output for SysId */
-            SignalLogger.writeDouble("Rotational_Rate", output.asVolts + Math.random() * 0.0001) //value needs to constantly be updating for sysid to pickup new samples
+            SignalLogger.writeDouble("Rotational_Rate", output.asVolts + Math.random() * 0.0001) // Value needs to constantly be updating for sysid to pick up new samples
             Logger.recordOutput("Rotational_Rate", output.asVolts + Math.random() * 0.0001)
         }, null, this)
     )
+    /** Used to find steer motor PID and SVA constants. */
     private val steerSysIdRoutine = SysIdRoutine(
         SysIdRoutine.Config(
             null,
@@ -718,6 +740,8 @@ abstract class SwerveDriveSubsystem(
         Mechanism({ volts: Voltage? -> setControl(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
     )
 
+    // SysID Commands
+
     fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.dynamic(direction).beforeWait(1.0)
     fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.quasistatic(direction).beforeWait(1.0)
     fun sysIDRotationDynamic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.dynamic(direction).beforeWait(1.0)
@@ -725,26 +749,27 @@ abstract class SwerveDriveSubsystem(
     fun sysIDSteerDynamic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.dynamic(direction).beforeWait(1.0)
     fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.quasistatic(direction).beforeWait(1.0)
 
+    // Full SysID test commands
     fun sysIDTranslationAll() = sequenceCommand(
-        // Quasistatic forward and reverse
-        sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward), sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
-        // Dynamic forward and reverse
-        sysIDTranslationDynamic(SysIdRoutine.Direction.kForward), sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
+        sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward),
+        sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse),
+        sysIDTranslationDynamic(SysIdRoutine.Direction.kForward),
+        sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse)
     )
     fun sysIDRotationAll() = sequenceCommand(
-        // Quasistatic forward and reverse
-        sysIDRotationQuasistatic(SysIdRoutine.Direction.kForward), sysIDRotationQuasistatic(SysIdRoutine.Direction.kReverse),
-        // Dynamic forward and reverse
-        sysIDRotationDynamic(SysIdRoutine.Direction.kForward), sysIDRotationDynamic(SysIdRoutine.Direction.kReverse),
+        sysIDRotationQuasistatic(SysIdRoutine.Direction.kForward),
+        sysIDRotationQuasistatic(SysIdRoutine.Direction.kReverse),
+        sysIDRotationDynamic(SysIdRoutine.Direction.kForward),
+        sysIDRotationDynamic(SysIdRoutine.Direction.kReverse),
     )
     fun sysIDSteerAll() = sequenceCommand(
-        // Quasistatic forward and reverse
-        sysIDSteerQuasistatic(SysIdRoutine.Direction.kForward), sysIDSteerQuasistatic(SysIdRoutine.Direction.kReverse),
-        // Dynamic forward and reverse
-        sysIDSteerDynamic(SysIdRoutine.Direction.kForward), sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
+        sysIDSteerQuasistatic(SysIdRoutine.Direction.kForward),
+        sysIDSteerQuasistatic(SysIdRoutine.Direction.kReverse),
+        sysIDSteerDynamic(SysIdRoutine.Direction.kForward),
+        sysIDSteerDynamic(SysIdRoutine.Direction.kReverse),
     )
 
-
+    /** Must be called periodically during sim for swerve sim to work */
     override fun updateSimState(dtSeconds: Double, supplyVoltage: Double) {
         if (isSim) {
             super.updateSimState(dtSeconds, supplyVoltage)

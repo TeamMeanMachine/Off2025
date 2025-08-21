@@ -17,6 +17,7 @@ object Intake: SubsystemBase("Intake") {
     val ALGAE_INTAKE_POWER = 0.6
     val ALGAE_INTAKE_POWER_AUTO = 1.0
     val SIDE_SPIT_POWER = 0.8
+
     init {
         frontMotor.configurator.apply (
             TalonFXConfiguration().apply {
@@ -64,6 +65,7 @@ object Intake: SubsystemBase("Intake") {
             }
         }
     }
+
     private fun sideSplit() {
         if (Armavator.reverseSpitDirection) {
             sideMotor.setControl(DutyCycleOut(-SIDE_SPIT_POWER))

@@ -121,7 +121,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     init {
         println("inside Drive init")
 
-        // MUST start inside the field on bootup for accurate measurements due to a vision localizer bug.
+        // MUST start inside the field on bootup for accurate heading measurements due to a vision localizer bug.
         pose = Pose2d(3.0, 3.0, heading)
 
         zeroGyro()
@@ -146,6 +146,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             it.updateInputs()
         }
         LoopLogger.record("Drive camera updateInputs")
+        // Get the latest Quest result
         val questResult = latestQuestResult
         val questEstimate = if (isReal) {
             PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
@@ -155,12 +156,16 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             if (simQuestPose == null || !questSimConnected) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
         }
         LoopLogger.record("Drive get questEstimate")
+        // Update poses from the Particle Filter pose estimate and quest measurements
         localizer.updateWithLatestPoseEstimate(if (quest.isTracking || isSim) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
+        // Publish the latest camera data to NT so Particle Filter can use, also update poses from swerve odometry measurements.
         localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
+
         quest.commandPeriodic()
 
+        // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
         Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose ?: Pose2d())
         Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
