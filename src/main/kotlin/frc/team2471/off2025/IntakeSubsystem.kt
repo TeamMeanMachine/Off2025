@@ -1,12 +1,7 @@
-package frc.team2471.off2025.subsystems
+package frc.team2471.off2025
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration
-import com.ctre.phoenix6.controls.DutyCycleOut
-import com.ctre.phoenix6.controls.VoltageOut
-import com.ctre.phoenix6.hardware.TalonFX
-import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import org.team2471.frc2025.Falcons
+
 @Suppress("Unused", "Redundant")
 
 
