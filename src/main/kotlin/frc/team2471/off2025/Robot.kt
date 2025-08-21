@@ -12,15 +12,9 @@
 // GNU General Public License for more details.
 package frc.team2471.off2025
 
-import com.pathplanner.lib.auto.AutoBuilder
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
-import frc.team2471.off2025.commands.DriveCommands.feedforwardCharacterization
-import frc.team2471.off2025.commands.DriveCommands.wheelRadiusCharacterization
-import frc.team2471.off2025.subsystems.drive.Drive
-import frc.team2471.off2025.subsystems.drive.OdometrySignalThread
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.LogFileUtil
@@ -39,20 +33,15 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter
  */
 object Robot : LoggedRobot() {
     // Subsystems
-    val allSubsystems = arrayOf(Drive)
+    val elevator = Elevator
+
+    val allSubsystems = arrayOf(elevator)
 
     // Dashboard inputs
-    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser", AutoBuilder.buildAutoChooser()).apply {
+    private val autoChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Auto Chooser").apply {
     }
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
         // Set up SysId routines
-        addOption("Drive Wheel Radius Characterization", wheelRadiusCharacterization())
-        addOption("Drive Simple FF Characterization", feedforwardCharacterization())
-        addOption("Drive SysId (Quasistatic Forward)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kForward))
-        addOption("Drive SysId (Quasistatic Reverse)", Drive.sysIdQuasistatic(SysIdRoutine.Direction.kReverse))
-        addOption("Drive SysId (Dynamic Forward)", Drive.sysIdDynamic(SysIdRoutine.Direction.kForward))
-        addOption("Drive SysId (Dynamic Reverse)", Drive.sysIdDynamic(SysIdRoutine.Direction.kReverse))
-        addOption("Zero Turn Encoders", Drive.zeroTurnEncoders())
     }
 
     val autonomousCommand: Command? get() = autoChooser.get()
@@ -76,7 +65,6 @@ object Robot : LoggedRobot() {
 
         // Start AdvantageKit logger
         Logger.start()
-        OdometrySignalThread
         allSubsystems.forEach { _ -> }
         OI
     }
