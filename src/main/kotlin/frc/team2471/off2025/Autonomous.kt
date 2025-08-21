@@ -7,7 +7,6 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.team2471.off2025.tests.elevatorSetpointTest
 import frc.team2471.off2025.tests.joystickTest
 import frc.team2471.off2025.util.units.asSeconds
@@ -36,16 +35,12 @@ object Autonomous {
         addOption("Drive Translation SysId ALL", Drive.sysIDTranslationAll())
         addOption("Drive Rotation SysId ALL", Drive.sysIDRotationAll())
         addOption("Drive Steer SysId ALL", Drive.sysIDSteerAll())
-        addOption("Drive Translation SysId (Quasistatic Forward)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kForward))
-        addOption("Drive Translation SysId (Quasistatic Reverse)", Drive.sysIDTranslationQuasistatic(SysIdRoutine.Direction.kReverse))
-        addOption("Drive Translation SysId (Dynamic Forward)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kForward))
-        addOption("Drive Translation SysId (Dynamic Reverse)", Drive.sysIDTranslationDynamic(SysIdRoutine.Direction.kReverse))
         addOption("Set Angle Offsets", Drive.setAngleOffsets())
         addOption("JoystickTest", joystickTest())
         addOption("ElevatorSetpointTest", Armavator.elevatorSetpointTest())
     }
 
-    val autonomousCommand: Command? get() = autoChooser.get()?.invoke()
+    val autonomousCommand: Command? get() = if (!Drive.demoMode) autoChooser.get()?.invoke() else runOnce { println("DEMO MODE: I'm not running auto, no killing kids today.") }
     val testCommand: Command? get() = testChooser.get()
 
     /**
@@ -98,7 +93,7 @@ object Autonomous {
     /**
      * Find all the paths in the choreo directory and return a list of them
      */
-    fun findChoreoPaths(): MutableMap<String, Trajectory<SwerveSample>> {
+    private fun findChoreoPaths(): MutableMap<String, Trajectory<SwerveSample>> {
         return try {
             val map: MutableMap<String, Trajectory<SwerveSample>> = mutableMapOf()
             Filesystem.getDeployDirectory().toPath().resolve("choreo").listDirectoryEntries("*.traj").forEach {
@@ -121,13 +116,13 @@ object Autonomous {
         }
     }
 
-    fun eightFootStraight (): Command {
+    private fun eightFootStraight (): Command {
         return Drive.driveAlongChoreoPath(paths["8 foot"]!!, resetOdometry = true)
     }
-    fun squarePathTest (): Command {
+    private fun squarePathTest (): Command {
         return Drive.driveAlongChoreoPath(paths["square"]!!, resetOdometry = true)
     }
-    fun threeL4Right(): Command {
+    private fun threeL4Right(): Command {
         val path = paths["3 L4 Right"]!!
         return sequenceCommand(
             Drive.driveAlongChoreoPath(path.getSplit(0).get(), poseSupplier = {Drive.localizer.singleTagPose}, resetOdometry = true),

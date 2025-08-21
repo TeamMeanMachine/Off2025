@@ -14,8 +14,8 @@ import edu.wpi.first.units.VelocityUnit
 import edu.wpi.first.util.struct.StructSerializable
 
 /** Unit Translation2d */
-class UTranslation2d<U : Unit>(x: Measure<U>, y: Measure<U>): Translation2d(x.magnitude(), y.magnitude()), StructSerializable {
-    private val unit: U = x.unit()
+class UTranslation2d<U : Unit>(x: Measure<U>, y: Measure<U>): Translation2d(x.baseUnitMagnitude(), y.baseUnitMagnitude()), StructSerializable {
+    private val unit = x.unit().baseUnit
 
     val x: Measure<U>
         get() = unit.of(super.getX()) as Measure<U>

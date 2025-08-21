@@ -19,6 +19,7 @@ import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.mirrorYAxis
 import frc.team2471.off2025.util.round
 import frc.team2471.off2025.util.toPose2d
+import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.Logger
 
@@ -29,7 +30,7 @@ object FieldManager {
     val fieldWidth = aprilTagFieldLayout.fieldWidth.meters
     val fieldLength = aprilTagFieldLayout.fieldLength.meters
 
-    val fieldDimensions = Translation2d(fieldLength, fieldWidth)
+    val fieldDimensions = UTranslation2d(fieldLength, fieldWidth)
 
     val fieldHalfWidth = fieldWidth / 2.0
     val fieldHalfLength = fieldLength / 2.0
@@ -217,7 +218,7 @@ object FieldManager {
     /**
      * Returns if the [Translation2d] is on the red alliance side of the field.
      */
-    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x
+    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x.asMeters
     /**
      * Returns if the [Translation2d] is on the blue alliance side of the field.
      */

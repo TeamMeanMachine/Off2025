@@ -17,8 +17,7 @@ fun joystickTest(): Command {
 
 
     return Commands.run({
-        val (x, y) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
-        val translation = Translation2d(x, y)
+        val translation = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
         if (translation.norm > 0.5) {
             if (Math.random() > 0.5) {
 //                joystickValues.clear()

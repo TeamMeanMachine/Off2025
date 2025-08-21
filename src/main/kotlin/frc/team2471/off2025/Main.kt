@@ -11,6 +11,7 @@ import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.logged.MasterMotor
 import frc.team2471.off2025.util.robotMode
+import frc.team2471.off2025.util.units.asFeet
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -71,7 +72,8 @@ object Robot : LoggedRobot() {
         Logger.start()
         // Call all subsystems, make sure their init's run
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
-        FieldManager
+        println("FieldManager thinks the field is ${FieldManager.fieldDimensions.asFeet} feet big")
+        println("We see ${Autonomous.paths.size} paths and they are made on the ${if (Autonomous.isPathsRed) "red" else "blue"} side.")
     }
 
     /** This function is called periodically during all modes.  */
@@ -123,8 +125,8 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
-        Autonomous.flipPathsIfAllianceChange() // This is only needed in for sim edge case (Instantly swapping between Disconnected and Autonomous)
-        (Autonomous.autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
+        Autonomous.flipPathsIfAllianceChange() // This line is only needed for a sim edge case (Instantly swapping between Disconnected and Autonomous)
+        (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
     }
 
     /** This function is called periodically during autonomous.  */

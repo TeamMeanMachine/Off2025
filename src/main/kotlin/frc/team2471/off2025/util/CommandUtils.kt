@@ -25,6 +25,14 @@ fun Command.finallyRun(run: (Boolean) -> Unit): WrapperCommand =
 fun Command.finallyWait(seconds: Double) = this.andThen(waitCommand(seconds))!!
 
 /**
+ * Before the initial command starts, wait [seconds] more than start.
+ * @param seconds The amount of time to wait before the initial command starts
+ * @see Command.beforeStarting
+ * @see Commands.waitSeconds
+ */
+fun Command.beforeWait(seconds: Double) = this.beforeStarting(waitCommand(seconds))!!
+
+/**
  * Before the command starts, run this [action] first.
  * @param action the action to run
  * @param requirements subsystems the action requires

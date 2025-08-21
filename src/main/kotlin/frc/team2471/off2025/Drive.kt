@@ -6,6 +6,7 @@ import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.ApplyModuleStates
@@ -32,7 +33,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
 import kotlin.jvm.optionals.getOrNull
-import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
 
@@ -85,6 +85,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         cameras
     )
 
+    private val translationRateTimer = Timer()
+    private var prevTranslation = Translation2d()
+
     // Drive Feedback controllers
     override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 20.0, 0.5, 0.5.inches, 1.0.degrees)
 
@@ -103,16 +106,16 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
      */
     override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
         //make joystick pure circle
-        val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+        val joystick = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
 
         //square drive input
-        val power = hypot(cx, cy).square() * demoSpeed
-        val (x, y) = Pair(cx * power, cy * power)
+        val power = joystick.norm.square() * demoSpeed
+        val joystickTranslation = joystick * power
 
         //cube rotation input
         val omega = OI.driveRotation.cube() * demoSpeed
 
-        return ChassisSpeeds(x, y, omega)
+        return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
     }
 
     init {

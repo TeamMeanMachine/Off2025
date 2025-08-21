@@ -113,11 +113,11 @@ abstract class SwerveDriveSubsystem(
     private var prevVelocity = velocity
 
     @get:AutoLogOutput(key = "Drive/Acceleration")
-    var acceleration: UTranslation2d<LinearAccelerationUnit> = Translation2d(0.0, 0.0).feetPerSecondPerSecond
+    var acceleration = Translation2d(0.0, 0.0).feetPerSecondPerSecond
         private set
 
     @get:AutoLogOutput(key = "Drive/Jerk")
-    var jerk: UTranslation2d<VelocityUnit<LinearAccelerationUnit>> = Translation2d(0.0, 0.0).feetPerSecondPerSecond.perSecond
+    var jerk = Translation2d(0.0, 0.0).feetPerSecondPerSecond.perSecond
         private set
 
     private var prevTime = -0.02
@@ -188,15 +188,15 @@ abstract class SwerveDriveSubsystem(
 
 
     /** Returns an array of module translations. */
-    val moduleTranslationsMeters = moduleConstants.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }.toTypedArray()
+    val moduleTranslations = moduleConstants.map { UTranslation2d(it.LocationX.meters, it.LocationY.meters) }.toTypedArray()
 
-    val driveBaseRadius = moduleTranslationsMeters.maxOf { it.norm }.meters
+    val driveBaseRadius = moduleTranslations.maxOf { it.norm }
 
-    /** Returns the maximum linear speed */
+    /** The maximum translational speed of drivetrain. */
     val maxSpeed: LinearVelocity = moduleConstants.first().SpeedAt12Volts.metersPerSecond
 
-    /** Returns the maximum angular speed in radians per sec.  */
-    val maxAngularSpeedRadPerSec: AngularVelocity = (maxSpeed.asMetersPerSecond / driveBaseRadius.asMeters).radiansPerSecond
+    /** The maximum rotational speed of drivetrain. */
+    val maxAngularSpeed: AngularVelocity = (maxSpeed.asMetersPerSecond / driveBaseRadius.asMeters).radiansPerSecond
 
 
     private val driveAtAngleRequest = FieldCentricFacingAngle()
@@ -315,7 +315,7 @@ abstract class SwerveDriveSubsystem(
     fun getChassisSpeedsFromJoystick(): ChassisSpeeds = getJoystickPercentageSpeeds().apply {
         vxMetersPerSecond *= maxSpeed.asMetersPerSecond
         vyMetersPerSecond *= maxSpeed.asMetersPerSecond
-        omegaRadiansPerSecond *= maxAngularSpeedRadPerSec.asRadiansPerSecond
+        omegaRadiansPerSecond *= maxAngularSpeed.asRadiansPerSecond
     }
 
 
@@ -718,12 +718,12 @@ abstract class SwerveDriveSubsystem(
         Mechanism({ volts: Voltage? -> setControl(SysIdSwerveSteerGains().withVolts(volts)) }, null, this)
     )
 
-    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
-    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.quasistatic(direction).finallyWait(1.0)
-    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.dynamic(direction).finallyWait(1.0)
-    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.quasistatic(direction).finallyWait(1.0)
+    fun sysIDTranslationDynamic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.dynamic(direction).beforeWait(1.0)
+    fun sysIDTranslationQuasistatic(direction: SysIdRoutine.Direction): Command = translationSysIdRoutine.quasistatic(direction).beforeWait(1.0)
+    fun sysIDRotationDynamic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.dynamic(direction).beforeWait(1.0)
+    fun sysIDRotationQuasistatic(direction: SysIdRoutine.Direction): Command = rotationSysIdRoutine.quasistatic(direction).beforeWait(1.0)
+    fun sysIDSteerDynamic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.dynamic(direction).beforeWait(1.0)
+    fun sysIDSteerQuasistatic(direction: SysIdRoutine.Direction): Command = steerSysIdRoutine.quasistatic(direction).beforeWait(1.0)
 
     fun sysIDTranslationAll() = sequenceCommand(
         // Quasistatic forward and reverse

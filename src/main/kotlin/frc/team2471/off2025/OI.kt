@@ -137,15 +137,17 @@ object OI: SubsystemBase("OI") {
      * Uses the distance formula to remove the 90 degree "snap" that Xbox joystick axes do at extreme magnitudes.
      * Also desaturates (prevents magnitudes over 1).
      */
-    fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Pair<Double, Double> {
+    fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Translation2d {
         return if (hypot(rawX, rawY) > 1.0) {
             //magnitude is > 1, something is being "snapped" or the value is inaccurate
             if (rawX.absoluteValue >= 1.0) {
-                //x not trustworthy
-                Pair(sqrt(1 - rawY.square()).withSign(rawX), rawY)
+                //x not trustworthy so calculate it
+                val x = sqrt(1 - rawY.square()).withSign(rawX)
+                Translation2d(x, rawY)
             } else if (rawY.absoluteValue >= 1.0) {
-                //y not trustworthy
-                Pair(rawX, sqrt(1 - rawX.square()).withSign(rawY))
+                //y not trustworthy so calculate it
+                val y = sqrt(1 - rawX.square()).withSign(rawY)
+                Translation2d(rawX, y)
             } else {
                 //Both axes are not snapping, but the magnitude > 1 meaning that one or both axes are inaccurate. (Joystick is drifting or warping)
                 //We will assume the joystick magnitude equals 1 and assume both axes are untrustworthy.
@@ -162,11 +164,10 @@ object OI: SubsystemBase("OI") {
                 val x = (rawX * xConfidence + xCalc * yConfidence) / totalWeight
                 val y = (rawY * yConfidence + yCalc * xConfidence) / totalWeight
 
-//                println(hypot(x, y))
-                Pair(x, y)
+                Translation2d(x, y)
             }
         } else {
-            Pair(rawX, rawY)
+            Translation2d(rawX, rawY)
         }
     }
 
