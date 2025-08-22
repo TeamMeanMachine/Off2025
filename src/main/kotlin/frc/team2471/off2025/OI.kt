@@ -99,13 +99,16 @@ object OI: SubsystemBase("OI") {
 
         driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
         driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
+
         driverController.povUp ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
         driverController.povRight ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
         driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
         driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
 
+        driverController.x().whileTrue(defer { Drive.driveToPoint(FieldManager.ampAlignPoint(Drive.localizer.pose), poseSupplier = { Drive.localizer.pose})})
+        0
         // Switch to X pattern when X button is pressed
-        driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
+    //    driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
 //        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
 //        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))

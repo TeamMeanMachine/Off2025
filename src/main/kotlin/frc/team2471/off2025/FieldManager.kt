@@ -191,7 +191,11 @@ object FieldManager {
     }
 
     fun ampAlignPoint(robotPose: Pose2d): Pose2d {
-        return if (robotPose.onRedSide()) ampAlignPointRed else ampAlignPointBlue
+        var unwrappedPose = if (robotPose.onRedSide()) ampAlignPointRed else ampAlignPointBlue
+        if ((robotPose.rotation.measure - unwrappedPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            unwrappedPose = Pose2d(unwrappedPose.translation, unwrappedPose.rotation.rotateBy(180.0.degrees.asRotation2d))
+        }
+        return unwrappedPose
     }
 
 
