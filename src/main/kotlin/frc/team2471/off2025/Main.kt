@@ -109,6 +109,7 @@ object Robot : LoggedRobot() {
 
     fun enabledInit() {
         Drive.brakeMode()
+        intake.intakeState = IntakeState.HOLDING
     }
 
     /** This function is called once when the robot is disabled.  */
