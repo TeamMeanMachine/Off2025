@@ -1,12 +1,19 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
+import edu.wpi.first.math.Matrix
+import edu.wpi.first.math.Nat.N1
+import edu.wpi.first.math.Nat.N3
+import edu.wpi.first.math.Nat.N8
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
+import edu.wpi.first.math.numbers.N1
+import edu.wpi.first.math.numbers.N3
+import edu.wpi.first.math.numbers.N8
 import frc.team2471.off2025.util.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.asRotation2d
@@ -18,8 +25,7 @@ import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
 import frc.team2471.off2025.util.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
 import frc.team2471.off2025.util.vision.Fiducials
-import frc.team2471.off2025.util.vision.PhotonVisionCamera
-import frc.team2471.off2025.util.vision.PipelineConfig
+import frc.team2471.off2025.util.vision.LimelightCamera
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
 import gg.questnav.questnav.PoseFrame
@@ -28,6 +34,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
+import java.util.Optional
 import kotlin.math.hypot
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
@@ -51,10 +58,16 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     // Vision
     val cameras: List<QuixVisionCamera> = listOf(
-        PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
-        PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
+        LimelightCamera(
+            "limelight-test",
+            Constants.limelightPose,
+            Optional.of(Matrix<N3, N3>(N3(), N3(), doubleArrayOf(737.3071162812872,0.0,658.6108346810324,0.0,738.2142014335819,411.36513253891655,0.0,0.0,1.0))),
+            Optional.of(Matrix<N8, N1>(N8(), N1(), doubleArrayOf(0.11977275268536702,-0.13935436337469195,-0.000907565402687582,0.0005097193890789445,-0.052047409417428844,0.0,0.0,0.0)))
+            )
+//        PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
+//        PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
+//        PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
+//        PhotonVisionCamera("BackRight", Constants.backRightCamPose, arrayOf(PipelineConfig())),
     )
 
     val quest = QuestNav()
@@ -83,7 +96,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     )
 
     // Drive Feedback controllers
-    override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 20.0, 0.5, 0.5.inches, 1.0.degrees)
+    override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 100.0, 2.0, 0.5.inches, 1.0.degrees)
 
     override val pathXController = PIDController(7.0, 0.0, 0.0)
     override val pathYController = PIDController(7.0, 0.0, 0.0)
@@ -148,6 +161,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
+        Logger.recordOutput("Drive/TestOdometry", pose)
 
         LoopLogger.record("Drive pirdc")
     }

@@ -40,8 +40,9 @@ object Robot : LoggedRobot() {
     val drive = Drive
     val oi = OI
     val armavator = Armavator
+    val vision = Vision
 
-    var allSubsystems = arrayOf(drive, oi, armavator)
+    var allSubsystems = arrayOf(drive, oi, armavator, vision)
 
     init {
         // Set up data receivers & replay source
@@ -107,6 +108,8 @@ object Robot : LoggedRobot() {
 
     fun enabledInit() {
         Drive.brakeMode()
+
+        Vision.io.forEach { it.enable() }
     }
 
     /** This function is called once when the robot is disabled.  */

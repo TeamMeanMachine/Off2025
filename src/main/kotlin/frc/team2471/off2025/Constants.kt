@@ -25,6 +25,14 @@ import frc.team2471.off2025.util.inches
  * (log replay from a file).
  */
 object Constants {
+
+    val limelightPose = Transform3d(
+        Translation3d(
+            0.254, 0.1335, 0.635
+        ), Rotation3d(
+            180.0.degrees, 35.0.degrees, 0.0.degrees
+        )
+    )
     // Need to be more accurate
     val frontRightCamPose: Transform3d = Transform3d(
         Translation3d(
