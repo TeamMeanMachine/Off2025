@@ -32,6 +32,7 @@ import kotlin.collections.iterator
 object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
     private var wasDisabled = true
+    var beforeFirstEnable = true
 
     val commandScheduler = CommandScheduler.getInstance()
 
@@ -90,6 +91,7 @@ object Robot : LoggedRobot() {
 
         if (Robot.isEnabled) {
             if (wasDisabled) {
+                beforeFirstEnable = false
                 enabledInit()
                 wasDisabled = false
             }
