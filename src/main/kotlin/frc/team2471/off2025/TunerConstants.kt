@@ -16,6 +16,7 @@ import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Preferences
+import frc.team2471.off2025.util.ctre.getMagnetSensorOffset
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asFeet
 import frc.team2471.off2025.util.units.asMeters
@@ -24,7 +25,6 @@ import frc.team2471.off2025.util.units.asRadiansPerSecond
 import frc.team2471.off2025.util.units.asVolts
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.feetPerSecond
-import frc.team2471.off2025.util.getMagnetSensorOffset
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.units.radiansPerSecond

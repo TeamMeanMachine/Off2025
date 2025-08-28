@@ -9,7 +9,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.RobotMode
-import frc.team2471.off2025.util.logged.MasterMotor
+import frc.team2471.off2025.util.ctre.loggedTalonFX.MasterMotor
 import frc.team2471.off2025.util.robotMode
 import frc.team2471.off2025.util.units.asFeet
 import kotlinx.coroutines.DelicateCoroutinesApi

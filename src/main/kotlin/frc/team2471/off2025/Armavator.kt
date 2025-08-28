@@ -5,7 +5,6 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.controls.Follower
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle
-import com.ctre.phoenix6.controls.PositionDutyCycle
 import com.ctre.phoenix6.controls.StrictFollower
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.TalonFX
@@ -19,7 +18,6 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.LoopLogger
-import frc.team2471.off2025.util.setMagnetSensorOffset
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
 import frc.team2471.off2025.util.units.asInches

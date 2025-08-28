@@ -40,7 +40,8 @@ import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.util.*
-import frc.team2471.off2025.util.logged.LoggedTalonFX
+import frc.team2471.off2025.util.ctre.setCANCoderAngle
+import frc.team2471.off2025.util.ctre.loggedTalonFX.LoggedTalonFX
 import frc.team2471.off2025.util.units.Gs
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.absoluteValue

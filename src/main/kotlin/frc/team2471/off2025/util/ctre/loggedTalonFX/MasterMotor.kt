@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util.logged
+package frc.team2471.off2025.util.ctre.loggedTalonFX
 
 import frc.team2471.off2025.util.isSim
 

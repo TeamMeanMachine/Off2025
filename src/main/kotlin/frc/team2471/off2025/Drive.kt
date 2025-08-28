@@ -9,7 +9,7 @@ import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.ApplyModuleStates
+import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.cube
