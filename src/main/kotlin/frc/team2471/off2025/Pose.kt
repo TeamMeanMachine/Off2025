@@ -4,6 +4,7 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
+import frc.team2471.off2025.util.units.wrap
 
 data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngle: Angle, ) {
     companion object {
@@ -18,4 +19,6 @@ data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngl
         val INTAKE_GROUND = Pose(0.0.inches, 113.0.degrees, 180.0.degrees)
 
     }
+
+    fun reflect() = Pose(elevatorHeight, -armAngle, (pivotAngle - 180.0.degrees).wrap())
 }

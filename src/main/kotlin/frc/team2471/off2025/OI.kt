@@ -12,6 +12,7 @@ import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
+import kotlinx.coroutines.runBlocking
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
 import kotlin.math.sqrt
@@ -76,7 +77,7 @@ object OI: SubsystemBase("OI") {
         Drive.defaultCommand = Drive.joystickDrive()
 
 
-        driverController.a().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE)})
+        driverController.a().onTrue(goToDrivePose())
         driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
     //    driverController.rightBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.INTAKING})
     //    driverController.leftBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.HOLDING})
@@ -97,6 +98,11 @@ object OI: SubsystemBase("OI") {
             println("questSimConnected = ${Drive.questSimConnected}")
         })*/
 
+        driverController.rightTrigger(0.9).whileTrue(runCommand{ Intake.score()})
+
+        driverController.leftBumper().whileTrue(groundIntake(false))
+        driverController.rightBumper().whileTrue(groundIntake(true))
+
         driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
         driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
 
@@ -105,8 +111,7 @@ object OI: SubsystemBase("OI") {
         driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
         driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
 
-        driverController.x().whileTrue(defer { Drive.driveToPoint(FieldManager.ampAlignPoint(Drive.localizer.pose), poseSupplier = { Drive.localizer.pose})})
-        0
+        driverController.x().whileTrue(defer { ampAlign() })
         // Switch to X pattern when X button is pressed
     //    driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 

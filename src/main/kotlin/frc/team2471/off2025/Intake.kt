@@ -24,6 +24,7 @@ object Intake: SubsystemBase("Intake") {
     val canRangeRight = CANrange(CANSensors.RANGE_INTAKE_RIGHT, CANivores.ELEVATOR_CAN)
 
     var hasCargo: Boolean = false
+    var scoreAlgae = false
 
     val INTAKE_POWER = -0.6
     val SIDE_MOVE_POWER: Double = if (Robot.isCompBot) -0.1 else 0.1
@@ -100,6 +101,13 @@ object Intake: SubsystemBase("Intake") {
             hasCargo = true
         } else {
             sideMotor.setControl(DutyCycleOut(if (runSideMotorWhenUnseen) -SIDE_MOVE_POWER else 0.0))
+        }
+    }
+    fun score() {
+        if (scoreAlgae) {
+            intakeState = IntakeState.INTAKING
+        } else {
+            intakeState = IntakeState.SCORING
         }
     }
 }

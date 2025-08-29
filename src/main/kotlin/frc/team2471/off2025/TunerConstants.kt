@@ -149,7 +149,7 @@ object TunerConstants {
              * The remote sensor feedback type to use for the steer motors;
              * When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically fall back to RemoteCANcoder
             */
-            FeedbackSource = SwerveModuleConstants.SteerFeedbackType.FusedCANcoder
+            FeedbackSource = SwerveModuleConstants.SteerFeedbackType.SyncCANcoder
 
             /** Moment of Inertia. Only used in simulation */
             DriveInertia = 0.025

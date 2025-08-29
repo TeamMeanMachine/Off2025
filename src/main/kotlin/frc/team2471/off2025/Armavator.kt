@@ -183,8 +183,8 @@ object Armavator: SubsystemBase() {
                 kD = 0.69
             }
             MotionMagic.apply {
-                MotionMagicAcceleration = 7.0 * 360.0 * ARM_GEAR_RATIO
-                MotionMagicCruiseVelocity = 360.0 * ARM_GEAR_RATIO
+                MotionMagicAcceleration = 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0
+                MotionMagicCruiseVelocity = 360.0 * ARM_GEAR_RATIO / 40.0
             }
             Feedback.apply {
                 FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANcoder
@@ -238,9 +238,10 @@ object Armavator: SubsystemBase() {
         println("elevator percentage: $percent")
     }
 
-    fun goToPose(pose: Pose) {
-        heightSetpoint = pose.elevatorHeight
-        armAngleSetpoint = pose.armAngle
-        pivotAngleSetpoint = pose.pivotAngle
+    fun goToPose(pose: Pose, isFlipped: Boolean = false) {
+        val targetPose = if (isFlipped) pose.reflect() else pose
+        heightSetpoint = targetPose.elevatorHeight
+        armAngleSetpoint = targetPose.armAngle
+        pivotAngleSetpoint = targetPose.pivotAngle
     }
 }
