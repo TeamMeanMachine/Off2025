@@ -18,6 +18,8 @@ data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngl
 
         val INTAKE_GROUND = Pose(0.0.inches, 113.0.degrees, 180.0.degrees)
 
+        val DRIVE_PIVOT_ONE_THIRD_TEST = Pose(0.0.inches, 0.0.degrees, (120-90.0).degrees)
+        val DRIVE_PIVOT_TWO_THIRDS_TEST = Pose(0.0.inches, 0.0.degrees, (240-90.0).degrees)
     }
 
     fun reflect() = Pose(elevatorHeight, -armAngle, (pivotAngle - 180.0.degrees).wrap())
