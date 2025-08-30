@@ -132,7 +132,7 @@ object TunerConstants {
              * The stator current at which the wheels start to slip, in amps.
              * Maximum amount of stator current the drive motors can apply without slippage.
             */
-            SlipCurrent = 120.0
+            SlipCurrent = 60.0
 
             /** The max speed of the robot when driven with 12 volts. m/s */
             SpeedAt12Volts = kSpeedAt12Volts.asMetersPerSecond

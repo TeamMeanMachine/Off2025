@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.tests.elevatorSetpointTest
 import frc.team2471.off2025.tests.joystickTest
 import frc.team2471.off2025.tests.sysIDPivot
+import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.round
@@ -39,6 +40,7 @@ object Autonomous {
         addOption("Set Angle Offsets", Drive.setAngleOffsets())
         addOption("JoystickTest", joystickTest())
         addOption("ElevatorSetpointTest", Armavator.elevatorSetpointTest())
+        addOption("Drive Slip Current Test", slipCurrentTest())
         addOption("Armavator Pivot SysId ALL", Armavator.sysIDPivot())
     }
 

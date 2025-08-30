@@ -13,6 +13,7 @@ import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.LoopLogger
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.cube
+import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isReal
@@ -109,7 +110,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val joystick = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
 
         //square drive input
-        val power = joystick.norm.square() * demoSpeed
+        val power = joystick.norm.square() * demoSpeed * if (isBlueAlliance) -1.0 else 1.0
         val joystickTranslation = joystick * power
 
         //cube rotation input
