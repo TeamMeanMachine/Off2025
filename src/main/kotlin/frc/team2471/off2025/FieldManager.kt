@@ -6,6 +6,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
+import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asFeet
@@ -22,6 +23,8 @@ import frc.team2471.off2025.util.toPose2d
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.Logger
+import kotlin.text.compareTo
+import kotlin.times
 
 object FieldManager {
     val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
@@ -152,6 +155,16 @@ object FieldManager {
 
     }
 
+
+    fun getHumanStationAlignHeading(pose: Pose2d): Pair<Angle, Boolean> {
+        val goalHeading = (if (isRedAlliance) 60.0 else 120.0).degrees * if (pose.y.meters < fieldCenter.y) -1.0 else 1.0
+        return if ((pose.rotation.measure - goalHeading).wrap().absoluteValue() > 90.0.degrees) {
+            Pair(goalHeading + 180.0.degrees, true)
+
+        } else {
+            Pair(goalHeading, false)
+        }
+    }
 
 
     fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pose2d {

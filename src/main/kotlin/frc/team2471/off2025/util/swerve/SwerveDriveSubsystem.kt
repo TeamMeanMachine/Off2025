@@ -337,14 +337,13 @@ abstract class SwerveDriveSubsystem(
 
 
     // All of these driveAtAngle function variations exist to make syntax good when calling the function
-    fun driveAtAngle(angle: Rotation2d): Command = driveAtAngle { angle }
-    fun driveAtAngle(angle: () -> Rotation2d): Command = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
+    fun driveAtAngle(angle: Rotation2d) = driveAtAngle { angle }
+    fun driveAtAngle(angle: () -> Rotation2d) = driveAtAngle(angle) { getChassisSpeedsFromJoystick().translation }
     fun driveAtAngle(
         angle: () -> Rotation2d,
         translation: () -> Translation2d = { getChassisSpeedsFromJoystick().translation }
-    ): Command = run {
-        driveAtAngle(angle(), translation())
-    }
+    ) = driveAtAngle(angle(), translation())
+
     /**
      * Uses the [driveAtAnglePIDController] to drive the robot with a specified angle and translation.
      */
@@ -412,12 +411,7 @@ abstract class SwerveDriveSubsystem(
         return run {
             LoopLogger.record("b4 joystickDrive")
             // Get linear velocity
-            val chassisSpeeds = getChassisSpeedsFromJoystick().apply {
-                if (isBlueAlliance) {
-                    vxMetersPerSecond *= -1.0
-                    vyMetersPerSecond *= -1.0
-                }
-            }
+            val chassisSpeeds = getChassisSpeedsFromJoystick()
 
             //send it
             driveVelocity(chassisSpeeds)

@@ -78,7 +78,6 @@ object OI: SubsystemBase("OI") {
 
 
         driverController.a().onTrue(goToDrivePose())
-        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
     //    driverController.rightBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.INTAKING})
     //    driverController.leftBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.HOLDING})
     //    driverController.rightTrigger().onTrue(runOnceCommand{Intake.intakeState = IntakeState.SCORING})
@@ -97,6 +96,8 @@ object OI: SubsystemBase("OI") {
             Drive.questSimConnected = !Drive.questSimConnected
             println("questSimConnected = ${Drive.questSimConnected}")
         })*/
+
+        driverController.b().whileTrue(coralStationIntake())
 
         driverController.rightTrigger(0.9).whileTrue(runCommand{ Intake.score()})
 
