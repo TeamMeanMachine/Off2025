@@ -6,6 +6,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
+import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.absoluteValue
 import frc.team2471.off2025.util.asFeet
@@ -14,6 +15,7 @@ import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
+import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.meters
 import frc.team2471.off2025.util.mirrorYAxis
@@ -21,6 +23,7 @@ import frc.team2471.off2025.util.round
 import frc.team2471.off2025.util.toPose2d
 import frc.team2471.off2025.util.wrap
 import org.littletonrobotics.junction.Logger
+import kotlin.math.floor
 
 object FieldManager {
     val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
@@ -187,6 +190,12 @@ object FieldManager {
         }
 
         return closestPose
+    }
+
+    fun getApproachAngle(robotPose: Pose2d): Angle {
+        val reefCenter = if (isBlueAlliance) reefCenterBlue else reefCenterRed
+        val rawAngle = (reefCenter - robotPose.translation).angle
+        return (60.0 * floor((rawAngle.degrees + 30.0)/60.0)).degrees
     }
 
     fun ampAlignPoint(robotPose: Pose2d): Pose2d {

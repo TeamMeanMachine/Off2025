@@ -87,8 +87,10 @@ object OI: SubsystemBase("OI") {
 
         driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
         driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
-        driverController.povUp ().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.pose}, 180.0.degrees)})
-        driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.pose})})
+        driverController.povUp ().whileTrue(defer { Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.pose}, FieldManager.getApproachAngle(Drive.pose))})
+        driverController.povDown ().whileTrue(defer {
+            Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.pose})
+        })
 //        driverController.povRight ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
 //        driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
 //        driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
