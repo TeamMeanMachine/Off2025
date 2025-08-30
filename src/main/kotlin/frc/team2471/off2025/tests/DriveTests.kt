@@ -7,9 +7,11 @@ import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.OI.dPad
 import frc.team2471.off2025.Drive
+import frc.team2471.off2025.util.beforeRun
 import frc.team2471.off2025.util.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger
+import java.util.Timer
 
 
 fun joystickTest(): Command {
@@ -163,3 +165,16 @@ fun feedforwardCharacterization(): Command {
                 })
     )
 }*/
+
+fun slipCurrentTest(): Command {
+    val timer = edu.wpi.first.wpilibj.Timer()
+    return runCommand(Drive) {
+        val volts = timer.get() * 0.01
+        Logger.recordOutput("Test/StaterCurrent", Drive.modules.first().driveMotor.statorCurrent.valueAsDouble)
+        Logger.recordOutput("Test/Volts", volts)
+        Logger.recordOutput("Test/Velocity", Drive.modules.first().driveMotor.velocity.valueAsDouble)
+        Drive.driveVoltage(ChassisSpeeds(volts, 0.0, 0.0))
+    }.beforeRun() {
+        timer.restart()
+    }
+}
