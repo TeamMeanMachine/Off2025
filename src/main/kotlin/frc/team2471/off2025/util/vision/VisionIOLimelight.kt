@@ -18,7 +18,7 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
             LimelightHelpers.SetRobotOrientation(name, headingSupplier.invoke().asDegrees, 0.0, 0.0, 0.0, 0.0, 0.0)
 //        }
 
-        val llPoseEstimate = if (Robot.isDisabled) LimelightHelpers.getBotPoseEstimate_wpiBlue(name) else LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name)
+        val llPoseEstimate = if (Robot.beforeFirstEnable) LimelightHelpers.getBotPoseEstimate_wpiBlue(name) else LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name)
 
         inputs.latestPoseEstimate = llPoseEstimate?.pose ?: Pose2d()
         inputs.latestTimestamp = Utils.fpgaToCurrentTime(llPoseEstimate?.timestampSeconds ?: 0.0)

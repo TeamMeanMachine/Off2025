@@ -6,6 +6,7 @@ import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
+import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj.Timer
 import org.littletonrobotics.junction.LogTable
@@ -45,36 +46,37 @@ class LimelightCamera(
     }
 
     override fun updateInputs() {
-        val camToTag = LimelightHelpers.getTargetPose_CameraSpace(cameraName)
-        val robotToTag = Transform3d(Pose3d(), LimelightHelpers.getTargetPose3d_RobotSpace(cameraName))
-        val rawDetections = LimelightHelpers.getRawDetections(cameraName)
+        val corners = NetworkTableInstance.getDefault().getTable(cameraName).getEntry("tcornxy").getDoubleArray(doubleArrayOf())
 
-        val rawDetection = if (rawDetections.isNotEmpty()) rawDetections.first() else null
-        if (camToTag.isNotEmpty() && rawDetection != null) {
-            val target: PhotonTrackedTarget = PhotonTrackedTarget(
-                camToTag[4],
-                camToTag[3],
-                LimelightHelpers.getTA(cameraName),
-                camToTag[5],
-                LimelightHelpers.getFiducialID(cameraName).toInt(),
-                0,
-                0.0F,
-                robotToTag,
-                robotToTag,
-                0.0,
-                mutableListOf<TargetCorner>(
-                    TargetCorner(rawDetection.corner0_X, rawDetection.corner0_Y),
-                    TargetCorner(rawDetection.corner1_X, rawDetection.corner1_Y),
-                    TargetCorner(rawDetection.corner2_X, rawDetection.corner2_Y),
-                    TargetCorner(rawDetection.corner3_X, rawDetection.corner3_Y),
-                ),
-                mutableListOf<TargetCorner>(
-                    TargetCorner(rawDetection.corner0_X, rawDetection.corner0_Y),
-                    TargetCorner(rawDetection.corner1_X, rawDetection.corner1_Y),
-                    TargetCorner(rawDetection.corner2_X, rawDetection.corner2_Y),
-                    TargetCorner(rawDetection.corner3_X, rawDetection.corner3_Y),
-                )
-            )
+        if (corners.size >= 8) {
+            val targets = mutableListOf<PhotonTrackedTarget>()
+            for (i in corners.indices step 8) {
+                targets.add(PhotonTrackedTarget(
+                    0.0, //camToTag[4],
+                    0.0, //camToTag[3],
+                    0.0, //LimelightHelpers.getTA(cameraName),
+                    0.0, //camToTag[5],
+                    0, //LimelightHelpers.getFiducialID(cameraName).toInt(),
+                    0,
+                    0.0F,
+                    Transform3d(), //robotToTag,
+                    Transform3d(), //robotToTag,
+                    0.0,
+                    mutableListOf<TargetCorner>(
+                        TargetCorner(corners[i], corners[i + 1]),
+                        TargetCorner(corners[i + 2], corners[i + 3]),
+                        TargetCorner(corners[i + 4], corners[i + 5]),
+                        TargetCorner(corners[i + 6], corners[i + 7]),
+                    ),
+                    mutableListOf<TargetCorner>(
+                        TargetCorner(corners[i + 0], corners[i + 1]),
+                        TargetCorner(corners[i + 2], corners[i + 3]),
+                        TargetCorner(corners[i + 4], corners[i + 5]),
+                        TargetCorner(corners[i + 6], corners[i + 7]),
+                    )
+                ))
+            }
+
             val tl = LimelightHelpers.getLatency_Pipeline(cameraName) * 1000
             val cl = LimelightHelpers.getLatency_Capture(cameraName) * 1000
             inputs.latestResult = PhotonPipelineResult(
@@ -82,7 +84,7 @@ class LimelightCamera(
                 (RobotController.getTime() - tl - cl).toLong(),
                 (RobotController.getTime()).toLong(),
                 0.0.toLong(),
-                mutableListOf<PhotonTrackedTarget>(target)
+                targets
             )
         } else {
             inputs.latestResult = PhotonPipelineResult()
