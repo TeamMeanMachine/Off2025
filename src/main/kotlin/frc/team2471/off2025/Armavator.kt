@@ -139,7 +139,7 @@ object Armavator: SubsystemBase() {
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees
     val isPivotFlipped: Boolean
-        get() = 0.0.degrees.wrap() < 0.0.degrees
+        get() = pivotMotorAngle.wrap() > 0.0.degrees
     val reverseSpitDirection: Boolean
         get() = isArmFlipped != isPivotFlipped
 
