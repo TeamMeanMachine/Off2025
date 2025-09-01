@@ -1,5 +1,6 @@
 package frc.team2471.off2025.util.ctre
 
+import com.ctre.phoenix6.configs.MotionMagicConfigs
 import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.Follower
 import com.ctre.phoenix6.hardware.TalonFX
@@ -226,6 +227,37 @@ fun TalonFXConfiguration.g(g: Double, gravityType: GravityTypeValue): TalonFXCon
     this.Slot0.apply {
         kG = g
         GravityType = gravityType
+    }
+    return this
+}
+
+/**
+ * Configure the motion magic cruse velocity, acceleration, and optional jerk.
+ *
+ * @see TalonFXConfiguration.MotionMagic
+ */
+fun TalonFXConfiguration.motionMagic(cruseVelocity: Double, acceleration: Double, jerk: Double? = null): TalonFXConfiguration {
+    this.MotionMagic.apply {
+        MotionMagicCruiseVelocity = cruseVelocity
+        MotionMagicAcceleration = acceleration
+        if (jerk != null) MotionMagicJerk = jerk
+    }
+    return this
+}
+
+/**
+ * Configure the motion magic expo configs.
+ *
+ * @see TalonFXConfiguration.MotionMagic
+ * @see MotionMagicConfigs.MotionMagicExpo_kV
+ * @see MotionMagicConfigs.MotionMagicExpo_kA
+ * @see MotionMagicConfigs.MotionMagicCruiseVelocity
+ */
+fun TalonFXConfiguration.motionMagicExpo(expoKV: Double, expoKA: Double, maxVelocity: Double? = null): TalonFXConfiguration {
+    this.MotionMagic.apply {
+        MotionMagicExpo_kV = expoKV
+        MotionMagicExpo_kA = expoKA
+        if (maxVelocity != null) MotionMagicCruiseVelocity = maxVelocity
     }
     return this
 }

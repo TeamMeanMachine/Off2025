@@ -4,7 +4,6 @@ import edu.wpi.first.math.filter.Debouncer
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
-import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
@@ -12,11 +11,7 @@ import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
-import kotlinx.coroutines.runBlocking
 import kotlin.math.absoluteValue
-import kotlin.math.hypot
-import kotlin.math.sqrt
-import kotlin.math.withSign
 
 object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, false)
@@ -30,6 +25,16 @@ object OI: SubsystemBase("OI") {
 
     val driveTranslationY: Double
         get() = driverController.leftX.deadband(deadbandDriver)
+
+    val rawDriveTranslation: Translation2d
+        get() {
+            val translation = Translation2d(driveTranslationX, driveTranslationY)
+            return if (translation.norm > 1.0) {
+                translation.normalize()
+            } else {
+                translation
+            }
+        }
 
     val driveRotation: Double
         get() = -driverController.rightX.deadband(deadbandDriver)
@@ -145,43 +150,6 @@ object OI: SubsystemBase("OI") {
         LoopLogger.record("OI piodc")
     }
 
-    /**
-     * Uses the distance formula to remove the 90 degree "snap" that Xbox joystick axes do at extreme magnitudes.
-     * Also desaturates (prevents magnitudes over 1).
-     */
-    fun unsnapAndDesaturateJoystick(rawX: Double, rawY: Double): Translation2d {
-        return if (hypot(rawX, rawY) > 1.0) {
-            //magnitude is > 1, something is being "snapped" or the value is inaccurate
-            if (rawX.absoluteValue >= 1.0) {
-                //x not trustworthy so calculate it
-                val x = sqrt(1 - rawY.square()).withSign(rawX)
-                Translation2d(x, rawY)
-            } else if (rawY.absoluteValue >= 1.0) {
-                //y not trustworthy so calculate it
-                val y = sqrt(1 - rawX.square()).withSign(rawY)
-                Translation2d(rawX, y)
-            } else {
-                //Both axes are not snapping, but the magnitude > 1 meaning that one or both axes are inaccurate. (Joystick is drifting or warping)
-                //We will assume the joystick magnitude equals 1 and assume both axes are untrustworthy.
-                //To get the correct angle, we will perform a weighted average between the raw and calculated axes.
-                //Larger raw axis values are untrustworthy. A raw axis value is used as the weight for the calculated axis provided by the opposing (perpendicular) axis.
-                //In the weighted average: rawX is used as the weight for xCalc (xCalc was calculated using rawY)
-
-                val xCalc = sqrt(1 - rawY.square()).withSign(rawX)
-                val yCalc = sqrt(1 - rawX.square()).withSign(rawY)
-                val yConfidence = rawX.absoluteValue
-                val xConfidence = rawY.absoluteValue
-                val totalWeight = (yConfidence + xConfidence)
-
-                val x = (rawX * xConfidence + xCalc * yConfidence) / totalWeight
-                val y = (rawY * yConfidence + yCalc * xConfidence) / totalWeight
-
-                Translation2d(x, y)
-            }
-        } else {
-            Translation2d(rawX, rawY)
-        }
-    }
 
     inline val CommandXboxController.a: Boolean get() = this.hid.aButton
     inline val CommandXboxController.b: Boolean get() = this.hid.bButton

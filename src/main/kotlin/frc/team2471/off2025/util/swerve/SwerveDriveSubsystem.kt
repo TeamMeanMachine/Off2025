@@ -405,18 +405,12 @@ abstract class SwerveDriveSubsystem(
 
 
     /**
-     * Drives the robot using the joystick.
+     * Drives the robot using the joystick. [getChassisSpeedsFromJoystick]
      */
     fun joystickDrive(): Command {
         return run {
-            LoopLogger.record("b4 joystickDrive")
-            // Get linear velocity
-            val chassisSpeeds = getChassisSpeedsFromJoystick()
-
-            //send it
-            driveVelocity(chassisSpeeds)
-
-            LoopLogger.record("joystickDrive")
+            //get chassis speeds and send it
+            driveVelocity(getChassisSpeedsFromJoystick())
         }
     }
 

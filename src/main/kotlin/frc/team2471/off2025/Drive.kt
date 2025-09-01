@@ -103,18 +103,17 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     /**
      * Returns [ChassisSpeeds] with a percentage power from the driver controller.
-     * Performs [OI.unsnapAndDesaturateJoystick] to undo axis snapping and does squaring/cubing on the vectors.
      */
     override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
-        //make joystick pure circle
-        val joystick = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+        val rawJoystick = OI.rawDriveTranslation
+        // Square drive input and apply demoSpeed
+        val power = rawJoystick.norm.square() * demoSpeed
+        // Apply modified power to joystick vector and flip depending on alliance
+        val joystickTranslation = rawJoystick * power * if (isBlueAlliance) -1.0 else 1.0
 
-        //square drive input
-        val power = joystick.norm.square() * demoSpeed * if (isBlueAlliance) -1.0 else 1.0
-        val joystickTranslation = joystick * power
-
-        //cube rotation input
-        val omega = OI.driveRotation.cube() * demoSpeed
+        val rawJoystickRotation = OI.driveRotation
+        // Cube rotation input and apply demoSpeed
+        val omega = rawJoystickRotation.cube() * demoSpeed
 
         return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
     }

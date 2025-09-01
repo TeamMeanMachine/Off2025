@@ -134,7 +134,7 @@ object Armavator: SubsystemBase() {
         set(value) {
             field = value.unWrap(pivotMotorAngle)
             pivotMotor.setControl(MotionMagicVoltage(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
-            println("pivot angle setpoint: ${field.asDegrees}")
+//            println("pivot angle setpoint: ${field.asDegrees}")
         }
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees

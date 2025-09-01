@@ -11,7 +11,6 @@ import frc.team2471.off2025.util.beforeRun
 import frc.team2471.off2025.util.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger
-import java.util.Timer
 
 
 fun joystickTest(): Command {
@@ -19,7 +18,7 @@ fun joystickTest(): Command {
 
 
     return Commands.run({
-        val translation = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+        val translation = OI.rawDriveTranslation
         if (translation.norm > 0.5) {
             if (Math.random() > 0.5) {
 //                joystickValues.clear()
