@@ -58,7 +58,9 @@ import frc.team2471.off2025.util.units.feetPerSecondPerSecond
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.units.metersPerSecond
+import frc.team2471.off2025.util.units.metersPerSecondPerSecond
 import frc.team2471.off2025.util.units.perSecond
+import frc.team2471.off2025.util.units.radians
 import frc.team2471.off2025.util.units.radiansPerSecond
 import frc.team2471.off2025.util.units.seconds
 import frc.team2471.off2025.util.units.volts
@@ -70,7 +72,7 @@ import kotlin.math.min
 
 abstract class SwerveDriveSubsystem(
     driveConstants: SwerveDrivetrainConstants,
-    vararg moduleConstants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+    vararg val moduleConstants: SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
 ): SwerveDrivetrain<LoggedTalonFX, LoggedTalonFX, CANcoder>(
     { deviceId: Int, canbus: String? -> LoggedTalonFX(deviceId, canbus) },
     { deviceId: Int, canbus: String? -> LoggedTalonFX(deviceId, canbus) },
@@ -253,7 +255,8 @@ abstract class SwerveDriveSubsystem(
         LoopLogger.record("b4 super drive")
         updateSavedState() // Refresh so we get current data
         LoopLogger.record("drive state set")
-        gyroDisconnectedAlert.set(!gyro.isConnected)
+        val gyroConnected = gyro.isConnected
+        gyroDisconnectedAlert.set(!gyroConnected)
         LoopLogger.record("b4 gyro connect")
 
         // Check if a part of any modules have been disconnected. Save on cycle time by only checking one module every loop.
@@ -267,14 +270,29 @@ abstract class SwerveDriveSubsystem(
 
         // Calculate acceleration and jerk
         val currTime = Timer.getFPGATimestamp()
-        val currVelocity = velocity
         val prevAcceleration = acceleration
         val deltaTime = currTime - prevTime
 
-        acceleration = ((currVelocity - prevVelocity) / deltaTime).perSecond
+        // To have higher frequency acceleration, we grab directly from the drive motor.
+        // Although during sim, the motor's acceleration doesn't get updated (as of 2025), so we manually calculate it from ∆velocity.
+        if (isReal) {
+            acceleration = kinematics.toChassisSpeeds(*moduleStates.mapIndexed { i, m -> m.apply {
+                speedMetersPerSecond = modules[i].driveMotor.acceleration.valueAsDouble * moduleConstants[i].DriveMotorGearRatio * moduleConstants[i].WheelRadius
+            } }.toTypedArray()).translation.metersPerSecondPerSecond
+        } else {
+            val currVelocity = velocity
+            acceleration = ((currVelocity - prevVelocity) / deltaTime).perSecond
+            prevVelocity = currVelocity
+        }
+
         jerk = ((acceleration - prevAcceleration) / deltaTime).perSecond
 
-        prevVelocity = currVelocity
+        // Calculate heading from swerve odometry when gyro is disconnected.
+        if (!gyroConnected && isReal) {
+            val deltaYaw = kinematics.toChassisSpeeds(*moduleStates).omegaRadiansPerSecond * deltaTime
+            resetRotation(heading + deltaYaw.radians.asRotation2d)
+        }
+
         prevTime = currTime
     }
 
@@ -289,12 +307,12 @@ abstract class SwerveDriveSubsystem(
 
     override fun resetTranslation(translation: Translation2d?) {
         super.resetTranslation(translation)
-        updateSavedState() // Refresh so we see an instant response.
+        updateSavedState() // Refresh state so we see an instant response.
     }
 
     override fun resetRotation(rotation: Rotation2d?) {
         super.resetRotation(rotation)
-        updateSavedState() // Refresh so we see an instant response.
+        updateSavedState() // Refresh state so we see an instant response.
     }
 
     /**

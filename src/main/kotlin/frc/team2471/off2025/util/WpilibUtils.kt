@@ -11,7 +11,7 @@ inline val ChassisSpeeds.translation: Translation2d get() = Translation2d(this.v
 fun ChassisSpeeds.fieldToRobotCentric(heading: Rotation2d): ChassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(this, heading)
 fun ChassisSpeeds.robotToFieldCentric(heading: Rotation2d): ChassisSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(this, heading)
 fun SwerveDriveKinematics.toChassisSpeedsK(speeds: Array<SwerveModuleState>): ChassisSpeeds {
-    return this.toChassisSpeeds(*speeds) //Intellij thinks this is an error. which is lame...
+    return this.toChassisSpeeds(*speeds) //Intellij sometimes thinks this is an error. which is lame...
 }
 
 /** Sometimes the sim GUI doesn't detect an Xbox controller as a gamepad and does not bind it as such. [simBeingDumb] attempts to rebind the joystick as if the "map gamepad" button was pressed. */
