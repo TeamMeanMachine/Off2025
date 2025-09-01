@@ -17,14 +17,12 @@ import frc.team2471.off2025.util.units.feet
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.units.meters
-import frc.team2471.off2025.util.mirrorYAxis
-import frc.team2471.off2025.util.round
-import frc.team2471.off2025.util.toPose2d
+import frc.team2471.off2025.util.math.mirrorYAxis
+import frc.team2471.off2025.util.math.round
+import frc.team2471.off2025.util.math.toPose2d
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.Logger
-import kotlin.text.compareTo
-import kotlin.times
 
 object FieldManager {
     val aprilTagFieldLayout: AprilTagFieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)

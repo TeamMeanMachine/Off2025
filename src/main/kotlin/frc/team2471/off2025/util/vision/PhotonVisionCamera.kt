@@ -7,6 +7,7 @@ import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.isReal
+import frc.team2471.off2025.util.isSim
 import org.ejml.simple.SimpleMatrix
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
@@ -66,7 +67,7 @@ class PhotonVisionCamera(
     }
 
     init {
-        setPipelineIndex(0)
+        if (isSim) setPipelineIndex(0)
         QuixVisionSim.addCamera(this)
     }
 

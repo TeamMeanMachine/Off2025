@@ -13,9 +13,9 @@ import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.round
-import frc.team2471.off2025.util.runOnce
-import frc.team2471.off2025.util.sequenceCommand
+import frc.team2471.off2025.util.math.round
+import frc.team2471.off2025.util.control.sequenceCommand
+import frc.team2471.off2025.util.control.toCommand
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import kotlin.collections.forEach
 import kotlin.io.path.listDirectoryEntries
@@ -44,7 +44,7 @@ object Autonomous {
         addOption("Armavator Pivot SysId ALL", Armavator.sysIDPivot())
     }
 
-    val autonomousCommand: Command? get() = if (!Drive.demoMode) autoChooser.get()?.invoke() else runOnce { println("DEMO MODE: I'm not running auto, no killing kids today.") }
+    val autonomousCommand: Command? get() = if (!Drive.demoMode) autoChooser.get()?.invoke() else ({ println("DEMO MODE: I'm not running auto, no killing kids today.") }).toCommand()
     val testCommand: Command? get() = testChooser.get()
 
     /**
@@ -130,15 +130,15 @@ object Autonomous {
         val path = paths["3 L4 Right"]!!
         return sequenceCommand(
             Drive.driveAlongChoreoPath(path.getSplit(0).get(), poseSupplier = {Drive.localizer.singleTagPose}, resetOdometry = true),
-            runOnce { println("L4 Score 1") },
+            { println("L4 Score 1") }.toCommand(),
             Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = {Drive.localizer.pose}),
-            runOnce { println("Intake") },
+            { println("Intake") }.toCommand(),
             Drive.driveAlongChoreoPath(path.getSplit(2).get(), poseSupplier = {Drive.localizer.singleTagPose}),
-            runOnce { println("L4 Score 2") },
+            { println("L4 Score 2") }.toCommand(),
             Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = {Drive.localizer.pose}),
-            runOnce { println("Intake") },
+            { println("Intake") }.toCommand(),
             Drive.driveAlongChoreoPath(path.getSplit(4).get(), poseSupplier = {Drive.localizer.singleTagPose}),
-            runOnce { println("L4 Score 3") },
+            { println("L4 Score 3") }.toCommand(),
         )
     }
 }

@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util
+package frc.team2471.off2025.util.math
 
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d

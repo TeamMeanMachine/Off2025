@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util
+package frc.team2471.off2025.util.control
 
 import edu.wpi.first.wpilibj.Timer
 import org.littletonrobotics.junction.Logger

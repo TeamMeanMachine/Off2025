@@ -10,9 +10,9 @@ import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.ctre.ApplyModuleStates
-import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.units.asRotation2d
-import frc.team2471.off2025.util.cube
+import frc.team2471.off2025.util.math.cube
 import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
@@ -20,7 +20,7 @@ import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.localization.PoseLocalizer
-import frc.team2471.off2025.util.square
+import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PhotonVisionCamera

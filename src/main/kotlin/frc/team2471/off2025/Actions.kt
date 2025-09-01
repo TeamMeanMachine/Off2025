@@ -1,31 +1,28 @@
 package frc.team2471.off2025
 
 import edu.wpi.first.wpilibj2.command.Command
-import edu.wpi.first.wpilibj2.command.RunCommand
-import frc.team2471.off2025.util.parallelCommand
-import frc.team2471.off2025.util.runCommand
-import frc.team2471.off2025.util.runOnce
-import frc.team2471.off2025.util.sequenceCommand
+import frc.team2471.off2025.util.control.finallyRun
+import frc.team2471.off2025.util.control.parallelCommand
+import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
-import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
-import frc.team2471.off2025.util.waitUntilCommand
-import kotlin.text.compareTo
+import frc.team2471.off2025.util.control.waitUntilCommand
 
 fun groundIntake(isFlipped: Boolean): Command {
-    return runOnce(Armavator){
+    return runCommand(Armavator) {
+        println("going to ground intake")
         Intake.scoreAlgae = false
         Armavator.goToPose(Pose.INTAKE_GROUND, isFlipped)
         Intake.intakeState = IntakeState.INTAKING
-    }
+    }.finallyRun { goToDrivePose() }
 }
 
-fun goToDrivePose(): Command {
-    return runOnce(Armavator ){
-        Armavator.goToPose(Pose.DRIVE)
-        Intake.intakeState = IntakeState.HOLDING
-    }
+fun goToDrivePose() {
+    println("going to drive pose")
+    Armavator.goToPose(Pose.DRIVE)
+    Intake.intakeState = IntakeState.HOLDING
 }
 
 fun ampAlign(): Command {
@@ -33,19 +30,21 @@ fun ampAlign(): Command {
     return parallelCommand(
         Drive.driveToPoint(ampAlignPoint, { Drive.localizer.pose}),
         sequenceCommand(
-                       waitUntilCommand{ ampAlignPoint.translation.getDistance(Drive.localizer.pose.translation) < 3.0.inches.asMeters },
+            waitUntilCommand { ampAlignPoint.translation.getDistance(Drive.localizer.pose.translation) < 3.0.inches.asMeters },
             runCommand(Armavator ){
                 Intake.scoreAlgae = true
-                Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0) }
+                Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0)
+            }
         )
     )
 }
 
 fun coralStationIntake(): Command {
     return runCommand(Armavator, Drive) {
+        println("coral station intake")
         val alignmentAngleAndFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose)
         Drive.driveAtAngle(alignmentAngleAndFlipped.first.asRotation2d)
         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, alignmentAngleAndFlipped.second)
         Intake.intakeState = IntakeState.INTAKING
-    }.andThen(goToDrivePose())
+    }.finallyRun { goToDrivePose() }
 }

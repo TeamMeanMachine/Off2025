@@ -5,10 +5,14 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.control.MeanCommandXboxController
+import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.toCommand
+import frc.team2471.off2025.util.math.deadband
+import frc.team2471.off2025.util.math.normalize
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
 import kotlin.math.absoluteValue
@@ -82,7 +86,7 @@ object OI: SubsystemBase("OI") {
         Drive.defaultCommand = Drive.joystickDrive()
 
 
-        driverController.a().onTrue(goToDrivePose())
+        driverController.a().onTrue(::goToDrivePose.toCommand(Armavator))
 //        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
 //        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE_PIVOT_ONE_THIRD_TEST)})
 //        driverController.y().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE_PIVOT_TWO_THIRDS_TEST)})
@@ -99,15 +103,15 @@ object OI: SubsystemBase("OI") {
                 FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
                 (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
             ) })
+        driverController.b().whileTrue(coralStationIntake())
+        driverController.x().whileTrue(defer { ampAlign() })
 
 /*        driverController.a().onTrue(runOnce {
             Drive.questSimConnected = !Drive.questSimConnected
             println("questSimConnected = ${Drive.questSimConnected}")
         })*/
 
-        driverController.b().whileTrue(coralStationIntake())
-
-        driverController.rightTrigger(0.9).whileTrue(runCommand{ Intake.score()})
+        driverController.rightTrigger(0.9).whileTrue(runCommand { Intake.score() })
 
         driverController.leftBumper().whileTrue(groundIntake(false))
         driverController.rightBumper().whileTrue(groundIntake(true))
@@ -120,27 +124,19 @@ object OI: SubsystemBase("OI") {
         driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
         driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
 
-        driverController.x().whileTrue(defer { ampAlign() })
         // Switch to X pattern when X button is pressed
     //    driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
-//        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
-//        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
-//        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
-//        driverController.povDown().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
-
         // Reset gyro to 0° when B button is pressed
-        driverController.back().onTrue(
-            runOnceCommand(Drive) {
+        driverController.back().onTrue({
                 println("zero gyro")
                 Drive.zeroGyro()
-            }.ignoringDisable(true))
+            }.toCommand(Drive).ignoringDisable(true))
 
         // Reset position to zero
-        driverController.start().onTrue(
-            runOnceCommand(Drive) {
-                Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
-            }.ignoringDisable(true))
+        driverController.start().onTrue( {
+            Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
+        }.toCommand(Drive).ignoringDisable(true))
     }
 
     override fun periodic() {
@@ -149,31 +145,4 @@ object OI: SubsystemBase("OI") {
         operatorNotConnectedAlert.set(operatorDebouncer.calculate(operatorController.isConnected))
         LoopLogger.record("OI piodc")
     }
-
-
-    inline val CommandXboxController.a: Boolean get() = this.hid.aButton
-    inline val CommandXboxController.b: Boolean get() = this.hid.bButton
-    inline val CommandXboxController.x: Boolean get() = this.hid.xButton
-    inline val CommandXboxController.y: Boolean get() = this.hid.yButton
-
-    inline val CommandXboxController.rightBumper: Boolean get() = this.hid.rightBumperButton
-    inline val CommandXboxController.leftBumper: Boolean get() = this.hid.leftBumperButton
-
-    inline val CommandXboxController.start: Boolean get() = this.hid.startButton
-    inline val CommandXboxController.back: Boolean get() = this.hid.backButton
-
-    inline val CommandXboxController.dPad: Direction get() = when (this.hid.pov) {
-            -1 -> Direction.IDLE
-            0 -> Direction.UP
-            45 -> Direction.UP_RIGHT
-            90 -> Direction.RIGHT
-            135 -> Direction.DOWN_RIGHT
-            180 -> Direction.DOWN
-            225 -> Direction.DOWN_LEFT
-            270 -> Direction.LEFT
-            315 -> Direction.UP_LEFT
-            else -> throw IllegalStateException("Invalid DPAD value ${this.hid.pov}")
-    }
-
-    enum class Direction { IDLE, UP, UP_RIGHT, RIGHT, DOWN_RIGHT, DOWN, DOWN_LEFT, LEFT, UP_LEFT }
 }

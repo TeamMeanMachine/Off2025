@@ -2,7 +2,6 @@ package frc.team2471.off2025.tests
 
 import com.ctre.phoenix6.SignalLogger
 import com.ctre.phoenix6.controls.VoltageOut
-import com.ctre.phoenix6.swerve.SwerveRequest.SysIdSwerveSteerGains
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Timer.delay
 import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog
@@ -12,8 +11,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.Armavator
 import frc.team2471.off2025.Pose
-import frc.team2471.off2025.util.beforeWait
-import frc.team2471.off2025.util.sequenceCommand
+import frc.team2471.off2025.util.control.beforeWait
+import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.seconds
 import frc.team2471.off2025.util.units.volts

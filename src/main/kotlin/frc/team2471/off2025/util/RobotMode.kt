@@ -4,6 +4,7 @@ import edu.wpi.first.hal.HALUtil
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.RuntimeType
 
+/** Stores basic robot information like Alliance color and isReal/Sim/Replay */
 
 val doReplay: Boolean = false
 val robotMode: RobotMode = when (RuntimeType.getValue(HALUtil.getHALRuntimeType())) {

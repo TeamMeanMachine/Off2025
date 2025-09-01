@@ -5,10 +5,11 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
-import frc.team2471.off2025.OI.dPad
 import frc.team2471.off2025.Drive
-import frc.team2471.off2025.util.beforeRun
-import frc.team2471.off2025.util.runCommand
+import frc.team2471.off2025.util.control.Direction
+import frc.team2471.off2025.util.control.beforeRun
+import frc.team2471.off2025.util.control.dPad
+import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.translation
 import org.littletonrobotics.junction.Logger
 
@@ -35,16 +36,16 @@ fun velocityVoltTest(): Command {
     var upPressed = false
     var downPressed = false
     return runCommand(Drive) {
-        if (OI.driverController.dPad == OI.Direction.UP) {
+        if (OI.driverController.dPad == Direction.UP) {
             upPressed = true
-        } else if (OI.driverController.dPad == OI.Direction.DOWN) {
+        } else if (OI.driverController.dPad == Direction.DOWN) {
             downPressed = true
         }
-        if (OI.driverController.dPad != OI.Direction.UP && upPressed) {
+        if (OI.driverController.dPad != Direction.UP && upPressed) {
             upPressed = false
             v += 0.005
         }
-        if (OI.driverController.dPad != OI.Direction.DOWN && downPressed) {
+        if (OI.driverController.dPad != Direction.DOWN && downPressed) {
             downPressed = false
             v -= 0.005
         }

@@ -12,7 +12,7 @@ import edu.wpi.first.math.geometry.Twist2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.kinematics.SwerveModuleState
-import frc.team2471.off2025.util.epsilonEquals
+import frc.team2471.off2025.util.math.epsilonEquals
 import kotlin.collections.ArrayList
 import kotlin.collections.MutableList
 import kotlin.collections.indices

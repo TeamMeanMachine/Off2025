@@ -17,6 +17,7 @@ import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Preferences
 import frc.team2471.off2025.util.ctre.getMagnetSensorOffset
+import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asFeet
 import frc.team2471.off2025.util.units.asMeters
@@ -28,7 +29,7 @@ import frc.team2471.off2025.util.units.feetPerSecond
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.units.radiansPerSecond
-import frc.team2471.off2025.util.round
+import frc.team2471.off2025.util.math.round
 import frc.team2471.off2025.util.units.rpm
 import frc.team2471.off2025.util.units.volts
 import kotlin.math.roundToInt
@@ -149,7 +150,8 @@ object TunerConstants {
              * The remote sensor feedback type to use for the steer motors;
              * When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically fall back to RemoteCANcoder
             */
-            FeedbackSource = SwerveModuleConstants.SteerFeedbackType.SyncCANcoder
+            // Sync doesn't work in sim
+            FeedbackSource = if (isReal) SwerveModuleConstants.SteerFeedbackType.SyncCANcoder else SwerveModuleConstants.SteerFeedbackType.FusedCANcoder
 
             /** Moment of Inertia. Only used in simulation */
             DriveInertia = 0.025

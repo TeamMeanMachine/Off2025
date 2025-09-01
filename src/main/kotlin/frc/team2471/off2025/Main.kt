@@ -7,7 +7,7 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.ctre.loggedTalonFX.MasterMotor
 import frc.team2471.off2025.util.robotMode
@@ -109,7 +109,8 @@ object Robot : LoggedRobot() {
 
     fun enabledInit() {
         Drive.brakeMode()
-        intake.intakeState = IntakeState.HOLDING
+        Intake.intakeState = IntakeState.HOLDING
+        Armavator.goToPose(Pose.current)
     }
 
     /** This function is called once when the robot is disabled.  */

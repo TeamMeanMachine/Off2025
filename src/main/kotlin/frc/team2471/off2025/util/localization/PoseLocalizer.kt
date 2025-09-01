@@ -13,7 +13,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineVisionPacket

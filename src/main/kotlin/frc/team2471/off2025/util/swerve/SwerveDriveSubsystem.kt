@@ -40,12 +40,24 @@ import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.control.beforeRun
+import frc.team2471.off2025.util.control.beforeWait
+import frc.team2471.off2025.util.control.finallyRun
+import frc.team2471.off2025.util.control.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.ctre.setCANCoderAngle
 import frc.team2471.off2025.util.ctre.loggedTalonFX.LoggedTalonFX
+import frc.team2471.off2025.util.math.deadband
+import frc.team2471.off2025.util.math.findClosestPointOnLine
+import frc.team2471.off2025.util.math.normalize
+import frc.team2471.off2025.util.math.round
+import frc.team2471.off2025.util.math.toPose2d
 import frc.team2471.off2025.util.units.Gs
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asInches
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asMetersPerSecond
 import frc.team2471.off2025.util.units.asRadiansPerSecond
@@ -447,25 +459,33 @@ abstract class SwerveDriveSubsystem(
         maxVelocity: LinearVelocity = maxSpeed
     ): Command {
         var distanceToPose: Double = Double.POSITIVE_INFINITY
+        var translationToPose = Translation2d()
 
         Logger.recordOutput("Drive/DriveToPoint/Point", wantedPose)
 
 
         return run {
-            val translationToPose = wantedPose.translation.minus(poseSupplier().translation)
-            distanceToPose = translationToPose.norm
+//            println("running drive to point error ${distanceToPose.meters.asInches}")
             val pidController = if (DriverStation.isAutonomous()) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
             driveAtAngle(wantedPose.rotation, wantedVelocity)
-        }.until {
+        }.onlyRunWhileFalse {
+//            println("checking exit error ${distanceToPose.meters.asInches}")
+            translationToPose = wantedPose.translation.minus(poseSupplier().translation)
+            distanceToPose = translationToPose.norm
+
             val distanceError = distanceToPose.meters
             val headingError = (wantedPose.rotation - poseSupplier().rotation).measure.absoluteValue()
 
             Logger.recordOutput("Drive/DriveToPoint/DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint/HeadingError", headingError)
 
-            exitSupplier(distanceError, headingError)
+            val result = exitSupplier(distanceError, headingError)
+            if (result) {
+                println("stopping driveToPoint. Distance error ${distanceError.asInches.round(2)}in. Heading error ${headingError.asDegrees.round(2)}deg.")
+            }
+            result
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/DriveToPoint/Point", Pose2d())
@@ -498,8 +518,13 @@ abstract class SwerveDriveSubsystem(
             Logger.recordOutput("Drive/AutoPilot/Velocity", velocity.norm)
 
             driveAtAngle(output.targetAngle(), velocity)
-        }.until {
-            autoPilot.atTarget(poseSupplier(), target)
+        }.onlyRunWhileFalse {
+            val pose = poseSupplier()
+            val result = autoPilot.atTarget(pose, target)
+            if (result) {
+                println("Stopping driveToAutopilotPoint error meters/rad: ${pose - target.reference}")
+            }
+            result
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/AutoPilot/Target", Pose2d())
@@ -590,14 +615,15 @@ abstract class SwerveDriveSubsystem(
             runOnce {
                 println("driveToPointOnLine")
 
-                closestPoseOnLine = findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation).toPose2d(heading)
+                closestPoseOnLine =
+                    findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation).toPose2d(heading)
 
                 Logger.recordOutput("Drive/ToPointOnLine/Points", *arrayOf(pointOne, pointTwo))
                 Logger.recordOutput("Drive/ToPointOnLine/ClosestPose", closestPoseOnLine)
             },
             Commands.either(
                 defer { driveToPoint(closestPoseOnLine!!, poseSupplier, maxVelocity = maxVelocity) },
-                defer { driveToPoint(closestPoseOnLine!!, poseSupplier,exitSupplier!!, maxVelocity) },
+                defer { driveToPoint(closestPoseOnLine!!, poseSupplier, exitSupplier!!, maxVelocity) },
                 { exitSupplier == null })
         ).finallyRun {
             Logger.recordOutput("Drive/ToPointOnLine/Points", *arrayOf<Translation2d>())
@@ -666,7 +692,7 @@ abstract class SwerveDriveSubsystem(
             t = 0.0
 
             timer.restart()
-        }.until {
+        }.onlyRunWhileFalse {
             val p = t / totalTime
             Logger.recordOutput("Drive/Path/Done %", p)
             exitSupplier(p)
