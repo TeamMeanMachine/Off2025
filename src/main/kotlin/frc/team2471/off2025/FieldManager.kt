@@ -80,7 +80,7 @@ object FieldManager {
     private val alignL1Offset = Transform2d(19.0.inches, 19.0.inches, Rotation2d())
 
     // Algae
-    private val alignAlgaeOffset = Transform2d(30.0.inches, -6.5.inches, Rotation2d())
+    private val alignAlgaeOffset = Transform2d(28.0.inches, 6.5.inches, Rotation2d())
 
     // Barge
     private val blueBargeAlignX = 25.0.feet
@@ -115,7 +115,7 @@ object FieldManager {
             alignPositionsLeftL4Blue.add(face, alignPositionsLeftL4Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
             alignPositionsL1Blue.add(face, alignPositionsL1Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
 
-            val algaeLevel = if (face.mod(2) == 1) AlgaeLevel.HIGH else AlgaeLevel.LOW
+            val algaeLevel = if (face.mod(2) == 0) AlgaeLevel.HIGH else AlgaeLevel.LOW
             alignPositionsAlgaeRed.add(face, Pair(tagPose.transformBy(alignAlgaeOffset), algaeLevel))
             alignPositionsAlgaeBlue.add(face, Pair(alignPositionsAlgaeRed[face].first.rotateAround(fieldCenter, 180.0.degrees.asRotation2d), algaeLevel))
         }
@@ -193,6 +193,7 @@ object FieldManager {
                 poseAndDistance = Pair(it, distance)
             }
         }
+        // optimize rotation
         var closestPose = poseAndDistance.first
         if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
             closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
@@ -209,6 +210,22 @@ object FieldManager {
         return unwrappedPose
     }
 
+    fun getClosestReefAlgae(robotPose: Pose2d): Pair<Pose2d, AlgaeLevel> {
+        val algaeAlignPoses = if (isRedAlliance) alignPositionsAlgaeRed else alignPositionsAlgaeBlue
+        algaeAlignPoses.sortBy { it.first.translation.getDistance(robotPose.translation) }
+        var closestPose = algaeAlignPoses.first()
+
+        if ((robotPose.rotation.measure - closestPose.first.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            closestPose = Pair(
+                Pose2d(
+                    closestPose.first.translation,
+                    closestPose.first.rotation.rotateBy(180.0.degrees.asRotation2d)
+                ), closestPose.second
+            )
+        }
+
+        return closestPose
+    }
 
     /**
      * Reflects [Translation2d] across the midline of the field. Useful for mirrored field layouts (2023, 2024).

@@ -195,8 +195,8 @@ object Armavator: SubsystemBase() {
 //                GravityType = GravityTypeValue.Elevator_Static
             }
             MotionMagic.apply {
-                MotionMagicAcceleration = 25.0 * ELEVATOR_REVOLUTIONS_PER_INCH
-                MotionMagicCruiseVelocity = 35.0 * ELEVATOR_REVOLUTIONS_PER_INCH
+                MotionMagicAcceleration = 150.0
+                MotionMagicCruiseVelocity = 35.0
             }
         })
 

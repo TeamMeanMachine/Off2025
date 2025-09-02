@@ -104,7 +104,8 @@ object OI: SubsystemBase("OI") {
                 (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
             ) })
         driverController.b().whileTrue(coralStationIntake())
-        driverController.x().whileTrue(defer { ampAlign() })
+//        driverController.x().whileTrue(defer { ampAlign() })
+        driverController.x().whileTrue(defer { algaeDescore() })
 
 /*        driverController.a().onTrue(runOnce {
             Drive.questSimConnected = !Drive.questSimConnected

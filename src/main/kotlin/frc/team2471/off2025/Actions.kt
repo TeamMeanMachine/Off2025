@@ -9,6 +9,7 @@ import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.control.waitUntilCommand
+import frc.team2471.off2025.util.units.feet
 
 fun groundIntake(isFlipped: Boolean): Command {
     return runCommand(Armavator) {
@@ -47,4 +48,20 @@ fun coralStationIntake(): Command {
         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, alignmentAngleAndFlipped.second)
         Intake.intakeState = IntakeState.INTAKING
     }.finallyRun { goToDrivePose() }
+}
+
+fun algaeDescore(): Command {
+    val alignPoseAndLevel = FieldManager.getClosestReefAlgae(Drive.localizer.pose)
+    return parallelCommand(
+        Drive.driveToPoint(alignPoseAndLevel.first, { Drive.localizer.singleTagPose }),
+        sequenceCommand(
+            waitUntilCommand { alignPoseAndLevel.first.translation.getDistance(Drive.localizer.singleTagPose.translation) < 2.0.feet.asMeters },
+            runCommand(Armavator) {
+                Intake.intakeState = IntakeState.REVERSING
+                Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH)
+            }
+        )
+    ).finallyRun {
+        goToDrivePose()
+    }
 }

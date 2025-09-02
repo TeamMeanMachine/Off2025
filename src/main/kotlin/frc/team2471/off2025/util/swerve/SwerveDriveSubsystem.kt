@@ -645,7 +645,7 @@ abstract class SwerveDriveSubsystem(
         resetOdometry: Boolean = false,
         exitSupplier: (Double) -> Boolean = { it >= 1.0 }
     ): Command {
-        val totalTime = path.totalTime
+        var totalTime = 0.0
         var t = 0.0
         val timer = Timer()
 
@@ -680,6 +680,7 @@ abstract class SwerveDriveSubsystem(
                 }
             )
         }.beforeRun {
+            totalTime = path.totalTime
             if (resetOdometry) {
                 pose = path.getInitialPose(false).get()
             }
