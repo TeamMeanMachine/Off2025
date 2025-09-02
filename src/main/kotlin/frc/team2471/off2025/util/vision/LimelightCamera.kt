@@ -47,32 +47,33 @@ class LimelightCamera(
 
     override fun updateInputs() {
         val corners = NetworkTableInstance.getDefault().getTable(cameraName).getEntry("tcornxy").getDoubleArray(doubleArrayOf())
+        val fiducials = NetworkTableInstance.getDefault().getTable(cameraName).getEntry("rawfiducials").getDoubleArray(doubleArrayOf())
 
-        if (corners.size >= 8) {
+        if (corners.size >= 8 && fiducials.size >= 6) {
             val targets = mutableListOf<PhotonTrackedTarget>()
-            for (i in corners.indices step 8) {
+            for (i in 0..(corners.size / 8)-1) {
                 targets.add(PhotonTrackedTarget(
                     0.0, //camToTag[4],
                     0.0, //camToTag[3],
                     0.0, //LimelightHelpers.getTA(cameraName),
                     0.0, //camToTag[5],
-                    0, //LimelightHelpers.getFiducialID(cameraName).toInt(),
+                    fiducials[i * 6].toInt(), //LimelightHelpers.getFiducialID(cameraName).toInt(),
                     0,
                     0.0F,
                     Transform3d(), //robotToTag,
                     Transform3d(), //robotToTag,
                     0.0,
                     mutableListOf<TargetCorner>(
-                        TargetCorner(corners[i], corners[i + 1]),
-                        TargetCorner(corners[i + 2], corners[i + 3]),
-                        TargetCorner(corners[i + 4], corners[i + 5]),
-                        TargetCorner(corners[i + 6], corners[i + 7]),
+                        TargetCorner(corners[(i * 8)], corners[(i * 8) + 1]),
+                        TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
+                        TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
+                        TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
                     ),
                     mutableListOf<TargetCorner>(
-                        TargetCorner(corners[i + 0], corners[i + 1]),
-                        TargetCorner(corners[i + 2], corners[i + 3]),
-                        TargetCorner(corners[i + 4], corners[i + 5]),
-                        TargetCorner(corners[i + 6], corners[i + 7]),
+                        TargetCorner(corners[(i * 8) + 0], corners[(i * 8) + 1]),
+                        TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
+                        TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
+                        TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
                     )
                 ))
             }
