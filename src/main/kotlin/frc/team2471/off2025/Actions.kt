@@ -41,7 +41,18 @@ fun ampAlign(): Command {
     )
 }
 fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Command {
-    return runOnce {}
+    return parallelCommand(
+          Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, level, side), { Drive.localizer.singleTagPose}),
+        runCommand(Armavator){
+            val pose = when (level){
+                FieldManager.Level.L1 -> Pose.SCORE_L1
+                FieldManager.Level.L2 -> Pose.SCORE_L2
+                FieldManager.Level.L3 -> Pose.SCORE_L3
+                FieldManager.Level.L4 -> Pose.SCORE_L4
+            }
+            Armavator.goToPose(pose)
+        }
+    )
 }
 
 fun coralStationIntake(): Command {

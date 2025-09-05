@@ -117,13 +117,13 @@ object OI: SubsystemBase("OI") {
         driverController.leftBumper().whileTrue(groundIntake(false))
         driverController.rightBumper().whileTrue(groundIntake(true))
 
-        driverController.leftStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose }) })
-        driverController.rightStick ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
+        driverController.leftStick ().whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
+        driverController.rightStick ().whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
 
-        driverController.povUp ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
-        driverController.povRight ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
-        driverController.povLeft ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.LEFT), { Drive.localizer.singleTagPose})})
-        driverController.povDown ().whileTrue(defer { Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT), { Drive.localizer.singleTagPose})})
+        driverController.povUp ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.LEFT) })
+        driverController.povRight ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT) })
+        driverController.povLeft ().whileTrue(defer { alignToScore(FieldManager.Level.L2, FieldManager.ScoringSide.LEFT) })
+        driverController.povDown ().whileTrue(defer { alignToScore(FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT) })
 
         // Switch to X pattern when X button is pressed
     //    driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))

@@ -42,6 +42,7 @@ import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
@@ -293,7 +294,9 @@ object Armavator: SubsystemBase() {
 
         Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
         Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
-
+//        if ((elevatorEncoderHeight.asInches - currentHeight.asInches).absoluteValue > 0.5){
+//            elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
+//        }
         elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
 
         if (periodicFeedForward) {
