@@ -29,16 +29,18 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
     override fun updateInputs(inputs: VisionIO.VisionIOInputs) {
 
         val heartbeat = heartbeatSub.get()
-        inputs.isConnected = heartbeat != 0.0 && prevHeartbeats[2] != heartbeat
+        if (heartbeat != 0.0 && prevHeartbeats[2] != heartbeat) {
+            if (!inputs.isConnected) {
+                onConnect()
+            }
+            inputs.isConnected = true
+        } else {
+            inputs.isConnected = false
+        }
         prevHeartbeats.add(0, heartbeat)
         prevHeartbeats.removeAt(prevHeartbeats.size - 1)
 
         inputs.mode = mode
-
-//        if (Robot.isDisabled) {
-//            LimelightHelpers.SetIMUMode(name, 1)
-            LimelightHelpers.SetRobotOrientation(name, headingSupplier.invoke().asDegrees, 0.0, 0.0, 0.0, 0.0, 0.0)
-//        }
 
         if (mode == LimelightMode.APRILTAG) {
             val llPoseEstimate =
@@ -65,9 +67,28 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
         Logger.processInputs(name, inputs)
     }
 
+    fun onConnect() {
+        /*
+            There are 5 different limelight IMU modes.
+            0: Ignores internal imu, only uses external IMU through setRobotOrientation()
+            1: Resets internal IMU to the given angle whenever setRobotOrientation() is called
+            2: Solely relies on the internal IMU
+            3: IMU_ASSIST_MT1 - uses seen AprilTags in MegaTag1 to update heading
+            4: IMU_ASSIST_EXTERNALIMU - uses external IMU for gradual heading correction.
+         */
+        // We primarily use 3, but will switch to 1 on gyro reset
+        // I want to test not even switching to 1
+        LimelightHelpers.SetIMUMode(name, 3)
+
+        if (Robot.isDisabled) {
+            LimelightHelpers.SetThrottle(name, 200)
+        } else {
+            LimelightHelpers.SetThrottle(name, 0)
+        }
+    }
+
     override fun enable() {
         LimelightHelpers.SetThrottle(name, 0)
-//        LimelightHelpers.SetIMUMode(name, 2)
     }
 
     override fun disable() {
@@ -77,7 +98,7 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
     override fun gyroReset() {
         LimelightHelpers.SetIMUMode(name, 1)
         LimelightHelpers.SetRobotOrientation(name, headingSupplier.invoke().asDegrees, 0.0, 0.0, 0.0, 0.0, 0.0)
-//        LimelightHelpers.SetIMUMode(name, 2)
+        LimelightHelpers.SetIMUMode(name, 3)
     }
 
 }
