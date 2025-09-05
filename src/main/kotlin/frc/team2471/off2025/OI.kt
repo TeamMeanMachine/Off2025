@@ -99,7 +99,7 @@ object OI: SubsystemBase("OI") {
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
-        driverController.leftBumper().whileTrue(defer { Vision.alignToGamepiece() })
+        driverController.leftBumper().onTrue(defer { Vision.alignToGamepiece { !driverController.leftBumper().asBoolean } })
 //        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
 //        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
 //        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
