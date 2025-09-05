@@ -6,13 +6,22 @@ import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
 import frc.team2471.off2025.Robot
 import frc.team2471.off2025.util.asDegrees
-import frc.team2471.off2025.util.vision.LimelightHelpers
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
 import org.littletonrobotics.junction.inputs.LoggableInputs
 
 
 class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): VisionIO {
+
+    override var mode: LimelightMode = LimelightMode.APRILTAG
+        set(value) {
+            when(value) {
+                LimelightMode.APRILTAG -> LimelightHelpers.setPipelineIndex(name, 0)
+                LimelightMode.GAMEPIECE -> LimelightHelpers.setPipelineIndex(name, 1)
+            }
+
+            field = value
+        }
 
     val heartbeatSub = NetworkTableInstance.getDefault().getTable(name).getDoubleTopic("hb").subscribe(0.0)
     var prevHeartbeats = MutableList(3) { 0.0 }
@@ -24,15 +33,34 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
         prevHeartbeats.add(0, heartbeat)
         prevHeartbeats.removeAt(prevHeartbeats.size - 1)
 
+        inputs.mode = mode
+
 //        if (Robot.isDisabled) {
 //            LimelightHelpers.SetIMUMode(name, 1)
             LimelightHelpers.SetRobotOrientation(name, headingSupplier.invoke().asDegrees, 0.0, 0.0, 0.0, 0.0, 0.0)
 //        }
 
-        val llPoseEstimate = if (Robot.beforeFirstEnable) LimelightHelpers.getBotPoseEstimate_wpiBlue(name) else LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(name)
+        if (mode == LimelightMode.APRILTAG) {
+            val llPoseEstimate =
+                if (Robot.beforeFirstEnable) LimelightHelpers.getBotPoseEstimate_wpiBlue(name) else LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(
+                    name
+                )
 
-        inputs.latestPoseEstimate = llPoseEstimate?.pose ?: Pose2d()
-        inputs.latestTimestamp = Utils.fpgaToCurrentTime(llPoseEstimate?.timestampSeconds ?: 0.0)
+            inputs.aprilTagPoseEstimate = llPoseEstimate?.pose ?: Pose2d()
+            inputs.aprilTagTimestamp = Utils.fpgaToCurrentTime(llPoseEstimate?.timestampSeconds ?: 0.0)
+            inputs.targetCorners = DoubleArray(8) { 0.0 }
+            inputs.targetCoords = DoubleArray(2) { 0.0 }
+        } else {
+            inputs.targetCoords = doubleArrayOf(
+                LimelightHelpers.getTX(name),
+                LimelightHelpers.getTY(name)
+            )
+
+            inputs.targetCorners = NetworkTableInstance.getDefault().getTable(name).getEntry("tcornxy").getDoubleArray(DoubleArray(8) { 0.0 })
+
+            inputs.aprilTagPoseEstimate = Pose2d()
+            inputs.aprilTagTimestamp = 0.0
+        }
 
         Logger.processInputs(name, inputs)
     }
@@ -50,6 +78,8 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
 }
 
 interface VisionIO {
+    var mode: LimelightMode
+
     fun updateInputs(inputs: VisionIOInputs)
     fun enable()
     fun gyroReset()
@@ -57,22 +87,46 @@ interface VisionIO {
     open class VisionIOInputs : LoggableInputs {
 
         var isConnected = false
-        var latestPoseEstimate = Pose2d()
-        var latestStdDev = 0.0
-        var latestTimestamp = 0.0
+        var mode = LimelightMode.APRILTAG
+
+        var aprilTagPoseEstimate = Pose2d()
+        var aprilTagTimestamp = 0.0
+        var targetCorners: DoubleArray = DoubleArray(8) { 0.0 }
+        var targetCoords: DoubleArray = DoubleArray(2) { 0.0 }
+
+        val targetDimensions: Pair<Double, Double>
+            get() {
+                try {
+                    val targetCornersX = targetCorners.filterIndexed { index, _ -> index % 2 == 0 }
+                    val targetCornersY = targetCorners.filterIndexed { index, _ -> index % 2 == 1 }
+
+                    return targetCornersX.max() - targetCornersX.min() to targetCornersY.max() - targetCornersY.min()
+                } catch (_: Exception) {
+                    return 0.0 to 0.0
+                }
+            }
 
         override fun toLog(table: LogTable) {
             table.put("Is Connected", isConnected)
-            table.put("Latest Pose Estimate", latestPoseEstimate)
-            table.put("Latest Timestamp", latestTimestamp)
-            table.put("Latest StdDev", latestStdDev)
+            table.put("Mode", mode)
+            table.put("AprilTag Pose Estimate", aprilTagPoseEstimate)
+            table.put("AprilTag Timestamp", aprilTagTimestamp)
+            table.put("Target Corners", targetCorners)
+            table.put("Target Coordinates", targetCoords)
         }
 
         override fun fromLog(table: LogTable) {
             isConnected = table.get("Is Connected", isConnected)
-            latestPoseEstimate = table.get("Latest Pose Estimate", latestPoseEstimate).first()
-            latestTimestamp = table.get("Latest Timestamp", latestTimestamp)
-            latestStdDev = table.get("Latest StdDev", latestStdDev)
+            mode = table.get("Mode", mode)
+            aprilTagPoseEstimate = table.get("AprilTag Pose Estimate", aprilTagPoseEstimate).first()
+            aprilTagTimestamp = table.get("AprilTag Timestamp", aprilTagTimestamp)
+            targetCorners = table.get("Target Corners", targetCorners)
+            targetCoords = table.get("Target Coordinates", targetCoords)
         }
     }
+}
+
+enum class LimelightMode {
+    APRILTAG,
+    GAMEPIECE
 }

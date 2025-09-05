@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.*
+import frc.team2471.off2025.util.vision.LimelightMode
 import kotlin.math.absoluteValue
 import kotlin.math.hypot
 import kotlin.math.sqrt
@@ -98,6 +99,7 @@ object OI: SubsystemBase("OI") {
         // Switch to X pattern when X button is pressed
         driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
 
+        driverController.leftBumper().whileTrue(defer { Vision.alignToGamepiece() })
 //        driverController.povUp().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(0.1) }))
 //        driverController.povUp().onFalse(Commands.runOnce({ Armavator.setElevatorPercentOut(0.0) }))
 //        driverController.povDown().onTrue(Commands.runOnce({ Armavator.setElevatorPercentOut(-0.1) }))
