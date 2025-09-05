@@ -38,6 +38,7 @@ import frc.team2471.off2025.util.units.rotations
 import frc.team2471.off2025.util.units.sin
 import frc.team2471.off2025.util.units.unWrap
 import frc.team2471.off2025.util.units.wrap
+import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
@@ -46,6 +47,8 @@ object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
 
     private val armEncoderOffsetEntry = table.getEntry("Arm Encoder Offset")
+    private val elevatorEncoderOffsetEntry = table.getEntry("Elevator Encoder Offset")
+
     private val pivotEncoderOffsetEntry = table.getEntry("Pivot Encoder Offset")
 
     val elevatorMotor = TalonFX(Falcons.ELEVATOR_0, CANivores.ELEVATOR_CAN)
@@ -68,10 +71,19 @@ object Armavator: SubsystemBase() {
     inline val pivotEncoderAngle: Angle
         get() = (candiAngle - lampreyAlignmentOffset).wrap()
 
+    inline val rawElevatorEncoderValue: Double
+        get() = (elevatorCANcoder.position.valueAsDouble)
+
+    inline val elevatorEncoderHeight: Distance
+        get() = elevatorEncoderCurve.getValue(rawElevatorEncoderValue).inches
+
     inline val pivotMotorAngle: Angle
         get() = (pivotMotor.position.valueAsDouble.rotations/PIVOT_GEAR_RATIO)
 
     val armCanCoder = CANcoder(CANCoders.ARM, CANivores.ELEVATOR_CAN)
+
+    val elevatorCANcoder = CANcoder(CANCoders.ELEVATOR)
+    val elevatorEncoderCurve = MotionCurve()
 
     const val ELEVATOR_REVOLUTIONS_PER_INCH = 1.0/1.6
     const val MIN_HEIGHT_INCHES = 0.0
@@ -97,9 +109,13 @@ object Armavator: SubsystemBase() {
         if (Robot.isCompBot) -1.841 else 0.0
     val defaultArmEncoderOffset =
         if (Robot.isCompBot) 195.8 else -129.9
+    val defaultElevatorEncoderOffset =
+        if (Robot.isCompBot) 0.205078125 else 0.205078125
 
     var pivotEncoderOffset: Double = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
     var armEncoderOffset: Double = armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)
+    var elevatorEncoderOffset: Double = elevatorEncoderOffsetEntry.getDouble(defaultElevatorEncoderOffset)
+
 
     val elevatorFeedforward: Double
         get() = if (currentHeight < 20.0.inches) {
@@ -143,6 +159,8 @@ object Armavator: SubsystemBase() {
     val reverseSpitDirection: Boolean
         get() = isArmFlipped != isPivotFlipped
 
+    var periodicFeedForward = true
+
 
     init {
         println("inside Armavator init")
@@ -161,6 +179,21 @@ object Armavator: SubsystemBase() {
             MagnetSensor.MagnetOffset = armEncoderOffset.degrees.asRotations
         })
 
+        elevatorCANcoder.configurator.apply(CANcoderConfiguration().apply {
+            MagnetSensor.MagnetOffset = elevatorEncoderOffset
+            MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
+        })
+
+        elevatorEncoderCurve.storeValue(0.0, 0.0)
+        elevatorEncoderCurve.storeValue(0.305, 1.53)
+        elevatorEncoderCurve.storeValue(2.544, 14.85)
+        elevatorEncoderCurve.storeValue(3.41, 19.944)
+        elevatorEncoderCurve.storeValue(3.87, 22.63)
+        elevatorEncoderCurve.storeValue(4.728, 27.60)
+        elevatorEncoderCurve.storeValue(5.643, 32.87)
+        elevatorEncoderCurve.storeValue(9.99, 62.31)
+        elevatorEncoderCurve.storeValue(8.175, 49.233)
+        elevatorEncoderCurve.storeValue(6.237, 38.142)
 
         pivotMotor.setPosition(pivotEncoderAngle * PIVOT_GEAR_RATIO)
 
@@ -258,9 +291,17 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
 
-        heightSetpoint = heightSetpoint
-        armAngleSetpoint = armAngleSetpoint
-        pivotAngleSetpoint = pivotAngleSetpoint
+        Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
+        Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
+
+        elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
+
+        if (periodicFeedForward) {
+            heightSetpoint = heightSetpoint
+            armAngleSetpoint = armAngleSetpoint
+            pivotAngleSetpoint = pivotAngleSetpoint
+        }
+
 
         LoopLogger.record("Armavator pirdc")
     }

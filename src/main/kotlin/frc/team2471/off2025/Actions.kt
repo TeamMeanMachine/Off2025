@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.util.control.finallyRun
 import frc.team2471.off2025.util.control.parallelCommand
 import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
@@ -38,6 +39,9 @@ fun ampAlign(): Command {
             }
         )
     )
+}
+fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Command {
+    return runOnce {}
 }
 
 fun coralStationIntake(): Command {

@@ -52,6 +52,7 @@ object CANCoders {
     const val BACK_RIGHT = 28
     const val BACK_LEFT = 27
     const val ARM = 39
+    const val ELEVATOR = 40
 }
 
 object PWMPort {

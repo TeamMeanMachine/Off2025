@@ -1,6 +1,7 @@
 package frc.team2471.off2025.tests
 
 import com.ctre.phoenix6.SignalLogger
+import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.controls.VoltageOut
 import edu.wpi.first.units.measure.Voltage
 import edu.wpi.first.wpilibj.Timer.delay
@@ -10,8 +11,10 @@ import edu.wpi.first.wpilibj2.command.Commands
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.Armavator
+import frc.team2471.off2025.OI
 import frc.team2471.off2025.Pose
 import frc.team2471.off2025.util.control.beforeWait
+import frc.team2471.off2025.util.control.finallyRun
 import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.seconds
@@ -54,6 +57,17 @@ fun Armavator.elevatorSetpointTest(): Command {
         delay(5.0)
 //        goToPose(Pose.DRIVE)
         }, Armavator)
+}
+
+fun Armavator.elevatorJoystick(): Command {
+    return Commands.run({
+        Armavator.periodicFeedForward = false
+        Armavator.elevatorMotor.setControl(DutyCycleOut(OI.driverController.rightTriggerAxis - OI.driverController.leftTriggerAxis))
+        println("elevator setpoint testing!!!!!!!!!")
+    }, Armavator).finallyRun {
+        Armavator.goToPose(Pose.current)
+        Armavator.periodicFeedForward = true
+    }
 }
 
 fun Armavator.sysIDPivot(): Command {
