@@ -66,7 +66,12 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
     }
 
     override fun enable() {
+        LimelightHelpers.SetThrottle(name, 0)
 //        LimelightHelpers.SetIMUMode(name, 2)
+    }
+
+    override fun disable() {
+        LimelightHelpers.SetThrottle(name, 200)
     }
 
     override fun gyroReset() {
@@ -78,10 +83,14 @@ class VisionIOLimelight(val name: String, val headingSupplier: () -> Angle): Vis
 }
 
 interface VisionIO {
+
     var mode: LimelightMode
 
     fun updateInputs(inputs: VisionIOInputs)
+
     fun enable()
+    fun disable()
+
     fun gyroReset()
 
     open class VisionIOInputs : LoggableInputs {

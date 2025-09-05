@@ -13,6 +13,7 @@ import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.finallyRun
 import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.runCommand
+import frc.team2471.off2025.util.vision.LimelightHelpers
 import frc.team2471.off2025.util.vision.LimelightMode
 import frc.team2471.off2025.util.vision.VisionIO
 import frc.team2471.off2025.util.vision.VisionIOLimelight
@@ -73,6 +74,19 @@ object Vision : SubsystemBase() {
             Drive.driveVelocity(chassisSpeeds)
         }.finallyRun {
             mode = LimelightMode.APRILTAG
+        }
+    }
+
+
+    fun onEnable() {
+        io.forEach {
+            it.enable()
+        }
+    }
+
+    fun onDisable() {
+        io.forEach {
+            it.disable()
         }
     }
 }

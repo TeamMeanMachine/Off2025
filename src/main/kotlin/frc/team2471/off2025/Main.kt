@@ -111,7 +111,7 @@ object Robot : LoggedRobot() {
     fun enabledInit() {
         Drive.brakeMode()
 
-        Vision.io.forEach { it.enable() }
+        Vision.onEnable()
     }
 
     /** This function is called once when the robot is disabled.  */
@@ -119,6 +119,7 @@ object Robot : LoggedRobot() {
         Drive.coastMode()
         Autonomous.autonomousCommand?.cancel() // This makes sure that the autonomous stops running when teleop starts running.
         Autonomous.testCommand?.cancel()
+        Vision.onDisable()
     }
 
     /** This function is called periodically when disabled.  */
