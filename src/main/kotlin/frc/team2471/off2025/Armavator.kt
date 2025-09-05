@@ -24,6 +24,7 @@ import frc.team2471.off2025.util.ctre.brakeMode
 import frc.team2471.off2025.util.ctre.currentLimits
 import frc.team2471.off2025.util.ctre.d
 import frc.team2471.off2025.util.ctre.p
+import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
@@ -100,7 +101,7 @@ object Armavator: SubsystemBase() {
 
 
     inline val currentHeight: Distance
-        get() = (elevatorMotor.position.valueAsDouble / ELEVATOR_REVOLUTIONS_PER_INCH).inches
+        get() = (elevatorMotor.position.valueAsDouble).inches
 
     inline val currentArmAngle: Angle
         get() = armMotor.position.valueAsDouble.rotations
@@ -129,14 +130,14 @@ object Armavator: SubsystemBase() {
     val pivotFeedForward: Double get() = (0.055 * pivotMotorAngle.wrap().sin()) * currentArmAngle.sin()
 
 
-    val armFeedForward: Double get() = 0.04 * (1.0 + (elevatorMotor.acceleration.valueAsDouble * ELEVATOR_REVOLUTIONS_PER_INCH / 32.0.feet.asInches)) * -(currentArmAngle + (0.0.degrees * (pivotMotorAngle + 90.0.degrees).sin())).sin() +
+    val armFeedForward: Double get() = 0.04 * (1.0 + (elevatorMotor.acceleration.valueAsDouble / 32.0.feet.asInches)) * -(currentArmAngle + (0.0.degrees * (pivotMotorAngle + 90.0.degrees).sin())).sin() +
             0.04 * (Drive.acceleration.rotateBy(-Drive.heading).x.asFeetPerSecondPerSecond / 32.0) * currentArmAngle.cos()
 
 
     var heightSetpoint: Distance = 0.0.inches
         set(value) {
             field = MathUtil.clamp(value.asInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES).inches
-            elevatorMotor.setControl(MotionMagicDutyCycle(field.asInches * ELEVATOR_REVOLUTIONS_PER_INCH).withFeedForward(elevatorFeedforward))
+            elevatorMotor.setControl(MotionMagicDutyCycle(field.asInches).withFeedForward(elevatorFeedforward))
 //            println("elevator position setpoint: $value")
         }
 
@@ -185,6 +186,7 @@ object Armavator: SubsystemBase() {
             MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
         })
 
+        // found that it is about 5.8 inches per rotation
         elevatorEncoderCurve.storeValue(0.0, 0.0)
         elevatorEncoderCurve.storeValue(0.305, 1.53)
         elevatorEncoderCurve.storeValue(2.544, 14.85)
@@ -232,6 +234,7 @@ object Armavator: SubsystemBase() {
                 MotionMagicAcceleration = 150.0
                 MotionMagicCruiseVelocity = 35.0
             }
+            remoteCANCoder(elevatorCANcoder.deviceID, 5.8 / ELEVATOR_REVOLUTIONS_PER_INCH, 1.0/5.8)
         })
 
         elevatorMotor.addFollower(Falcons.ELEVATOR_1, true)
@@ -297,7 +300,6 @@ object Armavator: SubsystemBase() {
 //        if ((elevatorEncoderHeight.asInches - currentHeight.asInches).absoluteValue > 0.5){
 //            elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
 //        }
-        elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
 
         if (periodicFeedForward) {
             heightSetpoint = heightSetpoint
