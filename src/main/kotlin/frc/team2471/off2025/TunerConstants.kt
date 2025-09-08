@@ -11,7 +11,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.system.plant.DCMotor
-import edu.wpi.first.units.measure.AngularVelocity
 import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj.Alert
@@ -28,7 +27,6 @@ import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.feetPerSecond
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.meters
-import frc.team2471.off2025.util.units.radiansPerSecond
 import frc.team2471.off2025.util.math.round
 import frc.team2471.off2025.util.units.rpm
 import frc.team2471.off2025.util.units.volts
@@ -148,7 +146,7 @@ object TunerConstants {
             /**
              * How to use the CANCoder. (Remote, Fused, or Synced)
              * The remote sensor feedback type to use for the steer motors;
-             * When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically fall back to RemoteCANcoder
+             * When not Pro-licensed, FusedCANcoder/SyncCANcoder automatically falls back to RemoteCANcoder
             */
             // Sync doesn't work in sim
             FeedbackSource = if (isReal) SwerveModuleConstants.SteerFeedbackType.SyncCANcoder else SwerveModuleConstants.SteerFeedbackType.FusedCANcoder
@@ -157,11 +155,11 @@ object TunerConstants {
             DriveInertia = 0.025
             SteerInertia = 0.0000000004
 
-            /** Simulated voltage required to overcome friction. (Possibly only used in sim) */
+            /** Simulated voltage required to overcome friction. Only used in simulation */
             DriveFrictionVoltage = 0.2.volts.asVolts
             SteerFrictionVoltage = 0.2.volts.asVolts
 
-            WheelRadius = 2.0.inches.asMeters //<- wheel radius is also set during module config
+            WheelRadius = 2.0.inches.asMeters //<- wheel radius can be overridden during module config
         }
 
     //Usually swerve drives are square
@@ -176,7 +174,8 @@ object TunerConstants {
         encoderInverted = false,
         moduleTranslationMeters = Translation2d(moduleTrackWidth, moduleTrackWidth),
         id = 0,
-        wheelRadiusOverride = 2.0.inches
+        wheelRadiusOverride = null,
+        driveMotorGainsOverride = null
     ).createModuleConstants()
 
     val frontRight = ModuleConfig(
@@ -188,7 +187,8 @@ object TunerConstants {
         encoderInverted = false,
         moduleTranslationMeters = Translation2d(moduleTrackWidth, -moduleTrackWidth),
         id = 1,
-        wheelRadiusOverride = 2.0.inches
+        wheelRadiusOverride = null,
+        driveMotorGainsOverride = null
     ).createModuleConstants()
 
     val backLeft = ModuleConfig(
@@ -200,7 +200,8 @@ object TunerConstants {
         encoderInverted = false,
         moduleTranslationMeters = Translation2d(-moduleTrackWidth, moduleTrackWidth),
         id = 2,
-        wheelRadiusOverride = 2.0.inches
+        wheelRadiusOverride = null,
+        driveMotorGainsOverride = null
     ).createModuleConstants()
 
     val backRight = ModuleConfig(
@@ -212,20 +213,12 @@ object TunerConstants {
         encoderInverted = false,
         moduleTranslationMeters = Translation2d(-moduleTrackWidth, -moduleTrackWidth),
         id = 3,
-        wheelRadiusOverride = 2.0.inches
+        wheelRadiusOverride = null,
+        driveMotorGainsOverride = null
     ).createModuleConstants()
 
 
-
     val moduleConfigs = arrayOf(frontLeft, frontRight, backLeft, backRight)
-
-    /** Returns an array of module translations. */
-    val moduleTranslationsMeters = moduleConfigs.map { Translation2d(it.LocationX.meters, it.LocationY.meters) }.toTypedArray()
-
-    val driveBaseRadius = moduleTranslationsMeters.maxOf { it.norm }.meters
-
-    /** Returns the maximum angular speed in radians per sec.  */
-    val maxAngularSpeedRadPerSec: AngularVelocity = (kSpeedAt12Volts.asMetersPerSecond / driveBaseRadius.asMeters).radiansPerSecond
 
 
     class ModuleConfig(
@@ -237,7 +230,8 @@ object TunerConstants {
         val encoderInverted: Boolean,
         val moduleTranslationMeters: Translation2d,
         val id: Int,
-        val wheelRadiusOverride: Distance
+        val wheelRadiusOverride: Distance? = null,
+        val driveMotorGainsOverride: Slot0Configs? = null,
     ) {
         fun createModuleConstants(): SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> {
 
@@ -273,7 +267,10 @@ object TunerConstants {
                 driveMotorInverted,
                 steerMotorInverted,
                 encoderInverted
-            ).withWheelRadius(wheelRadiusOverride)
+            ).apply {
+                if (driveMotorGainsOverride != null) DriveMotorGains = driveMotorGainsOverride
+                if (wheelRadiusOverride != null) WheelRadius = wheelRadiusOverride.asMeters
+            }
         }
     }
 }

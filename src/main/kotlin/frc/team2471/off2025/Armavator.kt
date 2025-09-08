@@ -43,7 +43,6 @@ import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
-import kotlin.math.absoluteValue
 
 object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
@@ -291,6 +290,7 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
 
+        Logger.recordOutput("Armavator/periodicFeedForward", periodicFeedForward)
         Logger.recordOutput("Armavator/elevatorFeedforward", elevatorFeedforward)
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)

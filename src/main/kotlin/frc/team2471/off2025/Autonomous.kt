@@ -10,8 +10,10 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.tests.elevatorJoystick
 import frc.team2471.off2025.tests.elevatorSetpointTest
 import frc.team2471.off2025.tests.joystickTest
+import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
+import frc.team2471.off2025.tests.velocityVoltTest
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.math.round
@@ -41,9 +43,11 @@ object Autonomous {
         addOption("Set Angle Offsets", Drive.setAngleOffsets())
         addOption("JoystickTest", joystickTest())
         addOption("ElevatorSetpointTest", Armavator.elevatorSetpointTest())
-        addOption("ElevatorJoystickTestorsomething", Armavator.elevatorJoystick())
-        addOption("Drive Slip Current Test", slipCurrentTest())
+        addOption("ElevatorJoystickTest", Armavator.elevatorJoystick())
+        addOption("Drive Slip Current Test", Drive.slipCurrentTest())
         addOption("Armavator Pivot SysId ALL", Armavator.sysIDPivot())
+        addOption("Drive L/R Static FF Test", Drive.leftRightStaticFFTest())
+        addOption("Drive Velocity Volt Test", Drive.velocityVoltTest())
     }
 
     val autonomousCommand: Command? get() = if (!Drive.demoMode) autoChooser.get()?.invoke() else ({ println("DEMO MODE: I'm not running auto, no killing kids today.") }).toCommand()
