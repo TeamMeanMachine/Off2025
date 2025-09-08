@@ -4,8 +4,8 @@ import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
-import frc.team2471.off2025.util.asRotation2d
-import frc.team2471.off2025.util.degrees
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
 import org.photonvision.simulation.SimCameraProperties
 
 /** Describes a given vision camera pipeline configuration.  */

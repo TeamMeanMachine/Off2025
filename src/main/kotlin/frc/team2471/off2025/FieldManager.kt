@@ -16,12 +16,20 @@ import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.feet
 import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isBlueAlliance
+import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.asFeet
+import frc.team2471.off2025.util.units.asMeters
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.meters
-import frc.team2471.off2025.util.mirrorYAxis
-import frc.team2471.off2025.util.round
-import frc.team2471.off2025.util.toPose2d
-import frc.team2471.off2025.util.wrap
+import frc.team2471.off2025.util.units.meters
+import frc.team2471.off2025.util.math.mirrorYAxis
+import frc.team2471.off2025.util.math.round
+import frc.team2471.off2025.util.math.toPose2d
+import frc.team2471.off2025.util.units.UTranslation2d
+import frc.team2471.off2025.util.units.wrap
 import org.littletonrobotics.junction.Logger
 import kotlin.math.floor
 
@@ -32,7 +40,7 @@ object FieldManager {
     val fieldWidth = aprilTagFieldLayout.fieldWidth.meters
     val fieldLength = aprilTagFieldLayout.fieldLength.meters
 
-    val fieldDimensions = Translation2d(fieldLength, fieldWidth)
+    val fieldDimensions = UTranslation2d(fieldLength, fieldWidth)
 
     val fieldHalfWidth = fieldWidth / 2.0
     val fieldHalfLength = fieldLength / 2.0
@@ -81,7 +89,7 @@ object FieldManager {
     private val alignL1Offset = Transform2d(19.0.inches, 19.0.inches, Rotation2d())
 
     // Algae
-    private val alignAlgaeOffset = Transform2d(30.0.inches, -6.5.inches, Rotation2d())
+    private val alignAlgaeOffset = Transform2d(28.0.inches, 6.5.inches, Rotation2d())
 
     // Barge
     private val blueBargeAlignX = 25.0.feet
@@ -116,7 +124,7 @@ object FieldManager {
             alignPositionsLeftL4Blue.add(face, alignPositionsLeftL4Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
             alignPositionsL1Blue.add(face, alignPositionsL1Red[face].rotateAround(fieldCenter, 180.0.degrees.asRotation2d))
 
-            val algaeLevel = if (face.mod(2) == 1) AlgaeLevel.HIGH else AlgaeLevel.LOW
+            val algaeLevel = if (face.mod(2) == 0) AlgaeLevel.HIGH else AlgaeLevel.LOW
             alignPositionsAlgaeRed.add(face, Pair(tagPose.transformBy(alignAlgaeOffset), algaeLevel))
             alignPositionsAlgaeBlue.add(face, Pair(alignPositionsAlgaeRed[face].first.rotateAround(fieldCenter, 180.0.degrees.asRotation2d), algaeLevel))
         }
@@ -155,6 +163,16 @@ object FieldManager {
     }
 
 
+    fun getHumanStationAlignHeading(pose: Pose2d): Pair<Angle, Boolean> {
+        val goalHeading = (if (isRedAlliance) 60.0 else 120.0).degrees * if (pose.y.meters < fieldCenter.y) -1.0 else 1.0
+        return if ((pose.rotation.measure - goalHeading).wrap().absoluteValue() > 90.0.degrees) {
+            Pair(goalHeading + 180.0.degrees, true)
+
+        } else {
+            Pair(goalHeading, false)
+        }
+    }
+
 
     fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pose2d {
         val isRed = isRedAlliance
@@ -184,6 +202,7 @@ object FieldManager {
                 poseAndDistance = Pair(it, distance)
             }
         }
+        // optimize rotation
         var closestPose = poseAndDistance.first
         if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
             closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
@@ -199,9 +218,29 @@ object FieldManager {
     }
 
     fun ampAlignPoint(robotPose: Pose2d): Pose2d {
-        return if (robotPose.onRedSide()) ampAlignPointRed else ampAlignPointBlue
+        var unwrappedPose = if (robotPose.onRedSide()) ampAlignPointRed else ampAlignPointBlue
+        if ((robotPose.rotation.measure - unwrappedPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            unwrappedPose = Pose2d(unwrappedPose.translation, unwrappedPose.rotation.rotateBy(180.0.degrees.asRotation2d))
+        }
+        return unwrappedPose
     }
 
+    fun getClosestReefAlgae(robotPose: Pose2d): Pair<Pose2d, AlgaeLevel> {
+        val algaeAlignPoses = if (isRedAlliance) alignPositionsAlgaeRed else alignPositionsAlgaeBlue
+        algaeAlignPoses.sortBy { it.first.translation.getDistance(robotPose.translation) }
+        var closestPose = algaeAlignPoses.first()
+
+        if ((robotPose.rotation.measure - closestPose.first.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            closestPose = Pair(
+                Pose2d(
+                    closestPose.first.translation,
+                    closestPose.first.rotation.rotateBy(180.0.degrees.asRotation2d)
+                ), closestPose.second
+            )
+        }
+
+        return closestPose
+    }
 
     /**
      * Reflects [Translation2d] across the midline of the field. Useful for mirrored field layouts (2023, 2024).
@@ -226,7 +265,7 @@ object FieldManager {
     /**
      * Returns if the [Translation2d] is on the red alliance side of the field.
      */
-    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x
+    fun Translation2d.onRedSide(): Boolean = this.x > fieldCenter.x.asMeters
     /**
      * Returns if the [Translation2d] is on the blue alliance side of the field.
      */

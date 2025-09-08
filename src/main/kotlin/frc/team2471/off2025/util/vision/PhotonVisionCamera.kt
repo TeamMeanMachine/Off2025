@@ -7,6 +7,7 @@ import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.isReal
+import frc.team2471.off2025.util.isSim
 import org.ejml.simple.SimpleMatrix
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
@@ -38,7 +39,7 @@ class PhotonVisionCamera(
 
         override fun toLog(table: LogTable) {
             table.put("PipelineIndex", pipelineIndex)
-            table.put("LatestResult", latestResult)
+//            table.put("LatestResult", latestResult)  // Commented out bc loop cycles where large
             table.put("CameraMatrixIsPresent", cameraMatrix.isPresent)
             if (cameraMatrix.isPresent) table.put("CameraMatrixData", cameraMatrix.get().data)
             table.put("DistCoeffsIsPresent", distCoeffs.isPresent)
@@ -66,23 +67,22 @@ class PhotonVisionCamera(
     }
 
     init {
-        setPipelineIndex(0)
+        if (isSim) setPipelineIndex(0)
         QuixVisionSim.addCamera(this)
     }
 
     override fun updateInputs() {
         inputs.pipelineIndex = camera.pipelineIndex
         // TODO: Handle all results, not just the latest.
-        val latestResults = camera.allUnreadResults
-        inputs.latestResult = if (latestResults.isNotEmpty()) latestResults[latestResults.size - 1] else PhotonPipelineResult()
+        inputs.latestResult = camera.allUnreadResults.lastOrNull() ?: PhotonPipelineResult()
         // Only update these once, since they shouldn't be changing.
-        val cameraMatrix = camera.cameraMatrix
-        if (inputs.cameraMatrix.isEmpty && cameraMatrix.isPresent) {
-            inputs.cameraMatrix = cameraMatrix
+        if (inputs.cameraMatrix.isEmpty) {
+            val cameraMatrix = camera.cameraMatrix
+            if (cameraMatrix.isPresent) inputs.cameraMatrix = cameraMatrix
         }
-        val distCoeffs = camera.distCoeffs
-        if (inputs.distCoeffs.isEmpty && distCoeffs.isPresent) {
-            inputs.distCoeffs = distCoeffs
+        if (inputs.distCoeffs.isEmpty) {
+            val distCoeffs = camera.distCoeffs
+            if (distCoeffs.isPresent) inputs.distCoeffs = distCoeffs
         }
         Logger.processInputs(loggingName, inputs)
     }

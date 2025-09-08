@@ -1,5 +1,6 @@
 package frc.team2471.off2025
 
+import com.ctre.phoenix6.Utils
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.Nat.N1
@@ -9,6 +10,7 @@ import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.numbers.N1
@@ -20,9 +22,19 @@ import frc.team2471.off2025.util.asRotation2d
 import frc.team2471.off2025.util.cube
 import frc.team2471.off2025.util.degrees
 import frc.team2471.off2025.util.inches
+import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.ctre.ApplyModuleStates
+import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.math.cube
+import frc.team2471.off2025.util.isBlueAlliance
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
+import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.localization.QuixSwerveLocalizer
-import frc.team2471.off2025.util.square
+import frc.team2471.off2025.util.isSim
+import frc.team2471.off2025.util.localization.PoseLocalizer
+import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.LimelightCamera
@@ -36,15 +48,17 @@ import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
 import java.util.Optional
 import kotlin.math.hypot
+import kotlin.jvm.optionals.getOrNull
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
 
+    // To reset position use this, also add other pose sources that need reset here.
     override var pose: Pose2d
         get() = savedState.Pose
         set(value) {
             resetPose(value)
-            localizer.resetPose(value.rotation, modulePositions, value)
-            quest.setPose(value.transformBy(robotToQuestTransformMeters))
+            localizer.resetPose(value) // Possibly not needed, but good for a quick response.
+//            quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
 
     override var heading: Rotation2d
@@ -71,7 +85,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     )
 
     val quest = QuestNav()
-    val robotToQuestTransformMeters = Transform2d(0.0.inches, 0.0.inches, Rotation2d()) // Rotation 2d should be 0
+    var questSimConnected = true
+    val robotToQuestTransformMeters = Transform2d(-12.0.inches, 12.0.inches, 180.0.degrees.asRotation2d) // Rotation 2d should be 0
     var latestQuestResult: PoseFrame = PoseFrame(pose.transformBy(robotToQuestTransformMeters), 0.0, 0.0, 0)
         get() {
             val newData = quest.allUnreadPoseFrames
@@ -86,14 +101,14 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     val questPose: Pose2d
         get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
 
-    val localizer = QuixSwerveLocalizer(
-        SwerveDriveKinematics(*TunerConstants.moduleTranslationsMeters),
-        Rotation2d() /* this number can be anything */,
-        modulePositions,
-        Pose2d() /* this can be anything */,
+    val localizer = PoseLocalizer(
+//        Pose2d(),
         Fiducials.aprilTagFiducials,
         cameras
     )
+
+    private val translationRateTimer = Timer()
+    private var prevTranslation = Translation2d()
 
     // Drive Feedback controllers
     override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 100.0, 2.0, 0.5.inches, 1.0.degrees)
@@ -109,24 +124,27 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     /**
      * Returns [ChassisSpeeds] with a percentage power from the driver controller.
-     * Performs [OI.unsnapAndDesaturateJoystick] to undo axis snapping and does squaring/cubing on the vectors.
      */
     override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
-        //make joystick pure circle
-        val (cx, cy) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
+        val rawJoystick = OI.rawDriveTranslation
+        // Square drive input and apply demoSpeed
+        val power = rawJoystick.norm.square() * demoSpeed
+        // Apply modified power to joystick vector and flip depending on alliance
+        val joystickTranslation = rawJoystick * power * if (isBlueAlliance) -1.0 else 1.0
 
-        //square drive input
-        val power = hypot(cx, cy).square()
-        val (x, y) = Pair(cx * power, cy * power)
+        val rawJoystickRotation = OI.driveRotation
+        // Cube rotation input and apply demoSpeed
+        val omega = rawJoystickRotation.cube() * demoSpeed
 
-        //cube rotation input
-        val omega = OI.driveRotation.cube()
-
-        return ChassisSpeeds(x, y, omega)
+        return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
     }
 
     init {
         println("inside Drive init")
+
+        // MUST start inside the field on bootup for accurate heading measurements due to a vision localizer bug.
+        pose = Pose2d(3.0, 3.0, heading)
+
         zeroGyro()
 
         localizer.trackAllTags()
@@ -142,6 +160,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         // Disabled actions
         if (Robot.isDisabled) {
             setControl(ApplyModuleStates()) //set module setpoints to their current position
+            modules.forEach {
+                it.steerMotor.setPosition(it.encoder.position.value)
+            }
         }
 
         // Update Vision
@@ -149,15 +170,29 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             it.updateInputs()
         }
         LoopLogger.record("Drive camera updateInputs")
-        localizer.updateWithLatestPoseEstimate()
+        // Get the latest Quest result
+        val questResult = latestQuestResult
+        val questEstimate = if (isReal) {
+            PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
+        } else {
+            val timestamp = Utils.fpgaToCurrentTime(Timer.getTimestamp()) - 0.04
+            val simQuestPose = samplePoseAt(timestamp).getOrNull()
+            if (simQuestPose == null || !questSimConnected) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
+        }
+        LoopLogger.record("Drive get questEstimate")
+        // Update poses from the Particle Filter pose estimate and quest measurements
+        localizer.updateWithLatestPoseEstimate(if (quest.isTracking || isSim) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
-        val odometryMeasurement = QuixSwerveLocalizer.SwerveOdometryMeasurement(heading, modulePositions)
-        val visionMeasurements = cameras.map { it.latestMeasurement }
-        LoopLogger.record("Drive b4 localizer")
-        localizer.update(odometryMeasurement, visionMeasurements, speeds)
+        // Publish the latest camera data to NT so Particle Filter can use, also update poses from swerve odometry measurements.
+        localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
 
-        Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
+        quest.commandPeriodic()
+
+        // Log all the poses for debugging
+        Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
+        Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose ?: Pose2d())
+        Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)

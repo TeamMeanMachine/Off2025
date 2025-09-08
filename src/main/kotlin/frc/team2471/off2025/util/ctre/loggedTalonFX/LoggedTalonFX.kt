@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util.logged
+package frc.team2471.off2025.util.ctre.loggedTalonFX
 
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.NeutralModeValue
@@ -6,7 +6,7 @@ import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.math.system.plant.LinearSystemId
 import edu.wpi.first.wpilibj.simulation.DCMotorSim
 import frc.team2471.off2025.util.isReal
-import frc.team2471.off2025.util.volts
+import frc.team2471.off2025.util.units.volts
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch

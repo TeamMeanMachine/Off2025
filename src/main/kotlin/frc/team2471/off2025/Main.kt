@@ -5,13 +5,14 @@ import com.ctre.phoenix6.SignalLogger
 import edu.wpi.first.wpilibj.RobotBase
 
 import edu.wpi.first.wpilibj.DriverStation
-import edu.wpi.first.wpilibj.Threads
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.util.LoopLogger
+import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.RobotMode
-import frc.team2471.off2025.util.logged.MasterMotor
+import frc.team2471.off2025.util.ctre.loggedTalonFX.MasterMotor
 import frc.team2471.off2025.util.robotMode
+import frc.team2471.off2025.util.units.asFeet
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
@@ -41,9 +42,10 @@ object Robot : LoggedRobot() {
     val drive = Drive
     val oi = OI
     val armavator = Armavator
+    val intake = Intake
     val vision = Vision
 
-    var allSubsystems = arrayOf(drive, oi, armavator, vision)
+    var allSubsystems = arrayOf(drive, oi, armavator, intake, vision)
 
     init {
         // Set up data receivers & replay source
@@ -73,7 +75,8 @@ object Robot : LoggedRobot() {
         Logger.start()
         // Call all subsystems, make sure their init's run
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
-        FieldManager
+        println("FieldManager thinks the field is ${FieldManager.fieldDimensions.asFeet} feet big")
+        println("We see ${Autonomous.paths.size} paths and they are made on the ${if (Autonomous.isPathsRed) "red" else "blue"} side.")
     }
 
     /** This function is called periodically during all modes.  */
@@ -110,6 +113,8 @@ object Robot : LoggedRobot() {
 
     fun enabledInit() {
         Drive.brakeMode()
+        Intake.intakeState = IntakeState.HOLDING
+        Armavator.goToPose(Pose.current)
 
         Vision.onEnable()
     }
@@ -129,7 +134,8 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
-        (Autonomous.autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
+        Autonomous.flipPathsIfAllianceChange() // This line is only needed for a sim edge case (Instantly swapping between Disconnected and Autonomous)
+        (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
     }
 
     /** This function is called periodically during autonomous.  */
@@ -156,6 +162,7 @@ object Robot : LoggedRobot() {
     override fun simulationInit() {}
 
     /** This function is called periodically whilst in simulation.  */
+    @OptIn(DelicateCoroutinesApi::class)
     override fun simulationPeriodic() {
         GlobalScope.launch {
             MasterMotor.simPeriodic()

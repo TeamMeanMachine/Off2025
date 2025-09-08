@@ -1,6 +1,6 @@
 @file:Suppress("unused")
 
-package org.team2471.frc2025
+package frc.team2471.off2025
 
 object Sparks {
 }
@@ -52,6 +52,7 @@ object CANCoders {
     const val BACK_RIGHT = 28
     const val BACK_LEFT = 27
     const val ARM = 39
+    const val ELEVATOR = 40
 }
 
 object PWMPort {

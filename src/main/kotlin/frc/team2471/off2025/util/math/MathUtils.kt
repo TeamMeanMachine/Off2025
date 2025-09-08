@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util
+package frc.team2471.off2025.util.math
 
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
@@ -46,6 +46,9 @@ fun Translation2d.mirrorYAxis() = Translation2d(x, -y)
 
 fun Transform2d.mirrorXAxis() = Transform2d(-x, y, rotation)
 fun Transform2d.mirrorYAxis() = Transform2d(x, -y, rotation)
+
+fun Translation2d.coerceInDynamic(oneLimit: Translation2d, twoLimit: Translation2d): Translation2d =
+    Translation2d(this.x.coerceInDynamic(oneLimit.x, twoLimit.x), this.y.coerceInDynamic(oneLimit.y, twoLimit.y))
 
 /** doesn't work with negative values of n */
 infix fun Double.mod(n: Double) = if (this < 0) {

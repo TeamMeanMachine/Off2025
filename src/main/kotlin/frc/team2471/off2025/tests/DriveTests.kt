@@ -2,13 +2,20 @@ package frc.team2471.off2025.tests
 
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
+import edu.wpi.first.math.kinematics.SwerveModuleState
+import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
-import frc.team2471.off2025.OI.dPad
 import frc.team2471.off2025.Drive
-import frc.team2471.off2025.util.runCommand
+import frc.team2471.off2025.util.control.Direction
+import frc.team2471.off2025.util.control.beforeRun
+import frc.team2471.off2025.util.control.dPad
+import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.ctre.ApplyModuleStatesVoltage
 import frc.team2471.off2025.util.translation
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
 import org.littletonrobotics.junction.Logger
 
 
@@ -17,8 +24,7 @@ fun joystickTest(): Command {
 
 
     return Commands.run({
-        val (x, y) = OI.unsnapAndDesaturateJoystick(OI.driveTranslationX, OI.driveTranslationY)
-        val translation = Translation2d(x, y)
+        val translation = OI.rawDriveTranslation
         if (translation.norm > 0.5) {
             if (Math.random() > 0.5) {
 //                joystickValues.clear()
@@ -30,26 +36,74 @@ fun joystickTest(): Command {
     }, Drive)
 }
 
-fun velocityVoltTest(): Command {
+fun Drive.velocityVoltTest(): Command {
     var v = 0.0
     var upPressed = false
     var downPressed = false
     return runCommand(Drive) {
-        if (OI.driverController.dPad == OI.Direction.UP) {
+        if (OI.driverController.dPad == Direction.UP) {
             upPressed = true
-        } else if (OI.driverController.dPad == OI.Direction.DOWN) {
+        } else if (OI.driverController.dPad == Direction.DOWN) {
             downPressed = true
         }
-        if (OI.driverController.dPad != OI.Direction.UP && upPressed) {
+        if (OI.driverController.dPad != Direction.UP && upPressed) {
             upPressed = false
             v += 0.005
         }
-        if (OI.driverController.dPad != OI.Direction.DOWN && downPressed) {
+        if (OI.driverController.dPad != Direction.DOWN && downPressed) {
             downPressed = false
             v -= 0.005
         }
         println("v: $v velocity: ${Drive.speeds.translation.norm}")
         Drive.driveVoltage(ChassisSpeeds(v, 0.0, 0.0))
+    }
+}
+
+fun Drive.leftRightStaticFFTest(moduleAngle: Angle = 0.0.degrees): Command {
+    var leftVolts = 0.0
+    var rightVolts = 0.0
+
+    var upPressed = false
+    var downPressed = false
+    var leftPressed = false
+    var rightPressed = false
+    return runCommand(Drive) {
+
+
+        if (OI.driverController.dPad == Direction.UP) {
+            upPressed = true
+        } else if (OI.driverController.dPad == Direction.DOWN) {
+            downPressed = true
+        } else if (OI.driverController.dPad == Direction.LEFT) {
+            leftPressed = true
+        } else if (OI.driverController.dPad == Direction.RIGHT) {
+            rightPressed = true
+        }
+        if (OI.driverController.dPad != Direction.UP && upPressed) {
+            upPressed = false
+            leftVolts += 0.005
+            rightVolts += 0.005
+        }
+        if (OI.driverController.dPad != Direction.DOWN && downPressed) {
+            downPressed = false
+            leftVolts -= 0.005
+            rightVolts -= 0.005
+        }
+        if (OI.driverController.dPad != Direction.LEFT && leftPressed) {
+            leftPressed = false
+            leftVolts -= 0.005
+        }
+        if (OI.driverController.dPad != Direction.RIGHT && rightPressed) {
+            rightPressed = false
+            rightVolts -= 0.005
+        }
+
+        val leftState = SwerveModuleState(leftVolts, moduleAngle.asRotation2d)
+        val rightState = SwerveModuleState(rightVolts, moduleAngle.asRotation2d)
+
+        println("leftVolts: $leftVolts rightVolts: $rightVolts")
+
+        Drive.setControl(ApplyModuleStatesVoltage(*arrayOf(leftState, rightState, leftState, rightState)))
     }
 }
 
@@ -164,3 +218,16 @@ fun feedforwardCharacterization(): Command {
                 })
     )
 }*/
+
+fun Drive.slipCurrentTest(): Command {
+    val timer = edu.wpi.first.wpilibj.Timer()
+    return runCommand(Drive) {
+        val volts = timer.get() * 0.01
+        Logger.recordOutput("Test/StaterCurrent", Drive.modules.first().driveMotor.statorCurrent.valueAsDouble)
+        Logger.recordOutput("Test/Volts", volts)
+        Logger.recordOutput("Test/Velocity", Drive.modules.first().driveMotor.velocity.valueAsDouble)
+        Drive.driveVoltage(ChassisSpeeds(volts, 0.0, 0.0))
+    }.beforeRun() {
+        timer.restart()
+    }
+}
