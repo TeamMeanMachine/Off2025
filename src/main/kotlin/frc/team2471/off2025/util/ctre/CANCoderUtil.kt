@@ -2,6 +2,7 @@ package frc.team2471.off2025.util.ctre
 
 import com.ctre.phoenix6.configs.CANcoderConfiguration
 import com.ctre.phoenix6.hardware.CANcoder
+import com.ctre.phoenix6.signals.SensorDirectionValue
 import edu.wpi.first.units.measure.Angle
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isSim
@@ -48,4 +49,36 @@ fun CANcoder.setCANCoderAngle(angle: Angle): Angle {
 
     this.setMagnetSensorOffset(newOffset)
     return newOffset
+}
+
+fun CANcoderConfiguration.inverted(inverted: Boolean): CANcoderConfiguration {
+    return this.apply {
+        MagnetSensor.SensorDirection = if (inverted) SensorDirectionValue.Clockwise_Positive else SensorDirectionValue.CounterClockwise_Positive
+    }
+}
+
+fun CANcoderConfiguration.magnetSensorOffset(magnetOffsetRotations: Double): CANcoderConfiguration {
+    return this.apply {
+        MagnetSensor.MagnetOffset = magnetOffsetRotations
+    }
+}
+
+/**
+ * Applies a factory default configuration to the [CANcoder].
+ *
+ * @param modifications optionally provide a block to modify the configuration before it gets sent to the device.
+ */
+fun CANcoder.applyConfiguration(modifications: CANcoderConfiguration.() -> Unit = {}) {
+    this.configurator.apply(CANcoderConfiguration().apply(modifications))
+}
+
+/**
+ * Modifies the current device configuration and applies to the [CANcoder].
+ *
+ * @param overrides provide a block to modify the configuration before it gets sent to the device.
+ */
+fun CANcoder.modifyConfiguration(overrides: CANcoderConfiguration.() -> Unit) {
+    val oldConfiguration = CANcoderConfiguration()
+    this.configurator.refresh(oldConfiguration)
+    this.configurator.apply(oldConfiguration.apply(overrides))
 }

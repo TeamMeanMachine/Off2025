@@ -83,6 +83,8 @@ fun TalonFXConfiguration.remoteCANCoder(encoderID: Int, motorToSensorRatio: Doub
 /**
  * Motor will fuse its position and velocity with another CANcoder. Slow speed will use CANcoder, fast speed will use motor rotor.
  *
+ * Make sure the motor and encoder move in the same direction.
+ *
  * @param encoderID CAN ID of the CANcoder.
  * @param motorToSensorRatio number of motor rotations for 1 CANcoder rotation.
  * @param sensorToMechanismRatio number of sensor rotations for 1 mechanism rotation.
@@ -260,4 +262,29 @@ fun TalonFXConfiguration.motionMagicExpo(expoKV: Double, expoKA: Double, maxVelo
         if (maxVelocity != null) MotionMagicCruiseVelocity = maxVelocity
     }
     return this
+}
+
+/**
+ * Applies a factory default configuration to the [TalonFX].
+ *
+ * @param modifications optionally provide a block to modify the configuration before it gets sent to the motor.
+ *
+ * @see modifyConfiguration
+ */
+fun TalonFX.applyConfiguration(modifications: TalonFXConfiguration.() -> Unit = {}) {
+    // Create a factory default configuration, apply modifications, then apply to the motor.
+    this.configurator.apply(TalonFXConfiguration().apply(modifications))
+}
+
+/**
+ * Modifies the configuration currently on the motor.
+ *
+ * @param overrides provide a block to modify the configuration before it gets sent to the device.
+ *
+ * @see applyConfiguration
+ */
+fun TalonFX.modifyConfiguration(overrides: TalonFXConfiguration.() -> Unit) {
+    val oldConfiguration = TalonFXConfiguration()
+    this.configurator.refresh(oldConfiguration) // Get motor configuration parameters
+    this.configurator.apply(oldConfiguration.apply(overrides)) // Apply overrides to the config and send config to motor.
 }

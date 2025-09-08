@@ -1,17 +1,11 @@
 package frc.team2471.off2025
 
-import com.ctre.phoenix6.configs.CANcoderConfiguration
-import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.controls.MotionMagicDutyCycle
 import com.ctre.phoenix6.controls.MotionMagicVoltage
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.CANdi
 import com.ctre.phoenix6.hardware.TalonFX
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue
-import com.ctre.phoenix6.signals.InvertedValue
-import com.ctre.phoenix6.signals.NeutralModeValue
-import com.ctre.phoenix6.signals.SensorDirectionValue
 import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
@@ -20,9 +14,14 @@ import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.ctre.addFollower
+import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
+import frc.team2471.off2025.util.ctre.coastMode
 import frc.team2471.off2025.util.ctre.currentLimits
 import frc.team2471.off2025.util.ctre.d
+import frc.team2471.off2025.util.ctre.inverted
+import frc.team2471.off2025.util.ctre.magnetSensorOffset
+import frc.team2471.off2025.util.ctre.motionMagic
 import frc.team2471.off2025.util.ctre.p
 import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
@@ -175,15 +174,15 @@ object Armavator: SubsystemBase() {
             println("Elbow didn't exist!!!!!!!!!!!!!!!")
         }
 
-        armCanCoder.configurator.apply(CANcoderConfiguration().apply {
-            MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
-            MagnetSensor.MagnetOffset = armEncoderOffset.degrees.asRotations
-        })
+        armCanCoder.applyConfiguration {
+            inverted(true)
+            magnetSensorOffset(armEncoderOffset.degrees.asRotations)
+        }
 
-        elevatorCANcoder.configurator.apply(CANcoderConfiguration().apply {
-            MagnetSensor.MagnetOffset = elevatorEncoderOffset
-            MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive
-        })
+        elevatorCANcoder.applyConfiguration {
+            inverted(true)
+            magnetSensorOffset(elevatorEncoderOffset)
+        }
 
         // found that it is about 5.8 inches per rotation
         elevatorEncoderCurve.storeValue(0.0, 0.0)
@@ -200,7 +199,36 @@ object Armavator: SubsystemBase() {
         pivotMotor.setPosition(pivotEncoderAngle * PIVOT_GEAR_RATIO)
 
 
-        pivotMotor.configurator.apply(TalonFXConfiguration().apply {
+        elevatorMotor.applyConfiguration {
+            p(0.5)
+
+            currentLimits(30.0, 50.0, 0.5)
+            inverted(true)
+            coastMode()
+
+            motionMagic(35.0, 150.0)
+            remoteCANCoder(elevatorCANcoder.deviceID, 5.8 / ELEVATOR_REVOLUTIONS_PER_INCH, 1.0/5.8)
+        }
+
+        elevatorMotor.addFollower(Falcons.ELEVATOR_1, true)
+        elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
+        elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
+
+        armMotor.applyConfiguration {
+            p(8.3333)
+            d(0.69)
+
+            currentLimits(30.0, 40.0, 1.0)
+            inverted(false)
+            brakeMode()
+
+            motionMagic(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
+            remoteCANCoder(CANCoders.ARM, ARM_GEAR_RATIO)
+        }
+
+        armMotor.addFollower(Falcons.ARM_MOTOR_1)
+
+        pivotMotor.applyConfiguration {
             p(5.0)
             d(0.2)
             s(PIVOT_STATIC_FEED_FORWARD, StaticFeedforwardSignValue.UseClosedLoopSign)
@@ -208,65 +236,8 @@ object Armavator: SubsystemBase() {
             currentLimits(20.0, 30.0, 1.0)
             brakeMode()
 
-            MotionMagic.apply {
-                MotionMagicAcceleration = DEFAULT_PIVOT_ACCEL
-                MotionMagicCruiseVelocity = DEFAULT_PIVOT_CRUISING_VEL
-            }
-        })
-
-
-        elevatorMotor.configurator.apply(TalonFXConfiguration().apply {
-            CurrentLimits.apply {
-                SupplyCurrentLimit = 30.0
-                SupplyCurrentLimitEnable = true
-            }
-            MotorOutput.apply {
-                Inverted = InvertedValue.Clockwise_Positive
-                NeutralMode = NeutralModeValue.Coast
-            }
-            Slot0.apply {
-                kP = 0.5
-//                kG = 0.06
-//                GravityType = GravityTypeValue.Elevator_Static
-            }
-            MotionMagic.apply {
-                MotionMagicAcceleration = 150.0
-                MotionMagicCruiseVelocity = 35.0
-            }
-            remoteCANCoder(elevatorCANcoder.deviceID, 5.8 / ELEVATOR_REVOLUTIONS_PER_INCH, 1.0/5.8)
-        })
-
-        elevatorMotor.addFollower(Falcons.ELEVATOR_1, true)
-        elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
-        elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
-
-
-
-        armMotor.configurator.apply(TalonFXConfiguration().apply {
-            CurrentLimits.apply {
-                SupplyCurrentLimit = 30.0
-                SupplyCurrentLimitEnable = true
-            }
-            MotorOutput.apply {
-                Inverted = InvertedValue.CounterClockwise_Positive
-                NeutralMode = NeutralModeValue.Brake
-            }
-            Slot0.apply {
-                kP = 8.3333
-                kD = 0.69
-            }
-            MotionMagic.apply {
-                MotionMagicAcceleration = 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0
-                MotionMagicCruiseVelocity = 360.0 * ARM_GEAR_RATIO / 40.0
-            }
-            Feedback.apply {
-                FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANcoder
-                FeedbackRemoteSensorID = CANCoders.ARM
-                RotorToSensorRatio = ARM_GEAR_RATIO
-            }
-        })
-
-        armMotor.addFollower(Falcons.ARM_MOTOR_1)
+            motionMagic(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
+        }
     }
 
     override fun periodic() {
@@ -305,6 +276,15 @@ object Armavator: SubsystemBase() {
             heightSetpoint = heightSetpoint
             armAngleSetpoint = armAngleSetpoint
             pivotAngleSetpoint = pivotAngleSetpoint
+        }
+
+        if (armEncoderOffset != armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)) {
+            armEncoderOffset = armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)
+            println("armEncoderOffset update to $armEncoderOffset")
+        }
+        if (pivotEncoderOffset != pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)) {
+            pivotEncoderOffset = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
+            println("pivotEncoderOffset update to $pivotEncoderOffset")
         }
 
 
