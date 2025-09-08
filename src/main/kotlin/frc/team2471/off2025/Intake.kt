@@ -1,13 +1,14 @@
 package frc.team2471.off2025
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.hardware.CANrange
 import com.ctre.phoenix6.hardware.TalonFX
-import com.ctre.phoenix6.signals.InvertedValue
-import com.ctre.phoenix6.signals.NeutralModeValue
 import edu.wpi.first.math.filter.LinearFilter
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.team2471.off2025.util.ctre.applyConfiguration
+import frc.team2471.off2025.util.ctre.brakeMode
+import frc.team2471.off2025.util.ctre.currentLimits
+import frc.team2471.off2025.util.ctre.inverted
 
 object Intake: SubsystemBase("Intake") {
     var intakeState: IntakeState = IntakeState.HOLDING
@@ -33,30 +34,14 @@ object Intake: SubsystemBase("Intake") {
     val SIDE_SPIT_POWER = 0.8
 
     init {
-        frontMotor.configurator.apply (
-            TalonFXConfiguration().apply {
-                CurrentLimits.apply {
-                    SupplyCurrentLimit = 30.0
-                    SupplyCurrentLowerLimit = 5.0
-                    SupplyCurrentLowerTime = 0.5
-                    SupplyCurrentLimitEnable = true
-                }
-            }
-        )
-        sideMotor.configurator.apply(
-            TalonFXConfiguration().apply {
-                CurrentLimits.apply {
-                    SupplyCurrentLimit = 40.0
-                    SupplyCurrentLowerLimit = 20.0
-                    SupplyCurrentLowerTime = 1.0
-                    SupplyCurrentLimitEnable = true
-                }
-                MotorOutput.apply {
-                    NeutralMode = NeutralModeValue.Brake
-                    Inverted = InvertedValue.CounterClockwise_Positive
-                }
-            }
-        )
+        frontMotor.applyConfiguration {
+            currentLimits(30.0, 5.0, 0.5)
+        }
+        sideMotor.applyConfiguration {
+            currentLimits(20.0, 40.0, 1.0)
+            brakeMode()
+            inverted(false)
+        }
     }
 
     override fun periodic() {
