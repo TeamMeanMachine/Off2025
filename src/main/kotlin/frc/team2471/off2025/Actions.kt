@@ -16,14 +16,14 @@ fun groundIntake(isFlipped: Boolean): Command {
     return runCommand(Armavator) {
         println("going to ground intake")
         Intake.scoreAlgae = false
-        Armavator.goToPose(Pose.INTAKE_GROUND, isFlipped)
+        Armavator.goToPose(Pose.INTAKE_GROUND, isFlipped, false)
         Intake.intakeState = IntakeState.INTAKING
     }.finallyRun { goToDrivePose() }
 }
 
 fun goToDrivePose() {
     println("going to drive pose")
-    Armavator.goToPose(Pose.DRIVE)
+    Armavator.goToPose(Pose.DRIVE, optimizePivot = false)
     Intake.intakeState = IntakeState.HOLDING
 }
 
@@ -35,7 +35,7 @@ fun ampAlign(): Command {
             waitUntilCommand { ampAlignPoint.translation.getDistance(Drive.localizer.pose.translation) < 3.0.inches.asMeters },
             runCommand(Armavator ){
                 Intake.scoreAlgae = true
-                Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0)
+                Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0, false)
             }
         )
     )
@@ -77,7 +77,7 @@ fun algaeDescore(): Command {
             waitUntilCommand { alignPoseAndLevel.first.translation.getDistance(Drive.localizer.singleTagPose.translation) < 2.0.feet.asMeters },
             runCommand(Armavator) {
                 Intake.intakeState = IntakeState.REVERSING
-                Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH)
+                Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH, optimizePivot = false)
             }
         )
     ).finallyRun {

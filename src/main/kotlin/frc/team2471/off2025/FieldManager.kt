@@ -195,9 +195,9 @@ object FieldManager {
         }
         // optimize rotation
         var closestPose = poseAndDistance.first
-        var isFlipped = false
+        var isFlipped = true
         if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
-            isFlipped = true
+            isFlipped = false
             closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
         }
 
