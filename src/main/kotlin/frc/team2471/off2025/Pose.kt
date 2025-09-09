@@ -7,7 +7,7 @@ import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.wrap
 import kotlin.unaryMinus
 
-data class Pose(val elevatorHeight: Distance, val armAngle: Angle, val pivotAngle: Angle, ) {
+data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngle: Angle) {
     companion object {
         val current: Pose
             get() = Pose(Armavator.currentHeight, Armavator.currentArmAngle, Armavator.pivotEncoderAngle)

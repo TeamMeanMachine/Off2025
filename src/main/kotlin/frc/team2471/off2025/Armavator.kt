@@ -40,6 +40,9 @@ import frc.team2471.off2025.util.units.unWrap
 import frc.team2471.off2025.util.units.wrap
 import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
+import kotlin.collections.minusAssign
+import kotlin.collections.plusAssign
+import kotlin.compareTo
 import kotlin.math.IEEErem
 import kotlin.math.abs
 
@@ -200,7 +203,7 @@ object Armavator: SubsystemBase() {
 
 
         elevatorMotor.applyConfiguration {
-            p(0.5)
+            p(0.5 * ELEVATOR_REVOLUTIONS_PER_INCH)
 
             currentLimits(30.0, 50.0, 0.5)
             inverted(true)
@@ -266,6 +269,8 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
 
+        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
+
         Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
         Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
 //        if ((elevatorEncoderHeight.asInches - currentHeight.asInches).absoluteValue > 0.5){
@@ -299,8 +304,17 @@ object Armavator: SubsystemBase() {
         println("elevator percentage: $percent")
     }
 
-    fun goToPose(pose: Pose, isFlipped: Boolean = false) {
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true) {
         val targetPose = if (isFlipped) pose.reflect() else pose
+
+        if (optimizePivot) {
+            if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees > 90.0) {
+                targetPose.pivotAngle -= 180.0.degrees
+            } else if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees < -90.0) {
+                targetPose.pivotAngle += 180.0.degrees
+            }
+        }
+
         heightSetpoint = targetPose.elevatorHeight
         armAngleSetpoint = targetPose.armAngle
         pivotAngleSetpoint = targetPose.pivotAngle

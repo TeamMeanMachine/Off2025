@@ -165,7 +165,7 @@ object FieldManager {
     }
 
 
-    fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pose2d {
+    fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pair<Pose2d, Boolean> {
         val isRed = isRedAlliance
         val alignPositions = when (level) {
             Level.L4 -> {
@@ -195,11 +195,13 @@ object FieldManager {
         }
         // optimize rotation
         var closestPose = poseAndDistance.first
+        var isFlipped = false
         if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            isFlipped = true
             closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
         }
 
-        return closestPose
+        return Pair(closestPose, isFlipped)
     }
 
     fun ampAlignPoint(robotPose: Pose2d): Pose2d {

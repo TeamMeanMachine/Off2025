@@ -41,16 +41,20 @@ fun ampAlign(): Command {
     )
 }
 fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Command {
+
+    val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+
     return parallelCommand(
-          Drive.driveToPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, level, side), { Drive.localizer.singleTagPose}),
+          Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}),
         runCommand(Armavator){
             val pose = when (level){
-                FieldManager.Level.L1 -> Pose.SCORE_L1
-                FieldManager.Level.L2 -> Pose.SCORE_L2
-                FieldManager.Level.L3 -> Pose.SCORE_L3
-                FieldManager.Level.L4 -> Pose.SCORE_L4
+                FieldManager.Level.L1 -> Pose.SCORE_L1 to false
+                FieldManager.Level.L2 -> Pose.SCORE_L2 to true
+                FieldManager.Level.L3 -> Pose.SCORE_L3 to true
+                FieldManager.Level.L4 -> Pose.SCORE_L4 to true
             }
-            Armavator.goToPose(pose)
+
+            Armavator.goToPose(pose.first, closestAlignPose.second, pose.second)
         }
     )
 }
