@@ -1,6 +1,7 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
+import com.ctre.phoenix6.controls.VoltageOut
 import com.ctre.phoenix6.hardware.CANrange
 import com.ctre.phoenix6.hardware.TalonFX
 import edu.wpi.first.math.filter.LinearFilter
@@ -49,12 +50,12 @@ object Intake: SubsystemBase("Intake") {
         canRangeRightDist = canRangeRightDistFilter.calculate(canRangeRight.distance.valueAsDouble)
         when (intakeState) {
             IntakeState.INTAKING -> {
-                frontMotor.setControl(DutyCycleOut(INTAKE_POWER))
+                frontMotor.setControl(VoltageOut(INTAKE_POWER * 12.0))
                 sideMotor.setControl(DutyCycleOut(0.0))
                 centeringLogic(Robot.isAutonomous)
             }
             IntakeState.REVERSING -> {
-                frontMotor.setControl(DutyCycleOut(ALGAE_INTAKE_POWER_AUTO))
+                frontMotor.setControl(VoltageOut(ALGAE_INTAKE_POWER_AUTO * 12.0))
                 sideMotor.setControl(DutyCycleOut(0.0))
                 centeringLogic()
             }
@@ -64,7 +65,7 @@ object Intake: SubsystemBase("Intake") {
                 centeringLogic()
             }
             IntakeState.SCORING -> {
-                frontMotor.setControl(DutyCycleOut(0.1))
+                frontMotor.setControl(VoltageOut(0.1 * 12.0))
                 sideSplit()
             }
         }

@@ -109,8 +109,6 @@ object Robot : LoggedRobot() {
 
     fun enabledInit() {
         Drive.brakeMode()
-        Intake.intakeState = IntakeState.HOLDING
-        Armavator.goToPose(Pose.current)
     }
 
     /** This function is called once when the robot is disabled.  */
@@ -123,6 +121,8 @@ object Robot : LoggedRobot() {
     /** This function is called periodically when disabled.  */
     override fun disabledPeriodic() {
         Autonomous.flipPathsIfAllianceChange()
+        Armavator.goToPose(Pose.current)
+        Intake.intakeState = IntakeState.HOLDING
     }
 
     /** This function is called once when auto is enabled.  */

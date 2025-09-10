@@ -40,9 +40,6 @@ import frc.team2471.off2025.util.units.unWrap
 import frc.team2471.off2025.util.units.wrap
 import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
-import kotlin.collections.minusAssign
-import kotlin.collections.plusAssign
-import kotlin.compareTo
 import kotlin.math.IEEErem
 import kotlin.math.abs
 
@@ -273,9 +270,6 @@ object Armavator: SubsystemBase() {
 
         Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
         Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
-//        if ((elevatorEncoderHeight.asInches - currentHeight.asInches).absoluteValue > 0.5){
-//            elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
-//        }
 
         if (periodicFeedForward) {
             heightSetpoint = heightSetpoint
