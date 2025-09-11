@@ -139,8 +139,10 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         // Disabled actions
         if (Robot.isDisabled) {
             setControl(ApplyModuleStates()) //set module setpoints to their current position
-            modules.forEach {
-                it.steerMotor.setPosition(it.encoder.position.value)
+            if (isReal) {
+                modules.forEach {
+                    it.steerMotor.setPosition(it.encoder.position.value)
+                }
             }
         }
 

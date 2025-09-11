@@ -1,549 +1,464 @@
-package motion_profiling;
+package frc.team2471.off2025.util.motion_profiling
 
-import org.team2471.frc.lib.math.Vector2;
+import motion_profiling.MotionCurve
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
-import static motion_profiling.MotionKey.SlopeMethod.SLOPE_MANUAL;
-import static motion_profiling.MotionKey.SlopeMethod.SLOPE_PLATEAU;
+class MotionKey {
+    @Transient
+    private val CLAMPTOLERANCE = 0.005
+    private var m_timeAndValue: BooleanPair = BooleanPair(0.0, 0.0)
+    private var m_prevAngleAndMagnitude: BooleanPair = BooleanPair(0.0, 1.0)
+    private var m_nextAngleAndMagnitude: BooleanPair = BooleanPair(0.0, 1.0)
+    private var m_prevTangent: BooleanPair = BooleanPair(0.0, 0.0)
+    private var m_nextTangent: BooleanPair = BooleanPair(0.0, 0.0)
+    var prevSlopeMethod: SlopeMethod = SlopeMethod.SLOPE_SMOOTH
+    var nextSlopeMethod: SlopeMethod = SlopeMethod.SLOPE_SMOOTH
+    private var m_markBeginOrEndKeysToZeroSlope: Boolean = true
 
-public class MotionKey {
-    private transient final double CLAMPTOLERANCE = 0.005;
-    private Vector2 m_timeAndValue;
-    private Vector2 m_prevAngleAndMagnitude;
-    private Vector2 m_nextAngleAndMagnitude;
-    private Vector2 m_prevTangent;
-    private Vector2 m_nextTangent;
-    private SlopeMethod m_prevSlopeMethod;
-    private SlopeMethod m_nextSlopeMethod;
-    private boolean m_markBeginOrEndKeysToZeroSlope;
-    private MotionKey m_nextKey;
+    var nextKey: MotionKey? = null
 
-    private transient MotionCurve m_motionCurve;
-    private transient MotionKey m_prevKey;
-    private transient boolean m_bTangentsDirty;
-    private transient boolean m_bCoefficientsDirty;
-    private transient CubicCoefficients1D m_xCoeff;
-    private transient CubicCoefficients1D m_yCoeff;
+    @Transient
+    var motionCurve: MotionCurve? = null
 
-    public MotionKey() {
-        m_timeAndValue = new Vector2(0, 0);
-        m_prevAngleAndMagnitude = new Vector2(0, 1);
-        m_nextAngleAndMagnitude = new Vector2(0, 1);
-        m_prevTangent = new Vector2(0, 0);
-        m_nextTangent = new Vector2(0, 0);
+    @Transient
+    var prevKey: MotionKey? = null
 
-        m_timeAndValue.set(0, 0);
-        m_prevAngleAndMagnitude.set(0, 1);
-        m_nextAngleAndMagnitude.set(0, 1);
-        m_bTangentsDirty = true;
-        m_bCoefficientsDirty = true;
-        m_prevSlopeMethod = SlopeMethod.SLOPE_SMOOTH;
-        m_nextSlopeMethod = SlopeMethod.SLOPE_SMOOTH;
-        m_markBeginOrEndKeysToZeroSlope = true;
-        m_motionCurve = null;
-        m_nextKey = null;
-        m_prevKey = null;
+    @Transient
+    private var m_bTangentsDirty: Boolean = true
+
+    @Transient
+    private var m_bCoefficientsDirty: Boolean = true
+
+    @Transient
+    private var m_xCoeff: CubicCoefficients1D? = null
+
+    @Transient
+    private var m_yCoeff: CubicCoefficients1D? = null
+
+    init {
+        m_timeAndValue.set(0.0, 0.0)
+        m_prevAngleAndMagnitude.set(0.0, 1.0)
+        m_nextAngleAndMagnitude.set(0.0, 1.0)
     }
 
-    public void onPositionChanged() {
-        getMotionCurve().onKeyPositionChanged(this);  // tell the curve too
+    fun onPositionChanged() {
+        this.motionCurve!!.onKeyPositionChanged(this) // tell the curve too
 
-        setTangentsDirty(true);
-        setCoefficientsDirty(true);
+        setTangentsDirty(true)
+        setCoefficientsDirty(true)
 
-        if (getPrevKey() != null) {
-            getPrevKey().setTangentsDirty(true);
-            getPrevKey().setCoefficientsDirty(true);
-            if (getPrevKey().getPrevKey() != null && getPrevKey().getPrevKey().getNextSlopeMethod() == SLOPE_PLATEAU) {  // Need to go two away if it is Plateau because they use Prev and Next Tangents
-                getPrevKey().getPrevKey().setTangentsDirty(true);
-                getPrevKey().getPrevKey().setCoefficientsDirty(true);
+        if (this.prevKey != null) {
+            this.prevKey!!.setTangentsDirty(true)
+            this.prevKey!!.setCoefficientsDirty(true)
+            if (this.prevKey!!.prevKey != null && this.prevKey!!.prevKey!!.nextSlopeMethod == SlopeMethod.SLOPE_PLATEAU) {  // Need to go two away if it is Plateau because they use Prev and Next Tangents
+                this.prevKey!!.prevKey!!.setTangentsDirty(true)
+                this.prevKey!!.prevKey!!.setCoefficientsDirty(true)
             }
         }
 
-        if (getNextKey() != null) {
-            getNextKey().setTangentsDirty(true);
-            if (getNextKey().getNextKey() != null && getNextKey().getNextKey().getPrevSlopeMethod() == SLOPE_PLATEAU) {  // Need to go two away if it is Plateau because they use Prev and Next Tangents
-                getNextKey().getNextKey().setTangentsDirty(true);
-                getNextKey().setCoefficientsDirty(true);
+        if (this.nextKey != null) {
+            this.nextKey!!.setTangentsDirty(true)
+            if (this.nextKey!!.nextKey != null && this.nextKey!!.nextKey!!.prevSlopeMethod == SlopeMethod.SLOPE_PLATEAU) {  // Need to go two away if it is Plateau because they use Prev and Next Tangents
+                this.nextKey!!.nextKey!!.setTangentsDirty(true)
+                this.nextKey!!.setCoefficientsDirty(true)
             }
         }
     }
 
-    public double getTime() {
-        return m_timeAndValue.getX();
-    }
-
-    public void setTime(double time) {
-        m_timeAndValue.setX(time);
-        onPositionChanged();
-    }
-
-    public double getValue() {
-        return m_timeAndValue.getY();
-    }
-
-    public void setValue(double value) {
-        m_timeAndValue.setY(value);
-        onPositionChanged();
-        if (value > getMotionCurve().getMaxValue()) { //set curve min and max
-            getMotionCurve().setMaxValue(value);
-        } else if (value < getMotionCurve().getMinValue()) {
-            getMotionCurve().setMinValue(value);
+    var time: Double
+        get() = m_timeAndValue.x
+        set(time) {
+            m_timeAndValue.x = time
+            onPositionChanged()
         }
+
+    var value: Double
+        get() = m_timeAndValue.y
+        set(value) {
+            m_timeAndValue.y = value
+            onPositionChanged()
+            if (value > this.motionCurve!!.maxValue) { //set curve min and max
+                this.motionCurve!!.maxValue = value
+            } else if (value < this.motionCurve!!.minValue) {
+                this.motionCurve!!.minValue = value
+            }
+        }
+
+    fun areTangentsDirty(): Boolean {
+        return m_bTangentsDirty
     }
 
-    public boolean areTangentsDirty() {
-        return m_bTangentsDirty;
+    fun setTangentsDirty(bTangentsDirty: Boolean) {
+        m_bTangentsDirty = bTangentsDirty
     }
 
-    public void setTangentsDirty(boolean bTangentsDirty) {
-        m_bTangentsDirty = bTangentsDirty;
+    fun areCoefficientsDirty(): Boolean {
+        return m_bCoefficientsDirty
     }
 
-    public boolean areCoefficientsDirty() {
-        return m_bCoefficientsDirty;
+    fun setCoefficientsDirty(bCoefficientsDirty: Boolean) {
+        m_bCoefficientsDirty = bCoefficientsDirty
     }
 
-    public void setCoefficientsDirty(boolean bCoefficientsDirty) {
-        m_bCoefficientsDirty = bCoefficientsDirty;
+    var timeAndValue: BooleanPair
+        get() = m_timeAndValue
+        set(m_timeAndValue) {
+            this.m_timeAndValue = m_timeAndValue
+            onPositionChanged()
+        }
+
+    var prevAngleAndMagnitude: BooleanPair
+        get() = m_prevAngleAndMagnitude
+        set(m_prevAngleAndMagnitude) {
+            m_markBeginOrEndKeysToZeroSlope = false
+            this.m_prevAngleAndMagnitude = m_prevAngleAndMagnitude
+            this.prevSlopeMethod = SlopeMethod.SLOPE_MANUAL
+            setTangentsDirty(true)
+            onPositionChanged()
+        }
+
+    var nextAngleAndMagnitude: BooleanPair
+        get() = m_nextAngleAndMagnitude
+        set(m_nextAngleAndMagnitude) {
+            m_markBeginOrEndKeysToZeroSlope = false
+            this.m_nextAngleAndMagnitude = m_nextAngleAndMagnitude
+            this.nextSlopeMethod = SlopeMethod.SLOPE_MANUAL
+            setTangentsDirty(true)
+            onPositionChanged()
+        }
+
+    var prevTangent: BooleanPair
+        get() {
+            if (areTangentsDirty()) calculateTangents()
+
+            return m_prevTangent
+        }
+        set(m_PrevTangent) {
+            this.m_prevTangent = m_PrevTangent
+        }
+
+    var nextTangent: BooleanPair
+        get() {
+            if (areTangentsDirty()) calculateTangents()
+
+            return m_nextTangent
+        }
+        set(m_NextTangent) {
+            this.m_nextTangent = m_NextTangent
+        }
+
+    var prevMagnitude: Double
+        get() = m_prevAngleAndMagnitude.y
+        set(magnitude) {
+            m_prevAngleAndMagnitude.y = magnitude
+            this.prevSlopeMethod = SlopeMethod.SLOPE_MANUAL
+        }
+
+    var nextMagnitude: Double
+        get() = m_nextAngleAndMagnitude.y
+        set(magnitude) {
+            m_nextAngleAndMagnitude.y = magnitude
+            this.nextSlopeMethod = SlopeMethod.SLOPE_MANUAL
+        }
+
+    fun insertBefore(newKey: MotionKey) {
+        this.prevKey = newKey.prevKey
+        if (newKey.prevKey != null) newKey.prevKey!!.nextKey = this
+        newKey.prevKey = this
+        this.nextKey = newKey
     }
 
-    public Vector2 getTimeAndValue() {
-        return m_timeAndValue;
+    fun insertAfter(newKey: MotionKey) {
+        this.nextKey = newKey.nextKey
+        if (newKey.nextKey != null) newKey.nextKey!!.prevKey = this
+        newKey.nextKey = this
+        this.prevKey = newKey
     }
 
-    public void setTimeAndValue(Vector2 m_timeAndValue) {
-        this.m_timeAndValue = m_timeAndValue;
-        onPositionChanged();
-    }
+    private fun calculateTangents() {
+        setTangentsDirty(false)
 
-    public Vector2 getPrevAngleAndMagnitude() {
-        return m_prevAngleAndMagnitude;
-    }
+        var bCalcSmoothPrev = false
+        var bCalcSmoothNext = false
 
-    public void setPrevAngleAndMagnitude(Vector2 m_prevAngleAndMagnitude) {
-        m_markBeginOrEndKeysToZeroSlope = false;
-        this.m_prevAngleAndMagnitude = m_prevAngleAndMagnitude;
-        m_prevSlopeMethod = SLOPE_MANUAL;
-        setTangentsDirty(true);
-        onPositionChanged();
-    }
+        when (this.prevSlopeMethod) {
+            SlopeMethod.SLOPE_MANUAL -> {
+                m_prevTangent.set(cos(this.prevAngleAndMagnitude.x), sin(this.prevAngleAndMagnitude.x))
+                if (this.prevKey != null)  // TODO: result is unused
+                    m_prevTangent.times(this.timeAndValue.x - prevKey!!.timeAndValue.x)
+            }
 
-    public Vector2 getNextAngleAndMagnitude() {
-        return m_nextAngleAndMagnitude;
-    }
+            SlopeMethod.SLOPE_LINEAR -> if (this.prevKey != null) m_prevTangent =
+                this.timeAndValue.minus(prevKey!!.timeAndValue)
 
-    public void setNextAngleAndMagnitude(Vector2 m_nextAngleAndMagnitude) {
-        m_markBeginOrEndKeysToZeroSlope = false;
-        this.m_nextAngleAndMagnitude = m_nextAngleAndMagnitude;
-        m_nextSlopeMethod = SLOPE_MANUAL;
-        setTangentsDirty(true);
-        onPositionChanged();
-    }
+            SlopeMethod.SLOPE_FLAT -> if (this.prevKey != null) m_prevTangent.set(
+                (this.timeAndValue.x - prevKey!!.timeAndValue.x) * 0.5,
+                0.0
+            )
 
-    public Vector2 getPrevTangent() {
-        if (areTangentsDirty())
-            calculateTangents();
-
-        return m_prevTangent;
-    }
-
-    public void setPrevTangent(Vector2 m_PrevTangent) {
-        this.m_prevTangent = m_PrevTangent;
-    }
-
-    public Vector2 getNextTangent() {
-        if (areTangentsDirty())
-            calculateTangents();
-
-        return m_nextTangent;
-    }
-
-    public void setNextTangent(Vector2 m_NextTangent) {
-        this.m_nextTangent = m_NextTangent;
-    }
-
-    public MotionCurve getMotionCurve() {
-        return m_motionCurve;
-    }
-
-    public void setMotionCurve(MotionCurve m_motionCurve) {
-        this.m_motionCurve = m_motionCurve;
-    }
-
-    public MotionKey getNextKey() {
-        return m_nextKey;
-    }
-
-    public void setNextKey(MotionKey m_nextKey) {
-        this.m_nextKey = m_nextKey;
-    }
-
-    public MotionKey getPrevKey() {
-        return m_prevKey;
-    }
-
-    public void setPrevKey(MotionKey m_prevKey) {
-        this.m_prevKey = m_prevKey;
-    }
-
-    public SlopeMethod getPrevSlopeMethod() {
-        return m_prevSlopeMethod;
-    }
-
-    public void setPrevSlopeMethod(SlopeMethod slopeMethod) {
-        m_prevSlopeMethod = slopeMethod;
-    }
-
-    public SlopeMethod getNextSlopeMethod() {
-        return m_nextSlopeMethod;
-    }
-
-    public void setNextSlopeMethod(SlopeMethod slopeMethod) {
-        m_nextSlopeMethod = slopeMethod;
-    }
-
-    public double getPrevMagnitude() {
-        return m_prevAngleAndMagnitude.getY();
-    }
-
-    public double getNextMagnitude() {
-        return m_nextAngleAndMagnitude.getY();
-    }
-
-    void insertBefore(MotionKey newKey) {
-        m_prevKey = newKey.m_prevKey;
-        if (newKey.m_prevKey != null)
-            newKey.m_prevKey.m_nextKey = this;
-        newKey.m_prevKey = this;
-        m_nextKey = newKey;
-    }
-
-    void insertAfter(MotionKey newKey) {
-        m_nextKey = newKey.m_nextKey;
-        if (newKey.m_nextKey != null)
-            newKey.m_nextKey.m_prevKey = this;
-        newKey.m_nextKey = this;
-        m_prevKey = newKey;
-    }
-
-    private void calculateTangents() {
-        setTangentsDirty(false);
-
-        boolean bCalcSmoothPrev = false;
-        boolean bCalcSmoothNext = false;
-
-        switch (getPrevSlopeMethod()) {
-            case SLOPE_MANUAL:
-                m_prevTangent.set(Math.cos(getPrevAngleAndMagnitude().getX()), Math.sin(getPrevAngleAndMagnitude().getX()));
-                if (m_prevKey != null)
-                    // TODO: result is unused
-                    m_prevTangent.times(getTimeAndValue().getX() - m_prevKey.getTimeAndValue().getX());
-                break;
-            case SLOPE_LINEAR:
-                if (m_prevKey != null)
-                    m_prevTangent = getTimeAndValue().minus(m_prevKey.getTimeAndValue());
-                break;
-            case SLOPE_FLAT:
-                if (m_prevKey != null)
-                    m_prevTangent.set((getTimeAndValue().getX() - m_prevKey.getTimeAndValue().getX()) * 0.5, 0.0);
-                break;
-            case SLOPE_SMOOTH:
-                bCalcSmoothPrev = true;
-                break;
-            case SLOPE_CLAMPED: {
-                double fClampTolerence = (getMotionCurve().getMaxValue() - getMotionCurve().getMinValue()) * CLAMPTOLERANCE;
-                if (m_prevKey != null && Math.abs(m_prevKey.getValue() - getValue()) <= fClampTolerence) // make Flat
-                    m_prevTangent.set(getTime() - m_prevKey.getTime(), 0.0f);
-                else if (m_nextKey != null && Math.abs(m_nextKey.getValue() - getValue()) <= fClampTolerence) // Make Flat
+            SlopeMethod.SLOPE_SMOOTH -> bCalcSmoothPrev = true
+            SlopeMethod.SLOPE_CLAMPED -> {
+                val fClampTolerence = (this.motionCurve!!.maxValue - this.motionCurve!!.minValue) * CLAMPTOLERANCE
+                if (this.prevKey != null && abs(prevKey!!.value - this.value) <= fClampTolerence)  // make Flat
+                    m_prevTangent.set(this.time - prevKey!!.time, 0.0)
+                else if (this.nextKey != null && abs(nextKey!!.value - this.value) <= fClampTolerence)  // Make Flat
                 {
-                    if (m_prevKey != null)
-                        m_prevTangent.set(getTime() - m_prevKey.getTime(), 0.0f);
-                    else
-                        m_prevTangent.set(0.0f, 0.0f);
-                } else
-                    bCalcSmoothPrev = true;
-                break;
+                    if (this.prevKey != null) m_prevTangent.set(this.time - prevKey!!.time, 0.0)
+                    else m_prevTangent.set(0.0, 0.0)
+                } else bCalcSmoothPrev = true
             }
-            case SLOPE_PLATEAU:
-                if (m_prevKey == null || m_nextKey == null) {
-                    if (m_prevKey != null)
-                        m_prevTangent.set(getTime() - m_prevKey.getTime(), 0.0f); // Make Flat
-                    else
-                        m_prevTangent.set(0.0f, 0.0f);
-                } else // we have a prev and a next, lets see if both the prev's out tangent and the next's in tangent are both either greater or less than our value, if so lets make out tangent flat
-                {
-                    double fPrevTangentValue;
-                    if (m_prevKey.getNextSlopeMethod() == SLOPE_PLATEAU)
-                        fPrevTangentValue = m_prevKey.getValue(); // This way we don't get an infinite recursion
-                    else {
-                        Vector2 vPrevPos = m_prevKey.getTimeAndValue();
-                        Vector2 vPrevTangent = m_prevKey.getNextTangent().times( 1.0 / 3.0).plus(vPrevPos);
-                        fPrevTangentValue = vPrevTangent.getY();
-                    }
 
-                    double fNextTangentValue;
-                    if (m_nextKey.getPrevSlopeMethod() == SLOPE_PLATEAU)
-                        fNextTangentValue = m_nextKey.getValue(); // This way we don't get an infinite recursion
-                    else {
-                        Vector2 vNextPos = m_nextKey.getTimeAndValue();
-                        Vector2 vNextTangent = vNextPos.minus(m_nextKey.getPrevTangent().times(1.0 / 3.0));
-                        fNextTangentValue = vNextTangent.getY();
-                    }
-
-                    double fValue = getValue();
-                    if (fPrevTangentValue > fValue && fNextTangentValue > fValue)
-                        m_prevTangent.set(getTime() - m_prevKey.getTime(), 0.0f); // Make Flat
-                    else if (fPrevTangentValue < fValue && fNextTangentValue < fValue)
-                        m_prevTangent.set(getTime() - m_prevKey.getTime(), 0.0f); // Make Flat
-                    else
-                        bCalcSmoothPrev = true;
+            SlopeMethod.SLOPE_PLATEAU -> if (this.prevKey == null || this.nextKey == null) {
+                if (this.prevKey != null) m_prevTangent.set(this.time - prevKey!!.time, 0.0) // Make Flat
+                else m_prevTangent.set(0.0, 0.0)
+            } else  // we have a prev and a next, lets see if both the prev's out tangent and the next's in tangent are both either greater or less than our value, if so lets make out tangent flat
+            {
+                val fPrevTangentValue: Double
+                if (prevKey!!.nextSlopeMethod == SlopeMethod.SLOPE_PLATEAU) fPrevTangentValue =
+                    prevKey!!.value // This way we don't get an infinite recursion
+                else {
+                    val vPrevPos = prevKey!!.timeAndValue
+                    val vPrevTangent = prevKey!!.nextTangent.times(1.0 / 3.0).plus(vPrevPos)
+                    fPrevTangentValue = vPrevTangent.y
                 }
-                break;
-            case SLOPE_STEPPED:
-            case SLOPE_STEPPED_NEXT:
-                assert (false); // Not a valid method for PREV Interp Method, it is only valid for NEXT key direction
-                break;
+
+                val fNextTangentValue: Double
+                if (nextKey!!.prevSlopeMethod == SlopeMethod.SLOPE_PLATEAU) fNextTangentValue =
+                    nextKey!!.value // This way we don't get an infinite recursion
+                else {
+                    val vNextPos = nextKey!!.timeAndValue
+                    val vNextTangent = vNextPos.minus(nextKey!!.prevTangent.times(1.0 / 3.0))
+                    fNextTangentValue = vNextTangent.y
+                }
+
+                val fValue = this.value
+                if (fPrevTangentValue > fValue && fNextTangentValue > fValue) m_prevTangent.set(
+                    this.time - prevKey!!.time,
+                    0.0
+                ) // Make Flat
+                else if (fPrevTangentValue < fValue && fNextTangentValue < fValue) m_prevTangent.set(
+                    this.time - prevKey!!.time,
+                    0.0
+                ) // Make Flat
+                else bCalcSmoothPrev = true
+            }
+
+            SlopeMethod.SLOPE_STEPPED, SlopeMethod.SLOPE_STEPPED_NEXT -> assert(false) // Not a valid method for PREV Interp Method, it is only valid for NEXT key direction
+            else -> {}
         }
 
-        switch (getNextSlopeMethod()) {
-            case SLOPE_MANUAL:
-                m_nextTangent.set(Math.cos(getNextAngleAndMagnitude().getX()), Math.sin(getNextAngleAndMagnitude().getX()));
-                if (m_nextKey != null)
-                    m_nextTangent.times(m_nextKey.getTimeAndValue().getX() - getTimeAndValue().getX());
-                    // TODO: unused result
-                break;
-            case SLOPE_LINEAR:
-                if (m_nextKey != null)
-                    m_nextTangent = m_nextKey.getTimeAndValue().minus(getTimeAndValue());
-                break;
-            case SLOPE_FLAT:
-                if (m_nextKey != null)
-                    m_nextTangent.set(m_nextKey.getTimeAndValue().getX() - getTimeAndValue().getX(), 0.0f);
-                break;
-            case SLOPE_SMOOTH:
-                bCalcSmoothNext = true;
-                break;
-            case SLOPE_CLAMPED: {
-                double fClampTolerence = (getMotionCurve().getMaxValue() - getMotionCurve().getMinValue()) * CLAMPTOLERANCE;
-                if (m_prevKey != null && Math.abs(m_prevKey.getValue() - getValue()) <= fClampTolerence) // make Flat
-                {
-                    if (m_nextKey != null)
-                        m_nextTangent.set(m_nextKey.getTime() - getTime(), 0.0f);
-                    else
-                        m_nextTangent.set(0.0f, 0.0f);
-                } else if (m_nextKey != null && Math.abs(m_nextKey.getValue() - getValue()) <= fClampTolerence) // Make Flat
-                    m_nextTangent.set(m_nextKey.getTime() - getTime(), 0.0f);
-                else
-                    bCalcSmoothNext = true;
-                break;
+        when (this.nextSlopeMethod) {
+            SlopeMethod.SLOPE_MANUAL -> {
+                m_nextTangent.set(cos(this.nextAngleAndMagnitude.x), sin(this.nextAngleAndMagnitude.x))
+                if (this.nextKey != null) m_nextTangent.times(nextKey!!.timeAndValue.x - this.timeAndValue.x)
             }
-            case SLOPE_PLATEAU:
-                if (m_prevKey == null || m_nextKey == null) {
-                    if (m_nextKey != null)
-                        m_nextTangent.set(m_nextKey.getTime() - getTime(), 0.0f); // Make it flat
-                    else
-                        m_nextTangent.set(0.0f, 0.0f);
-                } else // we have a prev and a next, lets see if both the prev's out tangent and the next's in tangent are both either greater or less than our value, if so lets make out tangent flat
+
+            SlopeMethod.SLOPE_LINEAR -> if (this.nextKey != null) m_nextTangent =
+                nextKey!!.timeAndValue.minus(this.timeAndValue)
+
+            SlopeMethod.SLOPE_FLAT -> if (this.nextKey != null) m_nextTangent.set(
+                nextKey!!.timeAndValue.x - this.timeAndValue.x,
+                0.0
+            )
+
+            SlopeMethod.SLOPE_SMOOTH -> bCalcSmoothNext = true
+            SlopeMethod.SLOPE_CLAMPED -> {
+                val fClampTolerence = (this.motionCurve!!.maxValue - this.motionCurve!!.minValue) * CLAMPTOLERANCE
+                if (this.prevKey != null && abs(prevKey!!.value - this.value) <= fClampTolerence)  // make Flat
                 {
-                    double fPrevTangentValue;
-                    if (m_prevKey.getNextSlopeMethod() == SLOPE_PLATEAU)
-                        fPrevTangentValue = m_prevKey.getValue(); // This way we don't get an infinite recursion
-                    else {
-                        Vector2 vPrevPos = new Vector2(m_prevKey.getTime(), m_prevKey.getValue());
-                        Vector2 vPrevTangent = m_prevKey.getNextTangent().times(1.0 / 3.0).plus(vPrevPos);
-                        fPrevTangentValue = vPrevTangent.getY();
-                    }
+                    if (this.nextKey != null) m_nextTangent.set(nextKey!!.time - this.time, 0.0)
+                    else m_nextTangent.set(0.0, 0.0)
+                } else if (this.nextKey != null && abs(nextKey!!.value - this.value) <= fClampTolerence)  // Make Flat
+                    m_nextTangent.set(nextKey!!.time - this.time, 0.0)
+                else bCalcSmoothNext = true
+            }
 
-                    double fNextTangentValue;
-                    if (m_nextKey.getPrevSlopeMethod() == SLOPE_PLATEAU)
-                        fNextTangentValue = m_nextKey.getValue(); // This way we don't get an infinite recursion
-                    else {
-                        Vector2 vNextPos = new Vector2(m_nextKey.getTime(), m_nextKey.getValue());
-                        Vector2 vNextTangent = vNextPos.minus(m_nextKey.getPrevTangent().times(1.0 / 3.0));
-                        fNextTangentValue = vNextTangent.getY();
-                    }
-
-                    double fValue = getValue();
-                    if (fPrevTangentValue > fValue && fNextTangentValue > fValue)
-                        m_nextTangent.set(m_nextKey.getTime() - getTime(), 0.0f); // Make it flat
-                    else if (fPrevTangentValue < fValue && fNextTangentValue < fValue)
-                        m_nextTangent.set(m_nextKey.getTime() - getTime(), 0.0f); // Make it flat
-                    else
-                        bCalcSmoothNext = true;
+            SlopeMethod.SLOPE_PLATEAU -> if (this.prevKey == null || this.nextKey == null) {
+                if (this.nextKey != null) m_nextTangent.set(nextKey!!.time - this.time, 0.0) // Make it flat
+                else m_nextTangent.set(0.0, 0.0)
+            } else  // we have a prev and a next, lets see if both the prev's out tangent and the next's in tangent are both either greater or less than our value, if so lets make out tangent flat
+            {
+                val fPrevTangentValue: Double
+                if (prevKey!!.nextSlopeMethod == SlopeMethod.SLOPE_PLATEAU) fPrevTangentValue =
+                    prevKey!!.value // This way we don't get an infinite recursion
+                else {
+                    val vPrevPos = BooleanPair(prevKey!!.time, prevKey!!.value)
+                    val vPrevTangent = prevKey!!.nextTangent.times(1.0 / 3.0).plus(vPrevPos)
+                    fPrevTangentValue = vPrevTangent.y
                 }
-                break;
-            case SLOPE_STEPPED:
-            case SLOPE_STEPPED_NEXT:
-                break; // nothing to do, no tangents
+
+                val fNextTangentValue: Double
+                if (nextKey!!.prevSlopeMethod == SlopeMethod.SLOPE_PLATEAU) fNextTangentValue =
+                    nextKey!!.value // This way we don't get an infinite recursion
+                else {
+                    val vNextPos = BooleanPair(nextKey!!.time, nextKey!!.value)
+                    val vNextTangent = vNextPos.minus(nextKey!!.prevTangent.times(1.0 / 3.0))
+                    fNextTangentValue = vNextTangent.y
+                }
+
+                val fValue = this.value
+                if (fPrevTangentValue > fValue && fNextTangentValue > fValue) m_nextTangent.set(
+                    nextKey!!.time - this.time,
+                    0.0
+                ) // Make it flat
+                else if (fPrevTangentValue < fValue && fNextTangentValue < fValue) m_nextTangent.set(
+                    nextKey!!.time - this.time,
+                    0.0
+                ) // Make it flat
+                else bCalcSmoothNext = true
+            }
+
+            SlopeMethod.SLOPE_STEPPED, SlopeMethod.SLOPE_STEPPED_NEXT -> {}
+            else -> {}
         }
 
         if (bCalcSmoothPrev || bCalcSmoothNext) {
-            if (m_prevKey != null && m_nextKey != null) {
-                Vector2 delta = m_nextKey.getTimeAndValue().minus(m_prevKey.getTimeAndValue());
-                double weight = Math.abs(delta.getX());
-                if (weight == 0) // if keys are on top of one another (no tangents)
+            if (this.prevKey != null && this.nextKey != null) {
+                var delta = nextKey!!.timeAndValue.minus(prevKey!!.timeAndValue)
+                val weight = abs(delta.x)
+                if (weight == 0.0)  // if keys are on top of one another (no tangents)
                 {
-                    if (bCalcSmoothPrev)
-                        m_prevTangent.set(0, 0);
-                    if (bCalcSmoothNext)
-                        m_nextTangent.set(0, 0);
+                    if (bCalcSmoothPrev) m_prevTangent.set(0.0, 0.0)
+                    if (bCalcSmoothNext) m_nextTangent.set(0.0, 0.0)
                 } else {
-                    delta = delta.div(weight);
+                    delta = delta.div(weight)
 
                     if (bCalcSmoothPrev) {
-                        double prevWeight = getTimeAndValue().getX() - m_prevKey.getTimeAndValue().getX();
-                        m_prevTangent = delta.times(prevWeight);
+                        val prevWeight = this.timeAndValue.x - prevKey!!.timeAndValue.x
+                        m_prevTangent = delta.times(prevWeight)
                     }
                     if (bCalcSmoothNext) {
-                        double nextWeight = m_nextKey.getTimeAndValue().getX() - getTimeAndValue().getX();
-                        m_nextTangent = delta.times(nextWeight);
+                        val nextWeight = nextKey!!.timeAndValue.x - this.timeAndValue.x
+                        m_nextTangent = delta.times(nextWeight)
                     }
                 }
             } else {
-                if (m_nextKey != null) {
-                    if (bCalcSmoothPrev)
-                        m_prevTangent = m_nextKey.getTimeAndValue().minus(getTimeAndValue());
+                if (this.nextKey != null) {
+                    if (bCalcSmoothPrev) m_prevTangent = nextKey!!.timeAndValue.minus(this.timeAndValue)
 
-                    if (bCalcSmoothNext)
-                        m_nextTangent = m_nextKey.getTimeAndValue().minus(getTimeAndValue());
+                    if (bCalcSmoothNext) m_nextTangent = nextKey!!.timeAndValue.minus(this.timeAndValue)
                 }
 
-                if (m_prevKey != null) {
-                    if (bCalcSmoothPrev)
-                        m_prevTangent = getTimeAndValue().minus(m_prevKey.getTimeAndValue());
+                if (this.prevKey != null) {
+                    if (bCalcSmoothPrev) m_prevTangent = this.timeAndValue.minus(prevKey!!.timeAndValue)
 
-                    if (bCalcSmoothNext)
-                        m_nextTangent = getTimeAndValue().minus(m_prevKey.getTimeAndValue());
+                    if (bCalcSmoothNext) m_nextTangent = this.timeAndValue.minus(prevKey!!.timeAndValue)
                 }
             }
         }
 
-        m_prevTangent = m_prevTangent.times(getPrevAngleAndMagnitude().getY()); // / 3.0 it seems like this is more of a UI only thing, and shouldn't really be done in this case.  But maybe I'm wrong.  Subtract the points, then take a third to get a good default tangent.  Does that still appear too long in the UI?  So we divide by 3 again.
-        m_nextTangent = m_nextTangent.times(getNextAngleAndMagnitude().getY()); // / 3.0
+        m_prevTangent =
+            m_prevTangent.times(this.prevAngleAndMagnitude.y) // / 3.0 it seems like this is more of a UI only thing, and shouldn't really be done in this case.  But maybe I'm wrong.  Subtract the points, then take a third to get a good default tangent.  Does that still appear too long in the UI?  So we divide by 3 again.
+        m_nextTangent = m_nextTangent.times(this.nextAngleAndMagnitude.y) // / 3.0
     }
 
-    public CubicCoefficients1D getXCoefficients() {
-        if (areCoefficientsDirty()) {
-            calculateCoefficients();
+    val xCoefficients: CubicCoefficients1D?
+        get() {
+            if (areCoefficientsDirty()) {
+                calculateCoefficients()
+            }
+            return m_xCoeff
         }
-        return m_xCoeff;
-    }
 
-    public CubicCoefficients1D getYCoefficients() {
-        if (areCoefficientsDirty()) {
-            calculateCoefficients();
-        } else if (m_yCoeff==null) {
-            System.out.println("m_yCoeff = null");
-            calculateCoefficients();
+    val yCoefficients: CubicCoefficients1D?
+        get() {
+            if (areCoefficientsDirty()) {
+                calculateCoefficients()
+            } else if (m_yCoeff == null) {
+                println("m_yCoeff = null")
+                calculateCoefficients()
+            }
+            return m_yCoeff
         }
-        return m_yCoeff;
-    }
 
-    private void calculateCoefficients() {
-        setCoefficientsDirty(false);
+    private fun calculateCoefficients() {
+        setCoefficientsDirty(false)
 
-        double pointax = getTime();
-        double pointbx = m_nextKey.getTime();
-        double xspan = pointbx - pointax;
+        val pointax = this.time
+        val pointbx = nextKey!!.time
+        val xspan = pointbx - pointax
 
-        double pointay = getValue();
-        double pointby = m_nextKey.getValue();
-        double pointcy = getNextTangent().getY();
-        double pointdy = m_nextKey.getPrevTangent().getY();
+        val pointay = this.value
+        val pointby = nextKey!!.value
+        val pointcy = this.nextTangent.y
+        val pointdy = nextKey!!.prevTangent.y
 
-        m_yCoeff = new CubicCoefficients1D(pointay, pointby, pointcy, pointdy);
+        m_yCoeff = CubicCoefficients1D(pointay, pointby, pointcy, pointdy)
 
         // if the weights are default, then the x cubic is linear and there is no need to evaluate it
-        if (getNextMagnitude() == 1.0f && m_nextKey.getPrevMagnitude() == 1.0f)
-            return;
+        if (this.nextMagnitude == 1.0 && nextKey!!.prevMagnitude == 1.0) return
 
         // Spline - non default tangents means that we need a second parametric cubic for x as a function of t
-        double pointcx = getNextTangent().getX();
-        double pointdx = m_nextKey.getPrevTangent().getX();
+        var pointcx = this.nextTangent.x
+        var pointdx = nextKey!!.prevTangent.x
 
-        double xspan3 = xspan * 3;
+        val xspan3 = xspan * 3
 
         // if c going beyond b limit
         if (pointcx > xspan3) {
-            double ratio = xspan3 / pointcx;
-            pointcx = xspan3;
+            val ratio = xspan3 / pointcx
+            pointcx = xspan3
         }
 
         // if d going beyond a limit
         if (pointdx > xspan3) {
-            double ratio = xspan3 / pointdx;
-            pointdx = xspan3;
+            val ratio = xspan3 / pointdx
+            pointdx = xspan3
         }
 
-        m_xCoeff = new CubicCoefficients1D(pointax, pointbx, pointcx, pointdx);
+        m_xCoeff = CubicCoefficients1D(pointax, pointbx, pointcx, pointdx)
     }
 
-    public boolean getMarkbeginOrEndKeysToZeroSlope() {
-        return m_markBeginOrEndKeysToZeroSlope && getMotionCurve().getMarkbeginOrEndKeysToZeroSlope();
+    val markbeginOrEndKeysToZeroSlope: Boolean
+        get() = m_markBeginOrEndKeysToZeroSlope && this.motionCurve!!.markbeginOrEndKeysToZeroSlope
+
+    fun setMarkBeginOrEndKeysToZeroSlope(m_setBeginOrEndKeysToZeroSlope: Boolean) {
+        this.m_markBeginOrEndKeysToZeroSlope = m_setBeginOrEndKeysToZeroSlope
     }
 
-    public void setMarkBeginOrEndKeysToZeroSlope(boolean m_setBeginOrEndKeysToZeroSlope) {
-        this.m_markBeginOrEndKeysToZeroSlope = m_setBeginOrEndKeysToZeroSlope;
-    }
-
-    public MotionKey getM_nextKey() {
-        return m_nextKey;
-    }
-
-    public MotionKey getM_prevKey() {
-        return m_prevKey;
-    }
-
-    public enum SlopeMethod {
+    enum class SlopeMethod {
         SLOPE_MANUAL, SLOPE_LINEAR, SLOPE_FLAT, SLOPE_SMOOTH, SLOPE_CLAMPED, SLOPE_PLATEAU,
         SLOPE_STEPPED, SLOPE_STEPPED_NEXT
     }
 
-    public void setMagnitude(double magnitude) {
-        m_prevAngleAndMagnitude.setY(magnitude);
-        m_nextAngleAndMagnitude.setY(magnitude);
-        m_nextSlopeMethod = m_prevSlopeMethod = SLOPE_MANUAL;
-        onPositionChanged();
-    }
-    public double getMagnitude() {
-        if (getPrevKey()!=null)
-            return getPrevMagnitude();
-        return getNextMagnitude();
-    }
+    var magnitude: Double
+        get() {
+            if (this.prevKey != null) return this.prevMagnitude
+            return this.nextMagnitude
+        }
+        set(magnitude) {
+            m_prevAngleAndMagnitude.y = magnitude
+            m_nextAngleAndMagnitude.y = magnitude
+            this.prevSlopeMethod = SlopeMethod.SLOPE_MANUAL
+            this.nextSlopeMethod = this.prevSlopeMethod
+            onPositionChanged()
+        }
 
-    public void setAngle(double angle) {
-        m_prevAngleAndMagnitude.setX(angle);
-        m_nextAngleAndMagnitude.setX(angle);
-        m_nextSlopeMethod = m_prevSlopeMethod = SLOPE_MANUAL;
-        onPositionChanged();
-    }
-    public double getAngle() {
-        if (getPrevKey()!=null)
-            return getPrevAngle();
-        return getNextAngle();
-    }
+    var angle: Double
+        get() {
+            if (this.prevKey != null) return this.prevAngle
+            return this.nextAngle
+        }
+        set(angle) {
+            m_prevAngleAndMagnitude.x = angle
+            m_nextAngleAndMagnitude.x = angle
+            this.prevSlopeMethod = SlopeMethod.SLOPE_MANUAL
+            this.nextSlopeMethod = this.prevSlopeMethod
+            onPositionChanged()
+        }
 
-    public void setPrevMagnitude(double magnitude) {
-        m_prevAngleAndMagnitude.setY(magnitude);
-        m_prevSlopeMethod = SLOPE_MANUAL;
-    }
-    public void setNextMagnitude(double magnitude) {
-        m_nextAngleAndMagnitude.setY(magnitude);
-        m_nextSlopeMethod = SLOPE_MANUAL;
-    }
-
-    public double getPrevAngle() {
-        return m_prevAngleAndMagnitude.getX();
-    }
-    public void setPrevAngle(double angle) {
-        m_prevAngleAndMagnitude.setX(angle);
-        m_prevSlopeMethod = SLOPE_MANUAL;
-    }
-    public double getNextAngle() {
-        return m_nextAngleAndMagnitude.getX();
-    }
-    public void setNextAngle(double angle) {
-        m_nextAngleAndMagnitude.setX(angle);
-        m_nextSlopeMethod = SLOPE_MANUAL;
-    }
+    var prevAngle: Double
+        get() = m_prevAngleAndMagnitude.x
+        set(angle) {
+            m_prevAngleAndMagnitude.x = angle
+            this.prevSlopeMethod = SlopeMethod.SLOPE_MANUAL
+        }
+    var nextAngle: Double
+        get() = m_nextAngleAndMagnitude.x
+        set(angle) {
+            m_nextAngleAndMagnitude.x = angle
+            this.nextSlopeMethod = SlopeMethod.SLOPE_MANUAL
+        }
 }
