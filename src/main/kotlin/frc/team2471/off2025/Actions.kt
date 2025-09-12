@@ -77,7 +77,7 @@ fun algaeDescore(): Command {
             waitUntilCommand { alignPoseAndLevel.first.translation.getDistance(Drive.localizer.singleTagPose.translation) < 2.0.feet.asMeters },
             runCommand(Armavator) {
                 Intake.intakeState = IntakeState.REVERSING
-                Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH, optimizePivot = false)
+                Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH, alignPoseAndLevel.third, optimizePivot = false)
             }
         )
     ).finallyRun {
