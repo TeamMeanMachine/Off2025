@@ -52,22 +52,24 @@ object Intake: SubsystemBase("Intake") {
         when (intakeState) {
             IntakeState.INTAKING -> {
                 frontMotor.setControl(VoltageOut(INTAKE_POWER * 12.0))
-                sideMotor.setControl(DutyCycleOut(0.0))
                 centeringLogic(Robot.isAutonomous)
             }
             IntakeState.REVERSING -> {
                 frontMotor.setControl(VoltageOut(ALGAE_INTAKE_POWER_AUTO * 12.0))
-                sideMotor.setControl(DutyCycleOut(0.0))
                 centeringLogic()
             }
             IntakeState.HOLDING -> {
                 frontMotor.setControl(DutyCycleOut(0.2))
-                sideMotor.setControl(DutyCycleOut(0.0))
                 centeringLogic()
             }
             IntakeState.SCORING -> {
-                frontMotor.setControl(VoltageOut(0.1 * 12.0))
-                sideSplit()
+                if (scoreAlgae) {
+                    frontMotor.setControl(DutyCycleOut(-0.9))
+                    centeringLogic()
+                } else {
+                    frontMotor.setControl(VoltageOut(0.1 * 12.0))
+                    sideSplit()
+                }
             }
         }
         Logger.recordOutput("Intake/IntakeState", intakeState.name)
@@ -94,11 +96,7 @@ object Intake: SubsystemBase("Intake") {
         }
     }
     fun score() {
-        if (scoreAlgae) {
-            intakeState = IntakeState.INTAKING
-        } else {
-            intakeState = IntakeState.SCORING
-        }
+        intakeState = IntakeState.SCORING
     }
 }
 

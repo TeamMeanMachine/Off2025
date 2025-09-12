@@ -10,7 +10,9 @@ import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
+import edu.wpi.first.units.measure.AngularVelocity
 import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.ctre.addFollower
@@ -27,14 +29,17 @@ import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asDegreesPerSecond
 import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
 import frc.team2471.off2025.util.units.asInches
+import frc.team2471.off2025.util.units.asInchesPerSecond
 import frc.team2471.off2025.util.units.asRadians
 import frc.team2471.off2025.util.units.asRotations
 import frc.team2471.off2025.util.units.cos
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.perSecond
 import frc.team2471.off2025.util.units.rotations
 import frc.team2471.off2025.util.units.sin
 import frc.team2471.off2025.util.units.unWrap
@@ -43,6 +48,7 @@ import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
@@ -153,6 +159,22 @@ object Armavator: SubsystemBase() {
             pivotMotor.setControl(MotionMagicVoltage(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
 //            println("pivot angle setpoint: ${field.asDegrees}")
         }
+
+    val pivotSetpointError: Angle
+        get() = pivotAngleSetpoint - pivotMotorAngle
+
+    val elevatorVelocity: LinearVelocity
+        get() = elevatorMotor.velocity.valueAsDouble.inches.perSecond
+    val armVelocity: AngularVelocity
+        get() = armMotor.velocity.valueAsDouble.rotations.perSecond
+    val pivotVelocity: AngularVelocity
+        get() = (pivotMotor.velocity.valueAsDouble / PIVOT_GEAR_RATIO).rotations.perSecond
+
+    val noMovement: Boolean
+        get() = elevatorVelocity.asInchesPerSecond.absoluteValue < 0.05 &&
+                armVelocity.asDegreesPerSecond.absoluteValue < 0.2 &&
+                pivotVelocity.asDegreesPerSecond.absoluteValue < 0.2
+
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees
     val isPivotFlipped: Boolean

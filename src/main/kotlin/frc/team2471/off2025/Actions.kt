@@ -1,15 +1,26 @@
 package frc.team2471.off2025
 
 import edu.wpi.first.wpilibj2.command.Command
+import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
+import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.finallyRun
+import frc.team2471.off2025.util.control.leftBumper
+import frc.team2471.off2025.util.control.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.onlyRunWhileTrue
 import frc.team2471.off2025.util.control.parallelCommand
+import frc.team2471.off2025.util.control.rightBumper
 import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.control.waitUntilCommand
+import frc.team2471.off2025.util.math.findClosestPointOnLine
+import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.feet
+import kotlin.math.absoluteValue
 
 fun groundIntake(isFlipped: Boolean): Command {
     return runCommand(Armavator) {
@@ -40,7 +51,7 @@ fun ampAlign(): Command {
         )
     )
 }
-fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Command {
+fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
 
     val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
 
@@ -54,6 +65,7 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Com
                 FieldManager.Level.L4 -> Pose.SCORE_L4 to true
             }
 
+            Intake.scoreAlgae = false
             Armavator.goToPose(poseAndOptimize.first, closestAlignPose.second, poseAndOptimize.second)
         }
     )
@@ -81,6 +93,55 @@ fun algaeDescore(): Command {
             }
         )
     ).finallyRun {
+        goToDrivePose()
+    }
+}
+
+fun bargeAlignAndScore(): Command {
+    val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
+    val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
+    val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
+    val poseSupplier = { Drive.localizer.pose }
+    return parallelCommand(
+        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
+        sequenceCommand(
+            waitUntilCommand {
+                Drive.localizer.pose.translation.getDistance(
+                    findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation)
+                ) < 3.0.feet.asMeters
+            },
+            runCommand(Armavator) {
+                Intake.scoreAlgae = true
+                Armavator.goToPose(Pose.BARGE_SCORE, isFlipped, optimizePivot = false)
+            }
+        )
+    ).finallyRun {
+        goToDrivePose()
+        Intake.scoreAlgae = false
+    }
+}
+
+fun algaeGroundIntake(isFlipped: Boolean): Command {
+    return sequenceCommand(
+        runOnce { // Spin up intake
+            Intake.intakeState = IntakeState.REVERSING
+        },
+        runCommand(Armavator) { // Go to intermediate position until pivot clears
+            Armavator.goToPose(Pose.ALGAE_INTAKE_INTERMEDIATE, isFlipped, false)
+        }.onlyRunWhileFalse {
+            Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees || !(OI.driverController.rightBumper || OI.driverController.leftBumper)
+        },
+        runCommand(Armavator) { // Go to intake ground position until bumpers are no longer pressed
+            Armavator.goToPose(Pose.ALGAE_INTAKE_GROUND, isFlipped, false)
+        }.onlyRunWhileTrue {
+            OI.driverController.rightBumper || OI.driverController.leftBumper
+        },
+        runCommand(Armavator) { // Go to intermediate position until pivot clears
+            Armavator.goToPose(Pose.ALGAE_INTAKE_INTERMEDIATE, isFlipped, false)
+        }.onlyRunWhileFalse {
+            Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees
+        }
+    ).finallyRun { // End at drive pose
         goToDrivePose()
     }
 }

@@ -95,8 +95,7 @@ fun windRelativeAngles(angle1: Double, angle2: Double): Double {
  * Finds the closest point along a line defined by [linePointOne] and [linePointTwo] to the provided [referencePoint]
  */
 fun findClosestPointOnLine(linePointOne: Translation2d, linePointTwo: Translation2d, referencePoint: Translation2d): Translation2d {
-    val lineVector = linePointTwo - linePointOne
-    val lineAngle = lineVector.angle
+    val lineAngle = (linePointTwo - linePointOne).angle
     val rotatedReferencePoint = referencePoint.rotateBy(-lineAngle)
     val rotatedPointOne = linePointOne.rotateBy(-lineAngle)
     val rotatedPointTwo = linePointTwo.rotateBy(-lineAngle)
