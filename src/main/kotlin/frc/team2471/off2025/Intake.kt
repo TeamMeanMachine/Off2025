@@ -10,6 +10,7 @@ import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
 import frc.team2471.off2025.util.ctre.currentLimits
 import frc.team2471.off2025.util.ctre.inverted
+import org.littletonrobotics.junction.Logger
 
 object Intake: SubsystemBase("Intake") {
     var intakeState: IntakeState = IntakeState.HOLDING
@@ -36,7 +37,7 @@ object Intake: SubsystemBase("Intake") {
 
     init {
         frontMotor.applyConfiguration {
-            currentLimits(30.0, 5.0, 0.5)
+            currentLimits(5.0, 30.0, 0.5)
         }
         sideMotor.applyConfiguration {
             currentLimits(20.0, 40.0, 1.0)
@@ -69,6 +70,9 @@ object Intake: SubsystemBase("Intake") {
                 sideSplit()
             }
         }
+        Logger.recordOutput("Intake/IntakeState", intakeState.name)
+        Logger.recordOutput("Intake/FrontOutputV", frontMotor.motorVoltage.valueAsDouble)
+        Logger.recordOutput("Intake/SideOutputV", sideMotor.motorVoltage.valueAsDouble)
     }
 
     private fun sideSplit() {

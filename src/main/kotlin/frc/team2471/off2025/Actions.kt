@@ -4,7 +4,6 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.util.control.finallyRun
 import frc.team2471.off2025.util.control.parallelCommand
 import frc.team2471.off2025.util.control.runCommand
-import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
@@ -14,7 +13,7 @@ import frc.team2471.off2025.util.units.feet
 
 fun groundIntake(isFlipped: Boolean): Command {
     return runCommand(Armavator) {
-        println("going to ground intake")
+//        println("going to ground intake")
         Intake.scoreAlgae = false
         Armavator.goToPose(Pose.INTAKE_GROUND, isFlipped, false)
         Intake.intakeState = IntakeState.INTAKING
@@ -24,6 +23,7 @@ fun groundIntake(isFlipped: Boolean): Command {
 fun goToDrivePose() {
     println("going to drive pose")
     Armavator.goToPose(Pose.DRIVE, optimizePivot = false)
+    Armavator.resetPivot()
     Intake.intakeState = IntakeState.HOLDING
 }
 
@@ -47,24 +47,24 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide): Com
     return parallelCommand(
           Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}),
         runCommand(Armavator){
-            val pose = when (level){
+            val poseAndOptimize = when (level){
                 FieldManager.Level.L1 -> Pose.SCORE_L1 to false
                 FieldManager.Level.L2 -> Pose.SCORE_L2 to true
                 FieldManager.Level.L3 -> Pose.SCORE_L3 to true
                 FieldManager.Level.L4 -> Pose.SCORE_L4 to true
             }
 
-            Armavator.goToPose(pose.first, closestAlignPose.second, pose.second)
+            Armavator.goToPose(poseAndOptimize.first, closestAlignPose.second, poseAndOptimize.second)
         }
     )
 }
 
 fun coralStationIntake(): Command {
     return runCommand(Armavator, Drive) {
-        println("coral station intake")
+//        println("coral station intake")
         val alignmentAngleAndFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose)
         Drive.driveAtAngle(alignmentAngleAndFlipped.first.asRotation2d)
-        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, alignmentAngleAndFlipped.second)
+        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, alignmentAngleAndFlipped.second, false)
         Intake.intakeState = IntakeState.INTAKING
     }.finallyRun { goToDrivePose() }
 }

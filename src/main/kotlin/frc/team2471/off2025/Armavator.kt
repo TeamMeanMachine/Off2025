@@ -25,6 +25,7 @@ import frc.team2471.off2025.util.ctre.motionMagic
 import frc.team2471.off2025.util.ctre.p
 import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
+import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
 import frc.team2471.off2025.util.units.asInches
@@ -106,9 +107,9 @@ object Armavator: SubsystemBase() {
 
 
     val defaultPivotEncoderOffset =
-        if (Robot.isCompBot) -1.841 else 0.0
+        if (Robot.isCompBot)  0.0 else -1.841
     val defaultArmEncoderOffset =
-        if (Robot.isCompBot) 195.8 else -129.9
+        if (Robot.isCompBot) -129.9 else 195.8
     val defaultElevatorEncoderOffset =
         if (Robot.isCompBot) 0.205078125 else 0.205078125
 
@@ -196,7 +197,7 @@ object Armavator: SubsystemBase() {
         elevatorEncoderCurve.storeValue(8.175, 49.233)
         elevatorEncoderCurve.storeValue(6.237, 38.142)
 
-        pivotMotor.setPosition(pivotEncoderAngle * PIVOT_GEAR_RATIO)
+        resetPivot()
 
 
         elevatorMotor.applyConfiguration {
@@ -271,6 +272,10 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
         Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
 
+        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees) {
+            resetPivot()
+        }
+
         if (periodicFeedForward) {
             heightSetpoint = heightSetpoint
             armAngleSetpoint = armAngleSetpoint
@@ -312,5 +317,10 @@ object Armavator: SubsystemBase() {
         heightSetpoint = targetPose.elevatorHeight
         armAngleSetpoint = targetPose.armAngle
         pivotAngleSetpoint = targetPose.pivotAngle
+    }
+
+    fun resetPivot() {
+        println("resetting pivot")
+        pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
     }
 }

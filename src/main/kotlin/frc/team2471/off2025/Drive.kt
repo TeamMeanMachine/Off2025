@@ -146,6 +146,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             }
         }
 
+        LoopLogger.record("Drive after steer")
+
         // Update Vision
         cameras.forEach {
             it.updateInputs()
