@@ -120,8 +120,8 @@ object OI: SubsystemBase("OI") {
         driverController.rightStick().and (algaeMode).onTrue(algaeGroundIntake(true))
 
         // L4
-        driverController.leftStick ().and (coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
-        driverController.rightStick ().and (coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
+        driverController.leftStick ().and (coralMode).whileTrue(defer { alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
+        driverController.rightStick ().and (coralMode).whileTrue(defer { alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
 
         // L3-L2
         driverController.povUp ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.LEFT) })

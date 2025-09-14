@@ -71,6 +71,25 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Co
     )
 }
 
+fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
+    val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+    val poseAndOptimize = when (level){
+        FieldManager.Level.L1 -> Pose.SCORE_L1 to false
+        FieldManager.Level.L2 -> Pose.SCORE_L2 to true
+        FieldManager.Level.L3 -> Pose.SCORE_L3 to true
+        FieldManager.Level.L4 -> Pose.SCORE_L4 to true
+    }
+    val delayDistanceAndIntermediate = when (level) {
+        FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
+        else -> 0.0.inches to null
+    }
+
+    return parallelCommand(
+        Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose }),
+        Armavator.goToPose(poseAndOptimize.first, closestAlignPose.second, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+    )
+}
+
 fun coralStationIntake(): Command {
     return runCommand(Armavator, Drive) {
 //        println("coral station intake")

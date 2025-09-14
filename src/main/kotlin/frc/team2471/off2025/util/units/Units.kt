@@ -157,6 +157,13 @@ inline val Current.asAmps: Double get() = `in`(Amps)
 
 inline val Double.amps: Current get() = Amps.of(this)
 
+//Temperature
+inline val Double.celsius: Temperature get() = Celsius.of(this)
+inline val Double.fahrenheit: Temperature get() = Fahrenheit.of(this)
+
+inline val Temperature.asCelsius: Double get() = `in`(Celsius)
+inline val Temperature.asFahrenheit: Double get() = `in`(Fahrenheit)
+
 
 //Other
 inline val Double.voltsPerSecond: Velocity<VoltageUnit> get() = Volts.per(Second).of(this)

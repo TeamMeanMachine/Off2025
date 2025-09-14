@@ -10,6 +10,7 @@ import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
 import frc.team2471.off2025.util.ctre.currentLimits
 import frc.team2471.off2025.util.ctre.inverted
+import frc.team2471.off2025.util.units.asFahrenheit
 import org.littletonrobotics.junction.Logger
 
 object Intake: SubsystemBase("Intake") {
@@ -28,6 +29,9 @@ object Intake: SubsystemBase("Intake") {
 
     var hasCargo: Boolean = false
     var scoreAlgae = false
+
+    var afterDisabled = false
+    private var prevIntakeState = intakeState
 
     val INTAKE_POWER = -0.6
     val SIDE_MOVE_POWER: Double = if (Robot.isCompBot) -0.1 else 0.1
@@ -63,7 +67,11 @@ object Intake: SubsystemBase("Intake") {
                 centeringLogic()
             }
             IntakeState.HOLDING -> {
-                frontMotor.setControl(DutyCycleOut(ALGAE_GROUND_INTAKE_POWER))
+                if (afterDisabled) {
+                    frontMotor.setControl(DutyCycleOut(0.0))
+                } else {
+                    frontMotor.setControl(DutyCycleOut(ALGAE_GROUND_INTAKE_POWER))
+                }
                 centeringLogic()
             }
             IntakeState.SCORING -> {
@@ -76,6 +84,12 @@ object Intake: SubsystemBase("Intake") {
                 }
             }
         }
+        if (afterDisabled) {
+            if (prevIntakeState != intakeState) {
+                afterDisabled = false
+            }
+        }
+        Logger.recordOutput("Intake/FrontTemp", frontMotor.deviceTemp.value.asFahrenheit)
         Logger.recordOutput("Intake/IntakeState", intakeState.name)
         Logger.recordOutput("Intake/FrontOutputV", frontMotor.motorVoltage.valueAsDouble)
         Logger.recordOutput("Intake/SideOutputV", sideMotor.motorVoltage.valueAsDouble)

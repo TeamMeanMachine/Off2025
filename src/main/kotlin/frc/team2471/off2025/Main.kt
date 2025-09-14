@@ -123,6 +123,7 @@ object Robot : LoggedRobot() {
         Autonomous.flipPathsIfAllianceChange()
         Armavator.goToPose(Pose.current)
         Intake.intakeState = IntakeState.HOLDING
+        Intake.afterDisabled = true
     }
 
     /** This function is called once when auto is enabled.  */
