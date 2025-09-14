@@ -80,30 +80,30 @@ object OI: SubsystemBase("OI") {
         println("inside OI init")
         // Default command, normal field-relative drive
         Drive.defaultCommand = Drive.joystickDrive()
-
+        val coralMode = { driverController.leftTriggerAxis < 0.1 }
+        val algaeMode = { driverController.leftTriggerAxis > 0.8 }
         // Drive Pose
         driverController.a().onTrue(::goToDrivePose.toCommand(Armavator))
         // L1
-        driverController.y().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(defer { alignToScore(FieldManager.Level.L1, null) })
+        driverController.y().and(coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L1, null) })
         // Barge
-        driverController.y().and { driverController.leftTriggerAxis > 0.8 }.whileTrue(defer { bargeAlignAndScore() })
+        driverController.y().and (algaeMode).whileTrue(defer { bargeAlignAndScore() })
         // Processor Align
-        driverController.b().and { driverController.leftTriggerAxis > 0.8 }.whileTrue(defer { ampAlign() })
+        driverController.b().and (algaeMode).whileTrue(defer { ampAlign() })
         // Coral Station Intake
-        driverController.b().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(coralStationIntake())
+        driverController.b().and (coralMode).whileTrue(coralStationIntake())
         // Algae Descore
-        driverController.x().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(defer { algaeDescore() })
+        driverController.x().and (coralMode).whileTrue(defer { algaeDescore() })
         // Climb heading align
-        driverController.x().and { driverController.leftTriggerAxis > 0.8 }.whileTrue( runOnce { println("climb heading align and deploy, does not do anything yet") })
-
+        driverController.x().and (algaeMode).whileTrue( runOnce { println("climb heading align and deploy, does not do anything yet") })
 
 
         // Coral Ground Intake
-        driverController.leftBumper().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(groundIntake(false))
-        driverController.rightBumper().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(groundIntake(true))
+        driverController.leftBumper().and (coralMode).whileTrue(groundIntake(false))
+        driverController.rightBumper().and (coralMode).whileTrue(groundIntake(true))
 
         // Climb
-        (driverController.rightBumper().or(driverController.leftBumper())).and { driverController.leftTriggerAxis > 0.8 }.whileTrue(runOnce { println("CLIMB, does not do anything yet") })
+        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { println("CLIMB, does not do anything yet") })
 
 
 
@@ -116,12 +116,12 @@ object OI: SubsystemBase("OI") {
                 .finallyRun { Intake.intakeState = IntakeState.HOLDING })
 
         // Algae Ground Intake
-        driverController.leftStick().and { driverController.leftTriggerAxis > 0.8 }.onTrue(algaeGroundIntake(false))
-        driverController.rightStick().and { driverController.leftTriggerAxis > 0.8 }.onTrue(algaeGroundIntake(true))
+        driverController.leftStick().and (algaeMode).onTrue(algaeGroundIntake(false))
+        driverController.rightStick().and (algaeMode).onTrue(algaeGroundIntake(true))
 
         // L4
-        driverController.leftStick ().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
-        driverController.rightStick ().and { driverController.leftTriggerAxis < 0.1 }.whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
+        driverController.leftStick ().and (coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
+        driverController.rightStick ().and (coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
 
         // L3-L2
         driverController.povUp ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.LEFT) })
@@ -136,9 +136,11 @@ object OI: SubsystemBase("OI") {
             }.toCommand(Drive).ignoringDisable(true))
 
         // Reset Odometry Position
-        driverController.start().onTrue( {
+        driverController.start().and(coralMode).onTrue( {
             Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
         }.toCommand(Drive).ignoringDisable(true))
+
+        driverController.start().and (algaeMode).onTrue(runOnce { Drive.pose = Drive.localizer.pose })
     }
 
     override fun periodic() {

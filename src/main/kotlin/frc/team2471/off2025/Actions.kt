@@ -4,11 +4,11 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.finallyRun
-import frc.team2471.off2025.util.control.leftBumper
+import frc.team2471.off2025.util.control.leftStickButton
 import frc.team2471.off2025.util.control.onlyRunWhileFalse
 import frc.team2471.off2025.util.control.onlyRunWhileTrue
 import frc.team2471.off2025.util.control.parallelCommand
-import frc.team2471.off2025.util.control.rightBumper
+import frc.team2471.off2025.util.control.rightStickButton
 import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.control.sequenceCommand
@@ -88,7 +88,7 @@ fun algaeDescore(): Command {
         sequenceCommand(
             waitUntilCommand { alignPoseAndLevel.first.translation.getDistance(Drive.localizer.singleTagPose.translation) < 2.0.feet.asMeters },
             runCommand(Armavator) {
-                Intake.intakeState = IntakeState.REVERSING
+                Intake.intakeState = IntakeState.ALGAE_GROUND
                 Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH, alignPoseAndLevel.third, optimizePivot = false)
             }
         )
@@ -101,7 +101,7 @@ fun bargeAlignAndScore(): Command {
     val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
-    val poseSupplier = { Drive.localizer.pose }
+    val poseSupplier = { Drive.localizer.rawQuestPose ?: Drive.localizer.pose }
     return parallelCommand(
         Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
         sequenceCommand(
@@ -124,17 +124,17 @@ fun bargeAlignAndScore(): Command {
 fun algaeGroundIntake(isFlipped: Boolean): Command {
     return sequenceCommand(
         runOnce { // Spin up intake
-            Intake.intakeState = IntakeState.REVERSING
+            Intake.intakeState = IntakeState.ALGAE_GROUND
         },
         runCommand(Armavator) { // Go to intermediate position until pivot clears
             Armavator.goToPose(Pose.ALGAE_INTAKE_INTERMEDIATE, isFlipped, false)
         }.onlyRunWhileFalse {
-            Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees || !(OI.driverController.rightBumper || OI.driverController.leftBumper)
+            Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees || !(OI.driverController.rightStickButton || OI.driverController.leftStickButton)
         },
         runCommand(Armavator) { // Go to intake ground position until bumpers are no longer pressed
             Armavator.goToPose(Pose.ALGAE_INTAKE_GROUND, isFlipped, false)
         }.onlyRunWhileTrue {
-            OI.driverController.rightBumper || OI.driverController.leftBumper
+            OI.driverController.rightStickButton || OI.driverController.leftStickButton
         },
         runCommand(Armavator) { // Go to intermediate position until pivot clears
             Armavator.goToPose(Pose.ALGAE_INTAKE_INTERMEDIATE, isFlipped, false)

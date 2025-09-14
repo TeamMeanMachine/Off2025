@@ -41,10 +41,14 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override var pose: Pose2d
         get() = savedState.Pose
         set(value) {
+            tempQuestPose = value.transformBy(robotToQuestTransformMeters)
+            resetQuestTranslation = true
             resetPose(value)
             localizer.resetPose(value) // Possibly not needed, but good for a quick response.
-//            quest.setPose(value.transformBy(robotToQuestTransformMeters))
         }
+
+    var tempQuestPose = Pose2d()
+    var resetQuestTranslation = false
 
     override var heading: Rotation2d
         get() = pose.rotation
@@ -52,7 +56,12 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             println("resting heading to ${value.degrees}")
             resetRotation(value)
             // localizer reads delta rotation, it doesn't need to be called here
-            quest.setPose(Pose2d(questPose.translation, value))
+            if (resetQuestTranslation) {
+                quest.setPose(Pose2d(tempQuestPose.translation, value + robotToQuestTransformMeters.rotation))
+                resetQuestTranslation = false
+            } else {
+                quest.setPose(questPose.transformBy(robotToQuestTransformMeters))
+            }
         }
 
     // Vision

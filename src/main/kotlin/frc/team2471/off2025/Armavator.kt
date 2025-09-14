@@ -272,47 +272,52 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/pivotEncoderAngle", pivotEncoderAngle.asDegrees)
         Logger.recordOutput("Armavator/pivotMotorAngle", pivotMotorAngle.asDegrees)
 
+        LoopLogger.record("section 1")
         Logger.recordOutput("Armavator/heightSetpoint", heightSetpoint.asInches)
         Logger.recordOutput("Armavator/armAngleSetpoint", armAngleSetpoint.asDegrees)
         Logger.recordOutput("Armavator/pivotAngleSetpoint", pivotAngleSetpoint.asDegrees)
 
+        LoopLogger.record("section 2")
         Logger.recordOutput("Armavator/elevatorCurrent", elevatorMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/armCurrent", armMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/pivotCurrent", pivotMotor.supplyCurrent.valueAsDouble)
 
+        LoopLogger.record("section 3")
         Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
 
+        LoopLogger.record("section 4")
         Logger.recordOutput("Armavator/periodicFeedForward", periodicFeedForward)
         Logger.recordOutput("Armavator/elevatorFeedforward", elevatorFeedforward)
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
 
-        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
+//        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
 
+        LoopLogger.record("section 5")
         Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
         Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
+        LoopLogger.record("boo")
 
-        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees) {
+        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && Armavator.noMovement) {
             resetPivot()
         }
 
+        LoopLogger.record("section 6")
         if (periodicFeedForward) {
             heightSetpoint = heightSetpoint
             armAngleSetpoint = armAngleSetpoint
             pivotAngleSetpoint = pivotAngleSetpoint
         }
 
-        if (armEncoderOffset != armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)) {
-            armEncoderOffset = armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)
-            println("armEncoderOffset update to $armEncoderOffset")
+//        LoopLogger.record("section 7")
+        if (Robot.isDisabled) {
+            if (pivotEncoderOffset != pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)) {
+                pivotEncoderOffset = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
+                println("pivotEncoderOffset update to $pivotEncoderOffset")
+            }
         }
-        if (pivotEncoderOffset != pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)) {
-            pivotEncoderOffset = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
-            println("pivotEncoderOffset update to $pivotEncoderOffset")
-        }
-
 
         LoopLogger.record("Armavator pirdc")
     }

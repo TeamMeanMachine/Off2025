@@ -217,9 +217,9 @@ object FieldManager {
         algaeAlignPoses.sortBy { it.first.translation.getDistance(robotPose.translation) }
         var closestPose = algaeAlignPoses.first()
 
-        var isFlipped = false
+        var isFlipped = true
         if ((robotPose.rotation.measure - closestPose.first.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
-            isFlipped = true
+            isFlipped = false
             closestPose = Pair(
                 Pose2d(
                     closestPose.first.translation,

@@ -21,7 +21,7 @@ data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngl
         val ALGAE_DESCORE_HIGH_FLIPPED = Pose(ALGAE_DESCORE_HIGH.elevatorHeight - 7.0.inches, ALGAE_DESCORE_HIGH.armAngle, -ALGAE_DESCORE_HIGH.pivotAngle)
 
         val ALGAE_INTAKE_INTERMEDIATE = Pose(3.5.inches, 45.0.degrees, 0.0.degrees)
-        val ALGAE_INTAKE_GROUND = Pose(7.0.inches, 90.0.degrees, 0.0.degrees)
+        val ALGAE_INTAKE_GROUND = Pose(6.0.inches, 90.0.degrees, 0.0.degrees)
 
         val BARGE_SCORE = Pose(58.0.inches, 15.0.degrees, 0.0.degrees)
 

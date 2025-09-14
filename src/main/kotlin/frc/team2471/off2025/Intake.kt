@@ -31,8 +31,8 @@ object Intake: SubsystemBase("Intake") {
 
     val INTAKE_POWER = -0.6
     val SIDE_MOVE_POWER: Double = if (Robot.isCompBot) -0.1 else 0.1
-    val ALGAE_INTAKE_POWER = 0.6
-    val ALGAE_INTAKE_POWER_AUTO = 1.0
+    val ALGAE_INTAKE_POWER = 1.0
+    val ALGAE_GROUND_INTAKE_POWER = 0.6
     val SIDE_SPIT_POWER = 0.8
 
     init {
@@ -54,17 +54,21 @@ object Intake: SubsystemBase("Intake") {
                 frontMotor.setControl(VoltageOut(INTAKE_POWER * 12.0))
                 centeringLogic(Robot.isAutonomous)
             }
-            IntakeState.REVERSING -> {
-                frontMotor.setControl(VoltageOut(ALGAE_INTAKE_POWER_AUTO * 12.0))
+            IntakeState.ALGAE_GROUND -> {
+                frontMotor.setControl(VoltageOut(ALGAE_GROUND_INTAKE_POWER * 12.0))
+                centeringLogic()
+            }
+            IntakeState.ALGAE_DESCORE -> {
+                frontMotor.setControl(VoltageOut(ALGAE_INTAKE_POWER * 12.0))
                 centeringLogic()
             }
             IntakeState.HOLDING -> {
-                frontMotor.setControl(DutyCycleOut(0.2))
+                frontMotor.setControl(DutyCycleOut(ALGAE_GROUND_INTAKE_POWER))
                 centeringLogic()
             }
             IntakeState.SCORING -> {
                 if (scoreAlgae) {
-                    frontMotor.setControl(DutyCycleOut(-0.9))
+                    frontMotor.setControl(DutyCycleOut(-1.0))
                     centeringLogic()
                 } else {
                     frontMotor.setControl(VoltageOut(0.1 * 12.0))
@@ -102,7 +106,9 @@ object Intake: SubsystemBase("Intake") {
 
 enum class IntakeState {
     INTAKING,
-    REVERSING,
+    ALGAE_GROUND,
     HOLDING,
-    SCORING
+    SCORING,
+    ALGAE_DESCORE
+
 }
