@@ -54,7 +54,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         set(value) {
             println("resting heading to ${value.degrees}")
             resetRotation(value)
-            localizer.resetRotation(value) // Not needed but may prevent some bugs down the line
+            localizer.resetRotation(value) // Not needed and redundant but may prevent some heading bugs
             if (resetQuestTranslation) {
                 quest.setPose(Pose2d(tempQuestPose.translation, value + robotToQuestTransformMeters.rotation))
                 resetQuestTranslation = false
@@ -203,6 +203,11 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
         heading = wantedAngle
         println("heading: $heading")
+    }
+
+    fun resetOdometryToAbsolute() {
+        println("resetting odometry to localizer pose")
+        pose = localizer.pose
     }
 
     @OptIn(DelicateCoroutinesApi::class)

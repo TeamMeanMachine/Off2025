@@ -140,7 +140,7 @@ object OI: SubsystemBase("OI") {
             Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
         }.toCommand(Drive).ignoringDisable(true))
 
-        driverController.start().and (algaeMode).onTrue(runOnce { Drive.pose = Drive.localizer.pose })
+        driverController.start().and (algaeMode).onTrue(runOnce { Drive.resetOdometryToAbsolute() })
     }
 
     override fun periodic() {
