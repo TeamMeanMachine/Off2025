@@ -349,7 +349,7 @@ object Armavator: SubsystemBase() {
         pivotAngleSetpoint = targetPose.pivotAngle
     }
 
-    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, delayDistance: Distance): Command {
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, delayDistance: Distance, intermediateArmAngle: Angle? = null): Command {
         var targetPose = Pose.DRIVE
         var startPose = Pose.current
         return runOnce {
@@ -362,11 +362,15 @@ object Armavator: SubsystemBase() {
                     targetPose.pivotAngle += 180.0.degrees
                 }
             }
-        }.andThen(runCommand(Armavator) {
-            goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
+        }.andThen(runCommand(Armavator) { // Intermediate Pose
+            if (intermediateArmAngle != null) {
+                goToPose(Pose(targetPose.elevatorHeight, intermediateArmAngle, targetPose.pivotAngle))
+            } else {
+                goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
+            }
         }.onlyRunWhileFalse {
             (currentHeight - startPose.elevatorHeight).asInches.absoluteValue > delayDistance.asInches
-        }).andThen(runOnce {
+        }).andThen(runOnce { // Final Pose
             goToPose(targetPose, optimizePivot = false)
         })
     }

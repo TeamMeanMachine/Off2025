@@ -90,6 +90,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     val questPose: Pose2d
         get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
 
+    // Class that handles the merging of multiple vision sources and the odometry.
     val localizer = PoseLocalizer(
 //        Pose2d(),
         Fiducials.aprilTagFiducials,

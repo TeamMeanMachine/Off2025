@@ -426,7 +426,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     data class QuestNavMeasurement(val robotPose: Pose2d, val dataTimestamp: Double)
 
     /**
-     *  Applies a transform to all samples with a timestamp >= [timestamp].
+     *  Applies a transform to all pose samples with a timestamp >= [timestamp].
      *
      *  @param offset The offset to apply. In meters
      *  @param timestamp The oldest timestamp to start applying the offset at. In seconds.
