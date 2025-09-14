@@ -83,19 +83,19 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
     /** Only Swerve odometry */
     val rawOdometryPose: Pose2d
-        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Latest pose reported by the Quest */
     val rawQuestPose: Pose2d?
         get() = lastQuestMeasurement?.robotPose
     /** Swerve odometry fused with Quest measurements */
     val fusedOdometryPose: Pose2d
-        get() = fusedOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = fusedOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Pose that only uses the closest apriltag to correct itself. Used for precision but needs good tag visibility. */
     val singleTagPose: Pose2d
-        get() = singleTagOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = singleTagOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Pose from the particle filter, used for full field localization but can be more jittery. */
     val pose: Pose2d
-        get() = visionOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = visionOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
 
     /** Lastest estimate from the particle filter, before latency compensation. */
     val rawPose: Pose2d
@@ -103,18 +103,37 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
 
     fun resetPose(pose: Pose2d) {
-        rawOdometryPoseBuffer.clear()
-        fusedOdometryBuffer.clear()
-        singleTagOdometryBuffer.clear()
-        visionOdometryBuffer.clear()
-
-        lastQuestMeasurement = null
+        clearAllBuffers()
 
         val currentTime = Timer.getTimestamp()
         rawOdometryPoseBuffer.addSample(currentTime, pose)
         fusedOdometryBuffer.addSample(currentTime, pose)
         singleTagOdometryBuffer.addSample(currentTime, pose)
         visionOdometryBuffer.addSample(currentTime, pose)
+    }
+
+    fun resetRotation(rotation: Rotation2d) {
+        val storedRawOdomTranslation = rawOdometryPose.translation
+        val storedFusedTranslation = fusedOdometryPose.translation
+        val storedSingleTagTranslation = singleTagPose.translation
+        val storedVisionOdometryTranslation = pose.translation
+
+        clearAllBuffers()
+
+        val currentTime = Timer.getTimestamp()
+        rawOdometryPoseBuffer.addSample(currentTime, Pose2d(storedRawOdomTranslation, rotation))
+        fusedOdometryBuffer.addSample(currentTime, Pose2d(storedFusedTranslation, rotation))
+        singleTagOdometryBuffer.addSample(currentTime, Pose2d(storedSingleTagTranslation, rotation))
+        visionOdometryBuffer.addSample(currentTime, Pose2d(storedVisionOdometryTranslation, rotation))
+    }
+
+    private fun clearAllBuffers() {
+        rawOdometryPoseBuffer.clear()
+        fusedOdometryBuffer.clear()
+        singleTagOdometryBuffer.clear()
+        visionOdometryBuffer.clear()
+
+        lastQuestMeasurement = null
     }
 
     /**
@@ -126,12 +145,10 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         LoopLogger.record("Before Quest correction")
         // Apply quest data to the buffers
         val prevQuestEstimateTime = lastQuestMeasurement?.dataTimestamp
-        if (questEstimate != null && prevQuestEstimateTime != null && fusedOdometryBuffer.internalBuffer.firstKey() < prevQuestEstimateTime && questEstimate.dataTimestamp > prevQuestEstimateTime) {
+        if (questEstimate != null && prevQuestEstimateTime != null && questEstimate.dataTimestamp > prevQuestEstimateTime && rawOdometryPoseBuffer.internalBuffer.firstKey() < prevQuestEstimateTime && questEstimate.dataTimestamp < rawOdometryPoseBuffer.internalBuffer.lastKey()) {
             val questEstimateTime = questEstimate.dataTimestamp
             val questDeltaPose = questEstimate.robotPose.minus(rawQuestPose)
-            val odometryDeltaPose = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()?.minus(fusedOdometryBuffer.getSample(prevQuestEstimateTime).getOrNull())
-//            println("questDeltaPose: $questDeltaPose")
-//            println("odometryDeltaPose: $odometryDeltaPose")
+            val odometryDeltaPose = rawOdometryPoseBuffer.getSample(questEstimateTime).getOrNull()?.minus(rawOdometryPoseBuffer.getSample(prevQuestEstimateTime).getOrNull())
 
             if (odometryDeltaPose != null) {
                 val questCorrectionDelta = Transform2d(questDeltaPose.translation - odometryDeltaPose.translation, questDeltaPose.rotation - odometryDeltaPose.rotation)

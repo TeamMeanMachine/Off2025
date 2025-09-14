@@ -18,7 +18,6 @@ import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
-import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.localization.PoseLocalizer
 import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
@@ -55,7 +54,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         set(value) {
             println("resting heading to ${value.degrees}")
             resetRotation(value)
-            // localizer reads delta rotation, it doesn't need to be called here
+            localizer.resetRotation(value) // Not needed but may prevent some bugs down the line
             if (resetQuestTranslation) {
                 quest.setPose(Pose2d(tempQuestPose.translation, value + robotToQuestTransformMeters.rotation))
                 resetQuestTranslation = false
@@ -73,7 +72,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     )
 
     val quest = QuestNav()
-    var questSimConnected = true
+    var simulateQuest = true
+    val questConnected: Boolean
+        get() = if (isReal) quest.isTracking else simulateQuest
     val robotToQuestTransformMeters = Transform2d(-12.0.inches, 12.0.inches, 180.0.degrees.asRotation2d) // Rotation 2d should be 0
     var latestQuestResult: PoseFrame = PoseFrame(pose.transformBy(robotToQuestTransformMeters), 0.0, 0.0, 0)
         get() {
@@ -167,19 +168,24 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val questEstimate = if (isReal) {
             PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
         } else {
-            val timestamp = Utils.fpgaToCurrentTime(Timer.getTimestamp()) - 0.04
+            // Simulate a Quest result
+            val trueTimestamp = Timer.getTimestamp() - 0.04
+            val timestamp = Utils.fpgaToCurrentTime(trueTimestamp)
             val simQuestPose = samplePoseAt(timestamp).getOrNull()
-            if (simQuestPose == null || !questSimConnected) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, timestamp)
+            if (simQuestPose == null || !simulateQuest) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, trueTimestamp)
         }
         LoopLogger.record("Drive get questEstimate")
         // Update poses from the Particle Filter pose estimate and quest measurements
-        localizer.updateWithLatestPoseEstimate(if (quest.isTracking || isSim) questEstimate else null)
+        localizer.updateWithLatestPoseEstimate(if (questConnected) questEstimate else null)
         LoopLogger.record("Drive updateWithLatestPose")
         // Publish the latest camera data to NT so Particle Filter can use, also update poses from swerve odometry measurements.
+//        val modifiedPose = Pose2d(pose.translation - (pose.translation - Translation2d(3.0, 3.0)) / 2.0 , pose.rotation)
         localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
 
         quest.commandPeriodic()
+
+        Logger.recordOutput("Drive/QuestConnected", questConnected)
 
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
