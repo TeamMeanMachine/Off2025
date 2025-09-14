@@ -13,8 +13,11 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.AngularVelocity
 import edu.wpi.first.units.measure.Distance
 import edu.wpi.first.units.measure.LinearVelocity
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.control.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.ctre.addFollower
 import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
@@ -344,6 +347,28 @@ object Armavator: SubsystemBase() {
         heightSetpoint = targetPose.elevatorHeight
         armAngleSetpoint = targetPose.armAngle
         pivotAngleSetpoint = targetPose.pivotAngle
+    }
+
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, delayDistance: Distance): Command {
+        var targetPose = Pose.DRIVE
+        var startPose = Pose.current
+        return runOnce {
+            targetPose = if (isFlipped) pose.reflect() else pose
+            startPose = Pose.current
+            if (optimizePivot) {
+                if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees > 90.0) {
+                    targetPose.pivotAngle -= 180.0.degrees
+                } else if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees < -90.0) {
+                    targetPose.pivotAngle += 180.0.degrees
+                }
+            }
+        }.andThen(runCommand(Armavator) {
+            goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
+        }.onlyRunWhileFalse {
+            (currentHeight - startPose.elevatorHeight).asInches.absoluteValue > delayDistance.asInches
+        }).andThen(runOnce {
+            goToPose(targetPose, optimizePivot = false)
+        })
     }
 
     fun resetPivot() {
