@@ -1,8 +1,8 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
-import com.ctre.phoenix6.controls.MotionMagicDutyCycle
-import com.ctre.phoenix6.controls.MotionMagicVoltage
+import com.ctre.phoenix6.controls.DynamicMotionMagicDutyCycle
+import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.CANdi
 import com.ctre.phoenix6.hardware.TalonFX
@@ -145,21 +145,21 @@ object Armavator: SubsystemBase() {
     var heightSetpoint: Distance = 0.0.inches
         set(value) {
             field = MathUtil.clamp(value.asInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES).inches
-            elevatorMotor.setControl(MotionMagicDutyCycle(field.asInches).withFeedForward(elevatorFeedforward))
+            elevatorMotor.setControl(elevatorControlRequest.withPosition(field.asInches).withFeedForward(elevatorFeedforward))
 //            println("elevator position setpoint: $value")
         }
 
     var armAngleSetpoint: Angle = 0.0.degrees
         set(value) {
             field = MathUtil.clamp(value.asDegrees, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES).degrees
-            armMotor.setControl(MotionMagicDutyCycle(field.asRotations).withFeedForward(armFeedForward))
+            armMotor.setControl(armControlRequest.withPosition(field.asRotations).withFeedForward(armFeedForward))
 //            println("arm angle setpoint: ${value.asDegrees}")
         }
 
     var pivotAngleSetpoint: Angle = 0.0.degrees
         set(value) {
             field = value.unWrap(pivotMotorAngle)
-            pivotMotor.setControl(MotionMagicVoltage(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
+            pivotMotor.setControl(pivotControlRequest.withPosition(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
 //            println("pivot angle setpoint: ${field.asDegrees}")
         }
 
@@ -186,6 +186,19 @@ object Armavator: SubsystemBase() {
         get() = isArmFlipped != isPivotFlipped
 
     var periodicFeedForward = true
+
+    // (Cruse velocity, acceleration)
+    private val defaultPivotMMSpeeds = Pair(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
+    private val defaultArmMMSpeeds = Pair(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
+    private val defaultElevatorMMSpeeds = Pair(35.0, 150.0)
+
+    private val elevatorControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second, 0.0)
+    private val armControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultArmMMSpeeds.first, defaultArmMMSpeeds.second, 0.0)
+    private val pivotControlRequest = DynamicMotionMagicVoltage(0.0, defaultPivotMMSpeeds.first, defaultPivotMMSpeeds.second, 0.0)
+
+    var isSlowSpeed = false
+
+
 
 
     init {
@@ -232,7 +245,7 @@ object Armavator: SubsystemBase() {
             inverted(true)
             coastMode()
 
-            motionMagic(35.0, 150.0)
+            motionMagic(defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second)
             remoteCANCoder(elevatorCANcoder.deviceID, 5.8 / ELEVATOR_REVOLUTIONS_PER_INCH, 1.0/5.8)
         }
 
@@ -248,7 +261,7 @@ object Armavator: SubsystemBase() {
             inverted(false)
             brakeMode()
 
-            motionMagic(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
+            motionMagic(defaultArmMMSpeeds.first, defaultArmMMSpeeds.second)
             remoteCANCoder(CANCoders.ARM, ARM_GEAR_RATIO)
         }
 
@@ -262,7 +275,7 @@ object Armavator: SubsystemBase() {
             currentLimits(20.0, 30.0, 1.0)
             brakeMode()
 
-            motionMagic(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
+            motionMagic(defaultPivotMMSpeeds.first, defaultPivotMMSpeeds.second)
         }
     }
 
@@ -362,6 +375,24 @@ object Armavator: SubsystemBase() {
         }).andThen(runOnce { // Final Pose
             goToPose(targetPose, isFlipped, optimizePivot)
         })
+    }
+
+    fun slowSpeed() {
+        if (isSlowSpeed) return // end early
+        armControlRequest.apply {
+            Velocity = defaultArmMMSpeeds.first * 0.5
+            Acceleration = defaultArmMMSpeeds.second * 0.5
+        }
+        isSlowSpeed = true
+    }
+
+    fun normalSpeed() {
+        if (!isSlowSpeed) return // end early
+        armControlRequest.apply {
+            Velocity = defaultArmMMSpeeds.first
+            Acceleration = defaultArmMMSpeeds.second
+        }
+        isSlowSpeed = false
     }
 
     fun resetPivot() {

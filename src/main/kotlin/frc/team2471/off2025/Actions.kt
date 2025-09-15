@@ -1,5 +1,6 @@
 package frc.team2471.off2025
 
+import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
@@ -26,14 +27,15 @@ fun groundIntake(isFlipped: Boolean): Command {
     return runCommand(Armavator) {
 //        println("going to ground intake")
         Intake.scoreAlgae = false
+        Armavator.normalSpeed()
         Armavator.goToPose(Pose.INTAKE_GROUND, isFlipped, false)
         Intake.intakeState = IntakeState.INTAKING
     }.finallyRun { goToDrivePose() }
 }
 
-fun goToDrivePose() {
+fun goToDrivePose(optionalPivot: Angle? = null) {
     println("going to drive pose")
-    Armavator.goToPose(Pose.DRIVE, optimizePivot = false)
+    Armavator.goToPose(Pose.DRIVE.apply { pivotAngle = optionalPivot ?: pivotAngle }, optimizePivot = false)
     Armavator.resetPivot()
     Intake.intakeState = IntakeState.HOLDING
 }
@@ -46,10 +48,13 @@ fun ampAlign(): Command {
             waitUntilCommand { ampAlignPoint.translation.getDistance(Drive.localizer.pose.translation) < 3.0.inches.asMeters },
             runCommand(Armavator ){
                 Intake.scoreAlgae = true
+                Armavator.slowSpeed()
                 Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0, false)
             }
         )
-    )
+    ).finallyRun {
+        Armavator.normalSpeed()
+    }
 }
 fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
 
@@ -65,6 +70,7 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Co
                 FieldManager.Level.L4 -> Pose.SCORE_L4 to true
             }
 
+            Armavator.normalSpeed()
             Intake.scoreAlgae = false
             Armavator.goToPose(poseAndOptimize.first, closestAlignPose.second, poseAndOptimize.second)
         }
@@ -95,6 +101,7 @@ fun coralStationIntake(): Command {
 //        println("coral station intake")
         val alignmentAngleAndFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose)
         Drive.driveAtAngle(alignmentAngleAndFlipped.first.asRotation2d)
+        Armavator.normalSpeed()
         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, alignmentAngleAndFlipped.second, false)
         Intake.intakeState = IntakeState.INTAKING
     }.finallyRun { goToDrivePose() }
@@ -108,6 +115,7 @@ fun algaeDescore(): Command {
             waitUntilCommand { alignPoseAndLevel.first.translation.getDistance(Drive.localizer.singleTagPose.translation) < 2.0.feet.asMeters },
             runCommand(Armavator) {
                 Intake.intakeState = IntakeState.ALGAE_GROUND
+                Armavator.normalSpeed()
                 Armavator.goToPose(if (alignPoseAndLevel.second == FieldManager.AlgaeLevel.LOW) Pose.ALGAE_DESCORE_LOW else Pose.ALGAE_DESCORE_HIGH, alignPoseAndLevel.third, optimizePivot = false)
             }
         )
@@ -120,7 +128,7 @@ fun bargeAlignAndScore(): Command {
     val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
-    val poseSupplier = { Drive.localizer.rawQuestPose ?: Drive.localizer.pose }
+    val poseSupplier = { if (Drive.questConnected) Drive.localizer.fusedOdometryPose else Drive.localizer.pose }
     return parallelCommand(
         Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
         sequenceCommand(
@@ -131,11 +139,12 @@ fun bargeAlignAndScore(): Command {
             },
             runCommand(Armavator) {
                 Intake.scoreAlgae = true
+                Armavator.normalSpeed()
                 Armavator.goToPose(Pose.BARGE_SCORE, isFlipped, optimizePivot = false)
             }
         )
     ).finallyRun {
-        goToDrivePose()
+        goToDrivePose(180.0.degrees)
         Intake.scoreAlgae = false
     }
 }
@@ -156,6 +165,7 @@ fun algaeGroundIntake(isFlipped: Boolean): Command {
             OI.driverController.rightStickButton || OI.driverController.leftStickButton
         },
         runCommand(Armavator) { // Go to intermediate position until pivot clears
+            Armavator.slowSpeed()
             Armavator.goToPose(Pose.ALGAE_INTAKE_INTERMEDIATE, isFlipped, false)
         }.onlyRunWhileFalse {
             Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees

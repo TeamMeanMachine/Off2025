@@ -35,9 +35,9 @@ import kotlin.math.max
  *
  *  Swerve odometry measurements are treated as relative pose sources with no latency. Measurements get continuously added onto each other.
  *
- *  Quest measurements are treated as an "absolute relative" pose source and correct for odometry drift. Offset the estimated pose by the difference between Quest pose change and odometry pose change.
+ *  Quest measurements are treated as an "absolute relative" pose source and correct for odometry drift. They offset the estimated pose by the difference between Quest pose change and odometry pose change.
  *
- *  Particle filter and single tag measurements are used as absolute pose sources. Offset the estimated pose by the camera estimate
+ *  Particle filter and single tag measurements are used as absolute pose sources. They offset the estimated pose by the camera estimate
  */
 class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
     private val networkTable = NTManager()
@@ -138,6 +138,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
     /**
      * Uses the latest pose estimate over NetworkTables and replays the latest odometry on top of it.
+     *
+     * Also integrates the latest quest pose and corrects the odometry pose.
      */
     fun updateWithLatestPoseEstimate(questEstimate: QuestNavMeasurement? = null) {
         val startTimestamp = Timer.getFPGATimestamp()
@@ -250,9 +252,9 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
             // If there is no existing measurement, create a new one by interpolating pose.
             if (existingMeasurement == null) {
-                val interpolatedPose = fusedOdometryBuffer.getSample(measurementTime).get()
-                existingMeasurement = Measurement(interpolatedPose)
-                timeToMeasurementMap.put(measurementTime, existingMeasurement)
+//                println("measurementTime: $measurementTime  lastQuestTimestamp: ${lastQuestMeasurement?.dataTimestamp}")
+                existingMeasurement = Measurement(fusedOdometryBuffer.getSample(measurementTime).get())
+                timeToMeasurementMap[measurementTime] = existingMeasurement
             }
 
             // Set vision uncertainty based on chassis speeds.
