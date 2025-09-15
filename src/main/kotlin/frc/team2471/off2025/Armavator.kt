@@ -88,7 +88,7 @@ object Armavator: SubsystemBase() {
         get() = elevatorEncoderCurve.getValue(rawElevatorEncoderValue).inches
 
     inline val pivotMotorAngle: Angle
-        get() = (pivotMotor.position.valueAsDouble.rotations/PIVOT_GEAR_RATIO)
+        get() = (pivotMotor.position.valueAsDouble.rotations / PIVOT_GEAR_RATIO)
 
     val armCanCoder = CANcoder(CANCoders.ARM, CANivores.ELEVATOR_CAN)
 
@@ -271,7 +271,6 @@ object Armavator: SubsystemBase() {
 
         Logger.recordOutput("Armavator/currentHeight", currentHeight.asInches)
         Logger.recordOutput("Armavator/currentArmAngle", currentArmAngle.asDegrees)
-        Logger.recordOutput("Armavator/currentArmEncoderAngle", armCanCoder.position.valueAsDouble.rotations.asDegrees)
         Logger.recordOutput("Armavator/pivotEncoderAngle", pivotEncoderAngle.asDegrees)
         Logger.recordOutput("Armavator/pivotMotorAngle", pivotMotorAngle.asDegrees)
 
@@ -299,9 +298,6 @@ object Armavator: SubsystemBase() {
 //        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
 
         LoopLogger.record("section 5")
-        Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
-        Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
-        LoopLogger.record("boo")
 
         if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && Armavator.noMovement) {
             resetPivot()

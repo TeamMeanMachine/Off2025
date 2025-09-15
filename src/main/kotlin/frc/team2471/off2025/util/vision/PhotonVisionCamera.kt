@@ -29,6 +29,8 @@ class PhotonVisionCamera(
 
     private val inputs = PhotonCameraInputs()
 
+    override var allDataPopulated: Boolean = false
+
 
     class PhotonCameraInputs : LoggableInputs {
         // TODO: Monitor performance and consider not logging the whole PhotonPipelineResult.
@@ -36,6 +38,7 @@ class PhotonVisionCamera(
         var latestResult: PhotonPipelineResult = PhotonPipelineResult()
         var cameraMatrix: Optional<Matrix<N3, N3>> = Optional.empty<Matrix<N3, N3>>()
         var distCoeffs: Optional<Matrix<N8, N1>> = Optional.empty<Matrix<N8, N1>>()
+        var allDataPopulated: Boolean = false
 
         override fun toLog(table: LogTable) {
             table.put("PipelineIndex", pipelineIndex)
@@ -47,6 +50,7 @@ class PhotonVisionCamera(
         }
 
         override fun fromLog(table: LogTable) {
+            var allDataPop = true
             pipelineIndex = table.get("PipelineIndex", pipelineIndex)
             latestResult = table.get("LatestResult", latestResult)
             cameraMatrix =
@@ -56,13 +60,20 @@ class PhotonVisionCamera(
                             SimpleMatrix(3, 3, true, *table.get("CameraMatrixData", DoubleArray(9)))
                         )
                     )
-                } else { Optional.empty<Matrix<N3, N3>>() }
+                } else {
+                    allDataPop = false
+                    Optional.empty<Matrix<N3, N3>>()
+                }
             distCoeffs =
                 if (table.get("DistCoeffsIsPresent", false)) {
                     Optional.of<Matrix<N8, N1>>(Matrix<N8, N1>(
                         SimpleMatrix(8, 1, true, *table.get("DistCoeffsData", DoubleArray(8)))
                     ))
-                } else { Optional.empty<Matrix<N8, N1>>() }
+                } else {
+                    allDataPop = false
+                    Optional.empty<Matrix<N8, N1>>()
+                }
+            allDataPopulated = allDataPop
         }
     }
 
@@ -84,7 +95,8 @@ class PhotonVisionCamera(
             val distCoeffs = camera.distCoeffs
             if (distCoeffs.isPresent) inputs.distCoeffs = distCoeffs
         }
-        Logger.processInputs(loggingName, inputs)
+        allDataPopulated = inputs.allDataPopulated
+//        Logger.processInputs(loggingName, inputs)
     }
 
     override fun setPipelineIndex(index: Int) {

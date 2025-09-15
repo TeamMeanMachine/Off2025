@@ -100,6 +100,7 @@ class NTManager {
         targetPub.set(targets)
     }
 
+    var camerasPublished = false
     /**
      * Publishes information about a list of cameras to the network table.
      *
@@ -108,11 +109,15 @@ class NTManager {
      * to create a CameraInfo object, which will then be published.
      */
     fun publishCameras(cameras: List<QuixVisionCamera>) {
+        if (camerasPublished) return
+        var allCamerasPublished = true
         val array = cameras.map {
+            if (!it.allDataPopulated) allCamerasPublished = false
             CameraInfo(it.transform, it.cameraMatrix, it.distCoeffs)
         }.toTypedArray()
 
         cameraInfosPublisher.set(array)
+        camerasPublished = allCamerasPublished
     }
 
     /**
