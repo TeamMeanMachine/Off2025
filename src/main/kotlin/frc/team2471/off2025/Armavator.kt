@@ -2,7 +2,7 @@ package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.controls.DynamicMotionMagicDutyCycle
-import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage
+import com.ctre.phoenix6.controls.MotionMagicVoltage
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.CANdi
 import com.ctre.phoenix6.hardware.TalonFX
@@ -194,7 +194,7 @@ object Armavator: SubsystemBase() {
 
     private val elevatorControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second, 0.0)
     private val armControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultArmMMSpeeds.first, defaultArmMMSpeeds.second, 0.0)
-    private val pivotControlRequest = DynamicMotionMagicVoltage(0.0, defaultPivotMMSpeeds.first, defaultPivotMMSpeeds.second, 0.0)
+    private val pivotControlRequest = MotionMagicVoltage(0.0)
 
     var isSlowSpeed = false
 

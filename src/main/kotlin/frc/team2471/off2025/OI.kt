@@ -83,7 +83,7 @@ object OI: SubsystemBase("OI") {
         val coralMode = { driverController.leftTriggerAxis < 0.1 }
         val algaeMode = { driverController.leftTriggerAxis > 0.8 }
         // Drive Pose
-        driverController.a().onTrue(::goToDrivePose.toCommand(Armavator))
+        driverController.a().onTrue(runOnce { goToDrivePose() })
         // L1
         driverController.y().and(coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L1, null) })
         // Barge
