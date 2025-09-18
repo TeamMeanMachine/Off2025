@@ -154,6 +154,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
             if (odometryDeltaPose != null) {
                 val questCorrectionDelta = Transform2d(questDeltaPose.translation - odometryDeltaPose.translation, questDeltaPose.rotation - odometryDeltaPose.rotation)
+                Logger.recordOutput("Localizer/Quest/questCorrectionDelta", questCorrectionDelta)
 
                 fusedOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
                 singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
@@ -164,6 +165,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         }
         lastQuestMeasurement = questEstimate
         LoopLogger.record("After Quest correction")
+        Logger.recordOutput("Localizer/Quest/QuestTimestamp", lastQuestMeasurement?.dataTimestamp ?: 0.0)
+        Logger.recordOutput("Localizer/Quest/LatestOdomTimestamp", rawOdometryPoseBuffer.internalBuffer.lastKey() ?: 0.0)
 
         // Apply Vision data to buffers
 
