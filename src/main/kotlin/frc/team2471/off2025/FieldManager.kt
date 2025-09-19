@@ -8,13 +8,6 @@ import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.absoluteValue
-import frc.team2471.off2025.util.asFeet
-import frc.team2471.off2025.util.asMeters
-import frc.team2471.off2025.util.asRotation2d
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.feet
-import frc.team2471.off2025.util.inches
 import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asFeet

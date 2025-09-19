@@ -2,10 +2,11 @@ package frc.team2471.off2025.util.vision
 
 import com.ctre.phoenix6.Utils
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
 import frc.team2471.off2025.Robot
-import frc.team2471.off2025.util.asDegrees
+import frc.team2471.off2025.util.units.asDegrees
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
 import org.littletonrobotics.junction.inputs.LoggableInputs
@@ -123,6 +124,25 @@ interface VisionIO {
         var aprilTagTimestamp = 0.0
         var targetCorners: DoubleArray = DoubleArray(8) { 0.0 }
         var targetCoords: DoubleArray = DoubleArray(2) { 0.0 }
+
+        // object detection
+        val hasTargets: Boolean
+            get()  = targetCorners.isNotEmpty() && targetCoords.isNotEmpty()
+
+        val targetCenter: Translation2d
+            get() {
+                if (hasTargets) {
+                    val targetCornersX = targetCorners.filterIndexed { index, _ -> index % 2 == 0 }
+                    val targetCornersY = targetCorners.filterIndexed { index, _ -> index % 2 == 1 }
+
+                    return Translation2d(
+                        (targetCornersX.max() + targetCornersX.min()) / 2,
+                        (targetCornersY.max() + targetCornersY.min()) / 2
+                    )
+                } else {
+                    return Translation2d()
+                }
+            }
 
         val targetDimensions: Pair<Double, Double>
             get() {

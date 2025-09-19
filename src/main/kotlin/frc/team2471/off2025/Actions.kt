@@ -2,6 +2,7 @@ package frc.team2471.off2025
 
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
+import frc.team2471.off2025.FieldManager.getApproachAngle
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.finallyRun
@@ -61,7 +62,8 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Co
     val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
 
     return parallelCommand(
-          Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}),
+          Drive.driveToAutopilotPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}, getApproachAngle(Drive.pose)),
+//          Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}),
         runCommand(Armavator){
             val poseAndOptimize = when (level){
                 FieldManager.Level.L1 -> Pose.SCORE_L1 to false

@@ -16,12 +16,6 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.math.numbers.N8
-import frc.team2471.off2025.util.ApplyModuleStates
-import frc.team2471.off2025.util.LoopLogger
-import frc.team2471.off2025.util.asRotation2d
-import frc.team2471.off2025.util.cube
-import frc.team2471.off2025.util.degrees
-import frc.team2471.off2025.util.inches
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.control.LoopLogger
