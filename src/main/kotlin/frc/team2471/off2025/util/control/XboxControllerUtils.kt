@@ -31,6 +31,9 @@ inline val CommandXboxController.leftBumper: Boolean get() = this.hid.leftBumper
 inline val CommandXboxController.start: Boolean get() = this.hid.startButton
 inline val CommandXboxController.back: Boolean get() = this.hid.backButton
 
+inline val CommandXboxController.rightStickButton: Boolean get() = this.hid.rightStickButton
+inline val CommandXboxController.leftStickButton: Boolean get() = this.hid.leftStickButton
+
 inline val CommandXboxController.dPad: Direction get() = when (this.hid.pov) {
     -1 -> Direction.IDLE
     0 -> Direction.UP

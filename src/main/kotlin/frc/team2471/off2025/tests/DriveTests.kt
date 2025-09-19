@@ -70,15 +70,14 @@ fun Drive.leftRightStaticFFTest(moduleAngle: Angle = 0.0.degrees): Command {
     return runCommand(Drive) {
 
 
-        if (OI.driverController.dPad == Direction.UP) {
-            upPressed = true
-        } else if (OI.driverController.dPad == Direction.DOWN) {
-            downPressed = true
-        } else if (OI.driverController.dPad == Direction.LEFT) {
-            leftPressed = true
-        } else if (OI.driverController.dPad == Direction.RIGHT) {
-            rightPressed = true
+        when (OI.driverController.dPad) {
+            Direction.UP -> { upPressed = true }
+            Direction.DOWN -> { downPressed = true }
+            Direction.LEFT -> { leftPressed = true }
+            Direction.RIGHT -> { rightPressed = true }
+            else -> {}
         }
+
         if (OI.driverController.dPad != Direction.UP && upPressed) {
             upPressed = false
             leftVolts += 0.005

@@ -35,9 +35,9 @@ import kotlin.math.max
  *
  *  Swerve odometry measurements are treated as relative pose sources with no latency. Measurements get continuously added onto each other.
  *
- *  Quest measurements are treated as an "absolute relative" pose source and correct for odometry drift. Offset the estimated pose by the difference between Quest pose change and odometry pose change.
+ *  Quest measurements are treated as an "absolute relative" pose source and correct for odometry drift. They offset the estimated pose by the difference between Quest pose change and odometry pose change.
  *
- *  Particle filter and single tag measurements are used as absolute pose sources. Offset the estimated pose by the camera estimate
+ *  Particle filter and single tag measurements are used as absolute pose sources. They offset the estimated pose by the camera estimate
  */
 class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
     private val networkTable = NTManager()
@@ -83,19 +83,19 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
     /** Only Swerve odometry */
     val rawOdometryPose: Pose2d
-        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Latest pose reported by the Quest */
     val rawQuestPose: Pose2d?
         get() = lastQuestMeasurement?.robotPose
     /** Swerve odometry fused with Quest measurements */
     val fusedOdometryPose: Pose2d
-        get() = fusedOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = fusedOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Pose that only uses the closest apriltag to correct itself. Used for precision but needs good tag visibility. */
     val singleTagPose: Pose2d
-        get() = singleTagOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = singleTagOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Pose from the particle filter, used for full field localization but can be more jittery. */
     val pose: Pose2d
-        get() = visionOdometryBuffer.internalBuffer.lastEntry().value ?: Pose2d()
+        get() = visionOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
 
     /** Lastest estimate from the particle filter, before latency compensation. */
     val rawPose: Pose2d
@@ -103,12 +103,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
 
     fun resetPose(pose: Pose2d) {
-        rawOdometryPoseBuffer.clear()
-        fusedOdometryBuffer.clear()
-        singleTagOdometryBuffer.clear()
-        visionOdometryBuffer.clear()
-
-        lastQuestMeasurement = null
+        clearAllBuffers()
 
         val currentTime = Timer.getTimestamp()
         rawOdometryPoseBuffer.addSample(currentTime, pose)
@@ -117,8 +112,34 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         visionOdometryBuffer.addSample(currentTime, pose)
     }
 
+    fun resetRotation(rotation: Rotation2d) {
+        val storedRawOdomTranslation = rawOdometryPose.translation
+        val storedFusedTranslation = fusedOdometryPose.translation
+        val storedSingleTagTranslation = singleTagPose.translation
+        val storedVisionOdometryTranslation = pose.translation
+
+        clearAllBuffers()
+
+        val currentTime = Timer.getTimestamp()
+        rawOdometryPoseBuffer.addSample(currentTime, Pose2d(storedRawOdomTranslation, rotation))
+        fusedOdometryBuffer.addSample(currentTime, Pose2d(storedFusedTranslation, rotation))
+        singleTagOdometryBuffer.addSample(currentTime, Pose2d(storedSingleTagTranslation, rotation))
+        visionOdometryBuffer.addSample(currentTime, Pose2d(storedVisionOdometryTranslation, rotation))
+    }
+
+    private fun clearAllBuffers() {
+        rawOdometryPoseBuffer.clear()
+        fusedOdometryBuffer.clear()
+        singleTagOdometryBuffer.clear()
+        visionOdometryBuffer.clear()
+
+        lastQuestMeasurement = null
+    }
+
     /**
      * Uses the latest pose estimate over NetworkTables and replays the latest odometry on top of it.
+     *
+     * Also integrates the latest quest pose and corrects the odometry pose.
      */
     fun updateWithLatestPoseEstimate(questEstimate: QuestNavMeasurement? = null) {
         val startTimestamp = Timer.getFPGATimestamp()
@@ -126,15 +147,14 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         LoopLogger.record("Before Quest correction")
         // Apply quest data to the buffers
         val prevQuestEstimateTime = lastQuestMeasurement?.dataTimestamp
-        if (questEstimate != null && prevQuestEstimateTime != null && fusedOdometryBuffer.internalBuffer.firstKey() < prevQuestEstimateTime && questEstimate.dataTimestamp > prevQuestEstimateTime) {
+        if (questEstimate != null && prevQuestEstimateTime != null && questEstimate.dataTimestamp > prevQuestEstimateTime && rawOdometryPoseBuffer.internalBuffer.firstKey() < prevQuestEstimateTime && questEstimate.dataTimestamp < rawOdometryPoseBuffer.internalBuffer.lastKey()) {
             val questEstimateTime = questEstimate.dataTimestamp
             val questDeltaPose = questEstimate.robotPose.minus(rawQuestPose)
-            val odometryDeltaPose = fusedOdometryBuffer.getSample(questEstimateTime).getOrNull()?.minus(fusedOdometryBuffer.getSample(prevQuestEstimateTime).getOrNull())
-//            println("questDeltaPose: $questDeltaPose")
-//            println("odometryDeltaPose: $odometryDeltaPose")
+            val odometryDeltaPose = rawOdometryPoseBuffer.getSample(questEstimateTime).getOrNull()?.minus(rawOdometryPoseBuffer.getSample(prevQuestEstimateTime).getOrNull())
 
             if (odometryDeltaPose != null) {
                 val questCorrectionDelta = Transform2d(questDeltaPose.translation - odometryDeltaPose.translation, questDeltaPose.rotation - odometryDeltaPose.rotation)
+                Logger.recordOutput("Localizer/Quest/questCorrectionDelta", questCorrectionDelta)
 
                 fusedOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
                 singleTagOdometryBuffer.internalBuffer.offsetFutureSamplesBy(questCorrectionDelta, questEstimateTime)
@@ -145,6 +165,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         }
         lastQuestMeasurement = questEstimate
         LoopLogger.record("After Quest correction")
+        Logger.recordOutput("Localizer/Quest/QuestTimestamp", lastQuestMeasurement?.dataTimestamp ?: 0.0)
+        Logger.recordOutput("Localizer/Quest/LatestOdomTimestamp", rawOdometryPoseBuffer.internalBuffer.lastKey() ?: 0.0)
 
         // Apply Vision data to buffers
 
@@ -233,9 +255,9 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
             // If there is no existing measurement, create a new one by interpolating pose.
             if (existingMeasurement == null) {
-                val interpolatedPose = fusedOdometryBuffer.getSample(measurementTime).get()
-                existingMeasurement = Measurement(interpolatedPose)
-                timeToMeasurementMap.put(measurementTime, existingMeasurement)
+//                println("measurementTime: $measurementTime  lastQuestTimestamp: ${lastQuestMeasurement?.dataTimestamp}")
+                existingMeasurement = Measurement(fusedOdometryBuffer.getSample(measurementTime).get())
+                timeToMeasurementMap[measurementTime] = existingMeasurement
             }
 
             // Set vision uncertainty based on chassis speeds.
@@ -409,7 +431,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     data class QuestNavMeasurement(val robotPose: Pose2d, val dataTimestamp: Double)
 
     /**
-     *  Applies a transform to all samples with a timestamp >= [timestamp].
+     *  Applies a transform to all pose samples with a timestamp >= [timestamp].
      *
      *  @param offset The offset to apply. In meters
      *  @param timestamp The oldest timestamp to start applying the offset at. In seconds.

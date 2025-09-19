@@ -1,6 +1,7 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
+import com.ctre.phoenix6.controls.VoltageOut
 import com.ctre.phoenix6.hardware.CANrange
 import com.ctre.phoenix6.hardware.TalonFX
 import edu.wpi.first.math.filter.LinearFilter
@@ -9,6 +10,8 @@ import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
 import frc.team2471.off2025.util.ctre.currentLimits
 import frc.team2471.off2025.util.ctre.inverted
+import frc.team2471.off2025.util.units.asFahrenheit
+import org.littletonrobotics.junction.Logger
 
 object Intake: SubsystemBase("Intake") {
     var intakeState: IntakeState = IntakeState.HOLDING
@@ -27,15 +30,18 @@ object Intake: SubsystemBase("Intake") {
     var hasCargo: Boolean = false
     var scoreAlgae = false
 
+    var afterDisabled = false
+    private var prevIntakeState = intakeState
+
     val INTAKE_POWER = -0.6
     val SIDE_MOVE_POWER: Double = if (Robot.isCompBot) -0.1 else 0.1
-    val ALGAE_INTAKE_POWER = 0.6
-    val ALGAE_INTAKE_POWER_AUTO = 1.0
+    val ALGAE_INTAKE_POWER = 1.0
+    val ALGAE_GROUND_INTAKE_POWER = 0.6
     val SIDE_SPIT_POWER = 0.8
 
     init {
         frontMotor.applyConfiguration {
-            currentLimits(30.0, 5.0, 0.5)
+            currentLimits(5.0, 30.0, 0.5)
         }
         sideMotor.applyConfiguration {
             currentLimits(20.0, 40.0, 1.0)
@@ -49,25 +55,44 @@ object Intake: SubsystemBase("Intake") {
         canRangeRightDist = canRangeRightDistFilter.calculate(canRangeRight.distance.valueAsDouble)
         when (intakeState) {
             IntakeState.INTAKING -> {
-                frontMotor.setControl(DutyCycleOut(INTAKE_POWER))
-                sideMotor.setControl(DutyCycleOut(0.0))
+                frontMotor.setControl(VoltageOut(INTAKE_POWER * 12.0))
                 centeringLogic(Robot.isAutonomous)
             }
-            IntakeState.REVERSING -> {
-                frontMotor.setControl(DutyCycleOut(ALGAE_INTAKE_POWER_AUTO))
-                sideMotor.setControl(DutyCycleOut(0.0))
+            IntakeState.ALGAE_GROUND -> {
+                frontMotor.setControl(VoltageOut(ALGAE_GROUND_INTAKE_POWER * 12.0))
+                centeringLogic()
+            }
+            IntakeState.ALGAE_DESCORE -> {
+                frontMotor.setControl(VoltageOut(ALGAE_INTAKE_POWER * 12.0))
                 centeringLogic()
             }
             IntakeState.HOLDING -> {
-                frontMotor.setControl(DutyCycleOut(0.2))
-                sideMotor.setControl(DutyCycleOut(0.0))
+                if (afterDisabled) {
+                    frontMotor.setControl(DutyCycleOut(0.0))
+                } else {
+                    frontMotor.setControl(DutyCycleOut(ALGAE_GROUND_INTAKE_POWER))
+                }
                 centeringLogic()
             }
             IntakeState.SCORING -> {
-                frontMotor.setControl(DutyCycleOut(0.1))
-                sideSplit()
+                if (scoreAlgae) {
+                    frontMotor.setControl(DutyCycleOut(-1.0))
+                    centeringLogic()
+                } else {
+                    frontMotor.setControl(VoltageOut(0.1 * 12.0))
+                    sideSplit()
+                }
             }
         }
+        if (afterDisabled) {
+            if (prevIntakeState != intakeState) {
+                afterDisabled = false
+            }
+        }
+        Logger.recordOutput("Intake/FrontTemp", frontMotor.deviceTemp.value.asFahrenheit)
+        Logger.recordOutput("Intake/IntakeState", intakeState.name)
+        Logger.recordOutput("Intake/FrontOutputV", frontMotor.motorVoltage.valueAsDouble)
+        Logger.recordOutput("Intake/SideOutputV", sideMotor.motorVoltage.valueAsDouble)
     }
 
     private fun sideSplit() {
@@ -89,17 +114,15 @@ object Intake: SubsystemBase("Intake") {
         }
     }
     fun score() {
-        if (scoreAlgae) {
-            intakeState = IntakeState.INTAKING
-        } else {
-            intakeState = IntakeState.SCORING
-        }
+        intakeState = IntakeState.SCORING
     }
 }
 
 enum class IntakeState {
     INTAKING,
-    REVERSING,
+    ALGAE_GROUND,
     HOLDING,
-    SCORING
+    SCORING,
+    ALGAE_DESCORE
+
 }

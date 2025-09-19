@@ -27,7 +27,7 @@ enum class RobotMode {
 //Alliance bool
 val isRedAlliance: Boolean
     get() = if (DriverStation.getAlliance().isEmpty) {
-        prevIsRedAlliance ?: true
+        prevIsRedAlliance ?: true // If no alliance, return the last known alliance or default to red
     } else {
         (DriverStation.getAlliance().get() == DriverStation.Alliance.Red).also { prevIsRedAlliance = it }
     }

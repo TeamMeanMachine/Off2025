@@ -38,8 +38,9 @@ object TunerConstants {
     val driveMotor = DCMotor.getKrakenX60Foc(1)!!
     val steerMotor = DCMotor(12.0, 4.05, 275.0, 1.4, 7530.0.rpm.asRadiansPerSecond, 1) //x44
 
-    private const val driveGearRatio = 6.746031746031747 * 0.950495049505
+    private const val driveGearRatio = 6.746031746031747
     private const val steerGearRatio = 21.428571428571427
+    private const val wheelRadiusInches = 2.0 * 0.950495049505
 
     // The steer motor uses any SwerveModule.SteerRequestType control request with the
     // output type specified by SwerveModuleConstants.SteerMotorClosedLoopOutput
@@ -159,7 +160,7 @@ object TunerConstants {
             DriveFrictionVoltage = 0.2.volts.asVolts
             SteerFrictionVoltage = 0.2.volts.asVolts
 
-            WheelRadius = 2.0.inches.asMeters //<- wheel radius can be overridden during module config
+            WheelRadius = wheelRadiusInches.inches.asMeters //<- wheel radius can be overridden during module config
         }
 
     //Usually swerve drives are square
@@ -219,6 +220,10 @@ object TunerConstants {
 
 
     val moduleConfigs = arrayOf(frontLeft, frontRight, backLeft, backRight)
+
+    init {
+        println("TunerConstants created ${moduleConfigs.size} modules.")
+    }
 
 
     class ModuleConfig(

@@ -7,17 +7,13 @@ import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import frc.team2471.off2025.util.*
-import frc.team2471.off2025.util.vision.LimelightMode
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.control.MeanCommandXboxController
+import frc.team2471.off2025.util.control.finallyRun
 import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.control.toCommand
 import frc.team2471.off2025.util.math.deadband
 import frc.team2471.off2025.util.math.normalize
-import frc.team2471.off2025.util.units.asRotation2d
-import frc.team2471.off2025.util.units.degrees
-import kotlin.math.absoluteValue
 
 object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, false)
@@ -86,63 +82,70 @@ object OI: SubsystemBase("OI") {
         println("inside OI init")
         // Default command, normal field-relative drive
         Drive.defaultCommand = Drive.joystickDrive()
+        val coralMode = { driverController.leftTriggerAxis < 0.1 }
+        val algaeMode = { driverController.leftTriggerAxis > 0.8 }
+        // Drive Pose
+        driverController.a().onTrue(runOnce { goToDrivePose() })
+        // L1
+        driverController.y().and(coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L1, null) })
+        // Barge
+        driverController.y().and (algaeMode).whileTrue(defer { bargeAlignAndScore() })
+        // Processor Align
+        driverController.b().and (algaeMode).whileTrue(defer { ampAlign() })
+        // Coral Station Intake
+        driverController.b().and (coralMode).whileTrue(coralStationIntake())
+        // Algae Descore
+        driverController.x().and (coralMode).whileTrue(defer { algaeDescore() })
+        // Climb heading align
+        driverController.x().and (algaeMode).whileTrue( runOnce { println("climb heading align and deploy, does not do anything yet") })
 
 
-        driverController.a().onTrue(::goToDrivePose.toCommand(Armavator))
-//        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.SCORE_L3)})
-//        driverController.b().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE_PIVOT_ONE_THIRD_TEST)})
-//        driverController.y().onTrue(runOnceCommand(Armavator){ Armavator.goToPose(Pose.DRIVE_PIVOT_TWO_THIRDS_TEST)})
-    //    driverController.rightBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.INTAKING})
-    //    driverController.leftBumper().onTrue(runOnceCommand{Intake.intakeState = IntakeState.HOLDING})
-    //    driverController.rightTrigger().onTrue(runOnceCommand{Intake.intakeState = IntakeState.SCORING})
-    //    driverController.leftTrigger().onTrue(runOnceCommand{Intake.intakeState = IntakeState.REVERSING})
+        // Coral Ground Intake
+        driverController.leftBumper().and (coralMode).whileTrue(groundIntake(false))
+        driverController.rightBumper().and (coralMode).whileTrue(groundIntake(true))
+
+        // Climb
+        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { println("CLIMB, does not do anything yet") })
 
 
 
-        driverController.y().whileTrue(defer {
-            Drive.joystickDriveAlongLine(
-                FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
-                FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() },
-                (if (Drive.heading.degrees.absoluteValue > 90.0) 180.0 else 0.0).degrees.asRotation2d
-            ) })
-        driverController.b().whileTrue(coralStationIntake())
-//        driverController.x().whileTrue(defer { ampAlign() })
-        driverController.x().whileTrue(defer { algaeDescore() })
 
-/*        driverController.a().onTrue(runOnce {
-            Drive.questSimConnected = !Drive.questSimConnected
-            println("questSimConnected = ${Drive.questSimConnected}")
-        })*/
 
-        driverController.rightTrigger(0.9).whileTrue(runCommand { Intake.score() })
 
-        driverController.leftBumper().whileTrue(groundIntake(false))
-        driverController.rightBumper().whileTrue(groundIntake(true))
+        // Score
+        driverController.rightTrigger(0.9).whileTrue(
+            runCommand { Intake.intakeState = IntakeState.SCORING }
+                .finallyRun { Intake.intakeState = IntakeState.HOLDING })
 
-        driverController.leftStick ().whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
-        driverController.rightStick ().whileTrue(defer { alignToScore(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
+        // Algae Ground Intake
+        driverController.leftStick().and (algaeMode).onTrue(algaeGroundIntake(false))
+        driverController.rightStick().and (algaeMode).onTrue(algaeGroundIntake(true))
 
+        // L4
+        driverController.leftStick ().and (coralMode).whileTrue(defer { alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT) })
+        driverController.rightStick ().and (coralMode).whileTrue(defer { alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT) })
+
+        // L3-L2
         driverController.povUp ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.LEFT) })
         driverController.povRight ().whileTrue(defer { alignToScore(FieldManager.Level.L3, FieldManager.ScoringSide.RIGHT) })
         driverController.povLeft ().whileTrue(defer { alignToScore(FieldManager.Level.L2, FieldManager.ScoringSide.LEFT) })
         driverController.povDown ().whileTrue(defer { alignToScore(FieldManager.Level.L2, FieldManager.ScoringSide.RIGHT) })
 
-        // Switch to X pattern when X button is pressed
-    //    driverController.x().onTrue(Commands.runOnce({ Drive.xPose() }, Drive))
+//        driverController.leftBumper().onTrue(defer { Vision.alignToGamepiece { !driverController.leftBumper().asBoolean } })
 
-        driverController.leftBumper().onTrue(defer { Vision.alignToGamepiece { !driverController.leftBumper().asBoolean } })
-
-        // Reset gyro to 0° when B button is pressed
+        // Zero Gyro
         driverController.back().onTrue({
                 println("zero gyro")
                 Drive.zeroGyro()
                 Vision.gyroReset()
             }.toCommand(Drive).ignoringDisable(true))
 
-        // Reset position to zero
-        driverController.start().onTrue( {
+        // Reset Odometry Position
+        driverController.start().and(coralMode).onTrue( {
             Drive.pose = Pose2d(Translation2d(3.0, 3.0), Drive.heading)
         }.toCommand(Drive).ignoringDisable(true))
+
+        driverController.start().and (algaeMode).onTrue(runOnce { Drive.resetOdometryToAbsolute() })
     }
 
     override fun periodic() {

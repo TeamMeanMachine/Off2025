@@ -1,7 +1,8 @@
 package motion_profiling;
 
 import com.google.gson.Gson;
-import org.team2471.frc.lib.math.Vector2;
+import frc.team2471.off2025.util.motion_profiling.BooleanPair;
+import frc.team2471.off2025.util.motion_profiling.MotionKey;
 
 public class MotionCurve {
     private transient final double MAXFRAMEERROR = 0.003;
@@ -298,7 +299,7 @@ public class MotionCurve {
     public MotionKey storeValueSlopeAndMagnitude(double time, double value, double slope, double magnitude) {
         MotionKey motionKey = createMotionKey(time);
         motionKey.setValue(value);
-        Vector2 angleAndMagnitude = new Vector2(Math.atan(slope), magnitude);
+        BooleanPair angleAndMagnitude = new BooleanPair(Math.atan(slope), magnitude);
         motionKey.setNextAngleAndMagnitude(angleAndMagnitude);
         motionKey.setPrevAngleAndMagnitude(angleAndMagnitude);
         motionKey.setMarkBeginOrEndKeysToZeroSlope(false);
@@ -315,7 +316,7 @@ public class MotionCurve {
                 case EXTRAPOLATION_CONSTANT:
                     return getTailKey().getValue();
                 case EXTRAPOLATION_LINEAR: {
-                    Vector2 v2Slope = getTailKey().getPrevTangent();
+                    BooleanPair v2Slope = getTailKey().getPrevTangent();
                     return getTailKey().getValue() + (v2Slope.getY() / v2Slope.getX()) * (time - getTailKey().getTime());
                 }
                 case EXTRAPOLATION_CYCLE: {
@@ -368,7 +369,7 @@ public class MotionCurve {
                 case EXTRAPOLATION_CONSTANT:
                     return getHeadKey().getValue();
                 case EXTRAPOLATION_LINEAR: {
-                    Vector2 v2Slope = getHeadKey().getNextTangent();
+                    BooleanPair v2Slope = getHeadKey().getNextTangent();
                     return getHeadKey().getValue() + (v2Slope.getY() / v2Slope.getX()) * (time - getHeadKey().getTime());
                 }
                 case EXTRAPOLATION_CYCLE: {
@@ -546,11 +547,11 @@ public class MotionCurve {
                 if (nextKey == null)
                     return m_lastDerivative;
                 if (key.getTime() == time) {
-                    Vector2 tangent = key.getNextTangent();
+                    BooleanPair tangent = key.getNextTangent();
                     m_lastDerivative = tangent.getY() / tangent.getX();
                     break;
                 } else if (nextKey.getTime() == time) {
-                    Vector2 tangent = nextKey.getPrevTangent();
+                    BooleanPair tangent = nextKey.getPrevTangent();
                     m_lastDerivative = tangent.getY() / tangent.getX();
                     break;
                 } else if (nextKey.getTime() > time) {
@@ -564,11 +565,11 @@ public class MotionCurve {
                 if (nextKey == null)
                     return m_lastDerivative;
                 if (key.getTime() == time) {
-                    Vector2 tangent = key.getNextTangent();
+                    BooleanPair tangent = key.getNextTangent();
                     m_lastDerivative = tangent.getY() / tangent.getX();
                     break;
                 } else if (nextKey.getTime() == time) {
-                    Vector2 tangent = nextKey.getPrevTangent();
+                    BooleanPair tangent = nextKey.getPrevTangent();
                     m_lastDerivative = tangent.getY() / tangent.getX();
                     break;
                 } else if (key.getTime() < time) {

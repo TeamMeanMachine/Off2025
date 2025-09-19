@@ -174,7 +174,7 @@ object FieldManager {
     }
 
 
-    fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pose2d {
+    fun closestAlignPoint(pose: Pose2d, level: Level, side: ScoringSide? = null): Pair<Pose2d, Boolean> {
         val isRed = isRedAlliance
         val alignPositions = when (level) {
             Level.L4 -> {
@@ -204,11 +204,13 @@ object FieldManager {
         }
         // optimize rotation
         var closestPose = poseAndDistance.first
+        var isFlipped = true
         if ((pose.rotation.measure - closestPose.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            isFlipped = false
             closestPose = Pose2d(closestPose.translation, closestPose.rotation.rotateBy(180.0.degrees.asRotation2d))
         }
 
-        return closestPose
+        return Pair(closestPose, isFlipped)
     }
 
     fun getApproachAngle(robotPose: Pose2d): Angle {
@@ -225,12 +227,14 @@ object FieldManager {
         return unwrappedPose
     }
 
-    fun getClosestReefAlgae(robotPose: Pose2d): Pair<Pose2d, AlgaeLevel> {
+    fun getClosestReefAlgae(robotPose: Pose2d): Triple<Pose2d, AlgaeLevel, Boolean> {
         val algaeAlignPoses = if (isRedAlliance) alignPositionsAlgaeRed else alignPositionsAlgaeBlue
         algaeAlignPoses.sortBy { it.first.translation.getDistance(robotPose.translation) }
         var closestPose = algaeAlignPoses.first()
 
+        var isFlipped = true
         if ((robotPose.rotation.measure - closestPose.first.rotation.measure).wrap().absoluteValue() > 90.0.degrees) {
+            isFlipped = false
             closestPose = Pair(
                 Pose2d(
                     closestPose.first.translation,
@@ -239,7 +243,7 @@ object FieldManager {
             )
         }
 
-        return closestPose
+        return Triple(closestPose.first, closestPose.second, isFlipped)
     }
 
     /**

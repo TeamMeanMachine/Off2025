@@ -1,7 +1,7 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
-import com.ctre.phoenix6.controls.MotionMagicDutyCycle
+import com.ctre.phoenix6.controls.DynamicMotionMagicDutyCycle
 import com.ctre.phoenix6.controls.MotionMagicVoltage
 import com.ctre.phoenix6.hardware.CANcoder
 import com.ctre.phoenix6.hardware.CANdi
@@ -10,9 +10,14 @@ import com.ctre.phoenix6.signals.StaticFeedforwardSignValue
 import edu.wpi.first.math.MathUtil
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.units.measure.Angle
+import edu.wpi.first.units.measure.AngularVelocity
 import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearVelocity
+import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.control.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.ctre.addFollower
 import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
@@ -25,15 +30,19 @@ import frc.team2471.off2025.util.ctre.motionMagic
 import frc.team2471.off2025.util.ctre.p
 import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
+import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asDegreesPerSecond
 import frc.team2471.off2025.util.units.asFeetPerSecondPerSecond
 import frc.team2471.off2025.util.units.asInches
+import frc.team2471.off2025.util.units.asInchesPerSecond
 import frc.team2471.off2025.util.units.asRadians
 import frc.team2471.off2025.util.units.asRotations
 import frc.team2471.off2025.util.units.cos
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.perSecond
 import frc.team2471.off2025.util.units.rotations
 import frc.team2471.off2025.util.units.sin
 import frc.team2471.off2025.util.units.unWrap
@@ -42,6 +51,7 @@ import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 
 object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
@@ -78,7 +88,7 @@ object Armavator: SubsystemBase() {
         get() = elevatorEncoderCurve.getValue(rawElevatorEncoderValue).inches
 
     inline val pivotMotorAngle: Angle
-        get() = (pivotMotor.position.valueAsDouble.rotations/PIVOT_GEAR_RATIO)
+        get() = (pivotMotor.position.valueAsDouble.rotations / PIVOT_GEAR_RATIO)
 
     val armCanCoder = CANcoder(CANCoders.ARM, CANivores.ELEVATOR_CAN)
 
@@ -106,9 +116,9 @@ object Armavator: SubsystemBase() {
 
 
     val defaultPivotEncoderOffset =
-        if (Robot.isCompBot) -1.841 else 0.0
+        if (Robot.isCompBot)  0.0 else -1.841
     val defaultArmEncoderOffset =
-        if (Robot.isCompBot) 195.8 else -129.9
+        if (Robot.isCompBot) -129.9 else 195.8
     val defaultElevatorEncoderOffset =
         if (Robot.isCompBot) 0.205078125 else 0.205078125
 
@@ -135,23 +145,39 @@ object Armavator: SubsystemBase() {
     var heightSetpoint: Distance = 0.0.inches
         set(value) {
             field = MathUtil.clamp(value.asInches, MIN_HEIGHT_INCHES, MAX_HEIGHT_INCHES).inches
-            elevatorMotor.setControl(MotionMagicDutyCycle(field.asInches).withFeedForward(elevatorFeedforward))
+            elevatorMotor.setControl(elevatorControlRequest.withPosition(field.asInches).withFeedForward(elevatorFeedforward))
 //            println("elevator position setpoint: $value")
         }
 
     var armAngleSetpoint: Angle = 0.0.degrees
         set(value) {
             field = MathUtil.clamp(value.asDegrees, MIN_ARM_ANGLE_DEGREES, MAX_ARM_ANGLE_DEGREES).degrees
-            armMotor.setControl(MotionMagicDutyCycle(field.asRotations).withFeedForward(armFeedForward))
+            armMotor.setControl(armControlRequest.withPosition(field.asRotations).withFeedForward(armFeedForward))
 //            println("arm angle setpoint: ${value.asDegrees}")
         }
 
     var pivotAngleSetpoint: Angle = 0.0.degrees
         set(value) {
             field = value.unWrap(pivotMotorAngle)
-            pivotMotor.setControl(MotionMagicVoltage(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
+            pivotMotor.setControl(pivotControlRequest.withPosition(field.asRotations * PIVOT_GEAR_RATIO).withFeedForward(pivotFeedForward * 12.0))
 //            println("pivot angle setpoint: ${field.asDegrees}")
         }
+
+    val pivotSetpointError: Angle
+        get() = pivotAngleSetpoint - pivotMotorAngle
+
+    val elevatorVelocity: LinearVelocity
+        get() = elevatorMotor.velocity.valueAsDouble.inches.perSecond
+    val armVelocity: AngularVelocity
+        get() = armMotor.velocity.valueAsDouble.rotations.perSecond
+    val pivotVelocity: AngularVelocity
+        get() = (pivotMotor.velocity.valueAsDouble / PIVOT_GEAR_RATIO).rotations.perSecond
+
+    val noMovement: Boolean
+        get() = elevatorVelocity.asInchesPerSecond.absoluteValue < 0.05 &&
+                armVelocity.asDegreesPerSecond.absoluteValue < 0.2 &&
+                pivotVelocity.asDegreesPerSecond.absoluteValue < 0.2
+
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees
     val isPivotFlipped: Boolean
@@ -160,6 +186,19 @@ object Armavator: SubsystemBase() {
         get() = isArmFlipped != isPivotFlipped
 
     var periodicFeedForward = true
+
+    // (Cruse velocity, acceleration)
+    private val defaultPivotMMSpeeds = Pair(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
+    private val defaultArmMMSpeeds = Pair(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
+    private val defaultElevatorMMSpeeds = Pair(35.0, 150.0)
+
+    private val elevatorControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second, 0.0)
+    private val armControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultArmMMSpeeds.first, defaultArmMMSpeeds.second, 0.0)
+    private val pivotControlRequest = MotionMagicVoltage(0.0)
+
+    var isSlowSpeed = false
+
+
 
 
     init {
@@ -196,17 +235,17 @@ object Armavator: SubsystemBase() {
         elevatorEncoderCurve.storeValue(8.175, 49.233)
         elevatorEncoderCurve.storeValue(6.237, 38.142)
 
-        pivotMotor.setPosition(pivotEncoderAngle * PIVOT_GEAR_RATIO)
+        resetPivot()
 
 
         elevatorMotor.applyConfiguration {
-            p(0.5)
+            p(0.5 * ELEVATOR_REVOLUTIONS_PER_INCH)
 
             currentLimits(30.0, 50.0, 0.5)
             inverted(true)
             coastMode()
 
-            motionMagic(35.0, 150.0)
+            motionMagic(defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second)
             remoteCANCoder(elevatorCANcoder.deviceID, 5.8 / ELEVATOR_REVOLUTIONS_PER_INCH, 1.0/5.8)
         }
 
@@ -222,7 +261,7 @@ object Armavator: SubsystemBase() {
             inverted(false)
             brakeMode()
 
-            motionMagic(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
+            motionMagic(defaultArmMMSpeeds.first, defaultArmMMSpeeds.second)
             remoteCANCoder(CANCoders.ARM, ARM_GEAR_RATIO)
         }
 
@@ -236,7 +275,7 @@ object Armavator: SubsystemBase() {
             currentLimits(20.0, 30.0, 1.0)
             brakeMode()
 
-            motionMagic(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
+            motionMagic(defaultPivotMMSpeeds.first, defaultPivotMMSpeeds.second)
         }
     }
 
@@ -245,48 +284,52 @@ object Armavator: SubsystemBase() {
 
         Logger.recordOutput("Armavator/currentHeight", currentHeight.asInches)
         Logger.recordOutput("Armavator/currentArmAngle", currentArmAngle.asDegrees)
-        Logger.recordOutput("Armavator/currentArmEncoderAngle", armCanCoder.position.valueAsDouble.rotations.asDegrees)
         Logger.recordOutput("Armavator/pivotEncoderAngle", pivotEncoderAngle.asDegrees)
         Logger.recordOutput("Armavator/pivotMotorAngle", pivotMotorAngle.asDegrees)
 
+        LoopLogger.record("section 1")
         Logger.recordOutput("Armavator/heightSetpoint", heightSetpoint.asInches)
         Logger.recordOutput("Armavator/armAngleSetpoint", armAngleSetpoint.asDegrees)
         Logger.recordOutput("Armavator/pivotAngleSetpoint", pivotAngleSetpoint.asDegrees)
 
+        LoopLogger.record("section 2")
         Logger.recordOutput("Armavator/elevatorCurrent", elevatorMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/armCurrent", armMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/pivotCurrent", pivotMotor.supplyCurrent.valueAsDouble)
 
+        LoopLogger.record("section 3")
         Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
 
+        LoopLogger.record("section 4")
         Logger.recordOutput("Armavator/periodicFeedForward", periodicFeedForward)
         Logger.recordOutput("Armavator/elevatorFeedforward", elevatorFeedforward)
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
 
-        Logger.recordOutput("Armavator/elevatorEncoderHeight", elevatorEncoderHeight.asInches)
-        Logger.recordOutput("Armavator/rawElevatorEncoderValue", rawElevatorEncoderValue)
-//        if ((elevatorEncoderHeight.asInches - currentHeight.asInches).absoluteValue > 0.5){
-//            elevatorMotor.setPosition(elevatorEncoderHeight.asInches * ELEVATOR_REVOLUTIONS_PER_INCH)
-//        }
+//        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
 
+        LoopLogger.record("section 5")
+
+        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && Armavator.noMovement) {
+            resetPivot()
+        }
+
+        LoopLogger.record("section 6")
         if (periodicFeedForward) {
             heightSetpoint = heightSetpoint
             armAngleSetpoint = armAngleSetpoint
             pivotAngleSetpoint = pivotAngleSetpoint
         }
 
-        if (armEncoderOffset != armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)) {
-            armEncoderOffset = armEncoderOffsetEntry.getDouble(defaultArmEncoderOffset)
-            println("armEncoderOffset update to $armEncoderOffset")
+//        LoopLogger.record("section 7")
+        if (Robot.isDisabled) {
+            if (pivotEncoderOffset != pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)) {
+                pivotEncoderOffset = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
+                println("pivotEncoderOffset update to $pivotEncoderOffset")
+            }
         }
-        if (pivotEncoderOffset != pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)) {
-            pivotEncoderOffset = pivotEncoderOffsetEntry.getDouble(defaultPivotEncoderOffset)
-            println("pivotEncoderOffset update to $pivotEncoderOffset")
-        }
-
 
         LoopLogger.record("Armavator pirdc")
     }
@@ -299,10 +342,61 @@ object Armavator: SubsystemBase() {
         println("elevator percentage: $percent")
     }
 
-    fun goToPose(pose: Pose, isFlipped: Boolean = false) {
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true) {
         val targetPose = if (isFlipped) pose.reflect() else pose
+
+        if (optimizePivot) {
+            if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees > 90.0) {
+                targetPose.pivotAngle -= 180.0.degrees
+            } else if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees < -90.0) {
+                targetPose.pivotAngle += 180.0.degrees
+            }
+        }
+
         heightSetpoint = targetPose.elevatorHeight
         armAngleSetpoint = targetPose.armAngle
         pivotAngleSetpoint = targetPose.pivotAngle
+    }
+
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, minimumHeight: Distance, intermediateArmAngle: Angle? = null): Command {
+        var targetPose = Pose.DRIVE
+        var startPose = Pose.current
+        return runOnce {
+            targetPose = pose
+            startPose = Pose.current
+        }.andThen(runCommand(Armavator) { // Intermediate Pose
+            if (intermediateArmAngle != null) {
+                goToPose(Pose(targetPose.elevatorHeight, intermediateArmAngle, targetPose.pivotAngle), isFlipped, optimizePivot)
+            } else {
+                goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
+            }
+        }.onlyRunWhileFalse {
+            currentHeight.asInches.absoluteValue > minimumHeight.asInches
+        }).andThen(runOnce { // Final Pose
+            goToPose(targetPose, isFlipped, optimizePivot)
+        })
+    }
+
+    fun slowSpeed() {
+        if (isSlowSpeed) return // end early
+        armControlRequest.apply {
+            Velocity = defaultArmMMSpeeds.first * 0.5
+            Acceleration = defaultArmMMSpeeds.second * 0.5
+        }
+        isSlowSpeed = true
+    }
+
+    fun normalSpeed() {
+        if (!isSlowSpeed) return // end early
+        armControlRequest.apply {
+            Velocity = defaultArmMMSpeeds.first
+            Acceleration = defaultArmMMSpeeds.second
+        }
+        isSlowSpeed = false
+    }
+
+    fun resetPivot() {
+        println("resetting pivot")
+        pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
     }
 }

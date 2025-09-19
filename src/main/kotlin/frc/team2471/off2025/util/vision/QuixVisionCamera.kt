@@ -32,4 +32,6 @@ interface QuixVisionCamera {
 
     /** Returns the type of fiducials this camera is tracking.  */
     val fiducialType: Fiducial.Type
+
+    var allDataPopulated: Boolean
 }

@@ -39,7 +39,7 @@ object PhoenixUtil {
 /**
  * Swerve request to set the individual module states.
  *
- * If no value is passed in, the module is set to its current angle with 0 speed
+ * If no value is passed in, the modules are set to their current angle with 0 speed
  */
 class ApplyModuleStates(vararg val moduleStates: SwerveModuleState? = arrayOf()): SwerveRequest {
     override fun apply(
@@ -58,7 +58,7 @@ class ApplyModuleStates(vararg val moduleStates: SwerveModuleState? = arrayOf())
 /**
  * Swerve request to set the individual module states. But, reads [SwerveModuleState.speedMetersPerSecond] as voltage NOT m/s
  *
- * If no value is passed in, the module is set to its current angle with 0 volts
+ * If no value is passed in, the modules are set to their current angle with 0 volts
  */
 class ApplyModuleStatesVoltage(vararg val moduleStates: SwerveModuleState? = arrayOf()): SwerveRequest {
 

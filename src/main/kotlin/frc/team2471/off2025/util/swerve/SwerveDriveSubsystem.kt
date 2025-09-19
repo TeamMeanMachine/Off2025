@@ -57,6 +57,7 @@ import frc.team2471.off2025.util.units.Gs
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asFeetPerSecond
 import frc.team2471.off2025.util.units.asInches
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asMetersPerSecond
@@ -235,6 +236,8 @@ abstract class SwerveDriveSubsystem(
     init {
         //Register the subsystem into the CommandScheduler so periodic methods can be called.
         CommandScheduler.getInstance().registerSubsystem(this)
+
+        println("drivetrain max speed is ${maxSpeed.asFeetPerSecond} f/s")
 
         if (!SmartDashboard.containsKey("DemoSpeed")) {
             println("DemoSpeed does not exist, setting it to 1.0")
