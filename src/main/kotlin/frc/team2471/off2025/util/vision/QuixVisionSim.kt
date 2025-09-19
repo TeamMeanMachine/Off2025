@@ -3,6 +3,7 @@ package frc.team2471.off2025.util.vision
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.smartdashboard.Field2d
 import frc.team2471.off2025.util.isReal
+import frc.team2471.off2025.util.vision.photonVision.PhotonVisionCamera
 import org.photonvision.estimation.TargetModel
 import org.photonvision.simulation.VisionSystemSim
 import org.photonvision.simulation.VisionTargetSim

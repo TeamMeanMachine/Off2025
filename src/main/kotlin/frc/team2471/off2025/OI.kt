@@ -5,8 +5,6 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
-import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.control.MeanCommandXboxController
 import frc.team2471.off2025.util.control.finallyRun

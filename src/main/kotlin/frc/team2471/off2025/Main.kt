@@ -2,11 +2,7 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.SignalLogger
-import edu.wpi.first.hal.FRCNetComm.tInstances
-import edu.wpi.first.hal.FRCNetComm.tResourceType
-import edu.wpi.first.hal.HAL
 import edu.wpi.first.wpilibj.RobotBase
-
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
@@ -44,15 +40,15 @@ object Robot : LoggedRobot() {
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
     val drive = Drive
     val oi = OI
-//    val armavator = Armavator
-//    val intake = Intake
+    val armavator = Armavator
+    val intake = Intake
     val vision = Vision
 
-    var allSubsystems = arrayOf(drive, oi, /*armavator, intake,*/ vision)
+    var allSubsystems = arrayOf(drive, oi, armavator, intake, vision)
 
     init {
         // Tells FRC we use Kotlin
-        HAL.report(tResourceType.kResourceType_Language, tInstances.kLanguage_Kotlin);
+//        HAL.report(tResourceType.kResourceType_Language, tInstances.kLanguage_Kotlin)
 
         // Set up data receivers & replay source
         when (robotMode) {

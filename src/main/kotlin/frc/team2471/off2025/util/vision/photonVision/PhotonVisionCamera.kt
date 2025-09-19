@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util.vision
+package frc.team2471.off2025.util.vision.photonVision
 
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.geometry.Transform3d
@@ -8,6 +8,11 @@ import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isSim
+import frc.team2471.off2025.util.vision.Fiducial
+import frc.team2471.off2025.util.vision.PipelineConfig
+import frc.team2471.off2025.util.vision.PipelineVisionPacket
+import frc.team2471.off2025.util.vision.QuixVisionCamera
+import frc.team2471.off2025.util.vision.QuixVisionSim
 import org.ejml.simple.SimpleMatrix
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
@@ -15,14 +20,15 @@ import org.littletonrobotics.junction.inputs.LoggableInputs
 import org.photonvision.PhotonCamera
 import org.photonvision.simulation.PhotonCameraSim
 import org.photonvision.targeting.PhotonPipelineResult
-import java.util.*
+import java.util.Optional
 
 class PhotonVisionCamera(
     cameraName: String,
     override val transform: Transform3d,
     private val pipelineConfigs: Array<PipelineConfig>
 ) : QuixVisionCamera {
-    override val cameraSim: PhotonCameraSim = PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
+    override val cameraSim: PhotonCameraSim =
+        PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
 
     private val loggingName: String = "Inputs/PhotonVisionCamera [$cameraName]"
     private val camera: PhotonCamera = if (isReal) PhotonCamera(cameraName) else cameraSim.camera
@@ -66,9 +72,11 @@ class PhotonVisionCamera(
                 }
             distCoeffs =
                 if (table.get("DistCoeffsIsPresent", false)) {
-                    Optional.of<Matrix<N8, N1>>(Matrix<N8, N1>(
-                        SimpleMatrix(8, 1, true, *table.get("DistCoeffsData", DoubleArray(8)))
-                    ))
+                    Optional.of<Matrix<N8, N1>>(
+                        Matrix<N8, N1>(
+                            SimpleMatrix(8, 1, true, *table.get("DistCoeffsData", DoubleArray(8)))
+                        )
+                    )
                 } else {
                     allDataPop = false
                     Optional.empty<Matrix<N8, N1>>()

@@ -1,7 +1,6 @@
-package frc.team2471.off2025.util.vision
+package frc.team2471.off2025.util.vision.limelight
 
 import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.math.geometry.Transform3d
 import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
@@ -9,6 +8,10 @@ import edu.wpi.first.math.numbers.N8
 import edu.wpi.first.networktables.NetworkTableInstance
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj.Timer
+import frc.team2471.off2025.util.vision.Fiducial
+import frc.team2471.off2025.util.vision.PipelineConfig
+import frc.team2471.off2025.util.vision.PipelineVisionPacket
+import frc.team2471.off2025.util.vision.QuixVisionCamera
 import org.littletonrobotics.junction.LogTable
 import org.littletonrobotics.junction.Logger
 import org.littletonrobotics.junction.inputs.LoggableInputs
@@ -26,7 +29,8 @@ class LimelightCamera(
     override val distCoeffs: Optional<Matrix<N8, N1>>
 ): QuixVisionCamera {
     private val pipelineConfigs = arrayOf(PipelineConfig())
-    override val cameraSim: PhotonCameraSim = PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
+    override val cameraSim: PhotonCameraSim =
+        PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
 
     private val loggingName: String = "Inputs/LimelightCamera [$cameraName]"
 
@@ -52,30 +56,32 @@ class LimelightCamera(
         if (corners.size >= 8 && fiducials.size >= 6) {
             val targets = mutableListOf<PhotonTrackedTarget>()
             for (i in 0..(corners.size / 8)-1) {
-                targets.add(PhotonTrackedTarget(
-                    0.0, //camToTag[4],
-                    0.0, //camToTag[3],
-                    0.0, //LimelightHelpers.getTA(cameraName),
-                    0.0, //camToTag[5],
-                    fiducials[i * 6].toInt(), //LimelightHelpers.getFiducialID(cameraName).toInt(),
-                    0,
-                    0.0F,
-                    Transform3d(), //robotToTag,
-                    Transform3d(), //robotToTag,
-                    0.0,
-                    mutableListOf<TargetCorner>(
-                        TargetCorner(corners[(i * 8)], corners[(i * 8) + 1]),
-                        TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
-                        TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
-                        TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
-                    ),
-                    mutableListOf<TargetCorner>(
-                        TargetCorner(corners[(i * 8) + 0], corners[(i * 8) + 1]),
-                        TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
-                        TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
-                        TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
+                targets.add(
+                    PhotonTrackedTarget(
+                        0.0, //camToTag[4],
+                        0.0, //camToTag[3],
+                        0.0, //LimelightHelpers.getTA(cameraName),
+                        0.0, //camToTag[5],
+                        fiducials[i * 6].toInt(), //LimelightHelpers.getFiducialID(cameraName).toInt(),
+                        0,
+                        0.0F,
+                        Transform3d(), //robotToTag,
+                        Transform3d(), //robotToTag,
+                        0.0,
+                        mutableListOf<TargetCorner>(
+                            TargetCorner(corners[(i * 8)], corners[(i * 8) + 1]),
+                            TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
+                            TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
+                            TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
+                        ),
+                        mutableListOf<TargetCorner>(
+                            TargetCorner(corners[(i * 8) + 0], corners[(i * 8) + 1]),
+                            TargetCorner(corners[(i * 8) + 2], corners[(i * 8) + 3]),
+                            TargetCorner(corners[(i * 8) + 4], corners[(i * 8) + 5]),
+                            TargetCorner(corners[(i * 8) + 6], corners[(i * 8) + 7]),
+                        )
                     )
-                ))
+                )
             }
 
             val tl = LimelightHelpers.getLatency_Pipeline(cameraName) * 1000
@@ -83,7 +89,7 @@ class LimelightCamera(
             inputs.latestResult = PhotonPipelineResult(
                 0.0.toLong(),
                 (RobotController.getTime() - tl - cl).toLong(),
-                (RobotController.getTime()).toLong(),
+                (RobotController.getTime()),
                 0.0.toLong(),
                 targets
             )
@@ -101,6 +107,8 @@ class LimelightCamera(
 
     override val fiducialType: Fiducial.Type
         get() = pipelineConfig.fiducialType
+
+    override var allDataPopulated: Boolean = true
 
     override val latestMeasurement: PipelineVisionPacket
         get() {
