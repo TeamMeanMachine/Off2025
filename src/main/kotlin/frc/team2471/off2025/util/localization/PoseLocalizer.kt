@@ -48,9 +48,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     // Buffer of poses so we can get the interpolated pose at the time of a vision measurement.
     private val bufferHistorySeconds = 10.0
     // Buffer of only the swerve odometry pose.
-    private val rawOdometryPoseBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
-    // Buffer of swerve odometry pose fused with Quest pose.
-    private val fusedOdometryBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
+    private val odometryPoseBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
     // Buffer of swerve odometry, Quest, and single tag pose.
     private val singleTagOdometryBuffer = TimeInterpolatableBuffer.createBuffer<Pose2d>(bufferHistorySeconds)
     // Buffer of the swerve odometry, Quest, and vision measurements.
@@ -80,11 +78,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     private val kMutableTimeBuffer = 0.05 // seconds
 
     /** Only Swerve odometry */
-    val rawOdometryPose: Pose2d
-        get() = rawOdometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
-    /** Swerve odometry fused with Quest measurements */
-    val fusedOdometryPose: Pose2d
-        get() = fusedOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
+    val odometryPose: Pose2d
+        get() = odometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
     /** Pose that only uses the closest apriltag to correct itself. Used for precision but needs good tag visibility. */
     val singleTagPose: Pose2d
         get() = singleTagOdometryBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
@@ -101,30 +96,26 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         clearAllBuffers()
 
         val currentTime = Timer.getTimestamp()
-        rawOdometryPoseBuffer.addSample(currentTime, pose)
-        fusedOdometryBuffer.addSample(currentTime, pose)
+        odometryPoseBuffer.addSample(currentTime, pose)
         singleTagOdometryBuffer.addSample(currentTime, pose)
         visionOdometryBuffer.addSample(currentTime, pose)
     }
 
     fun resetRotation(rotation: Rotation2d) {
-        val storedRawOdomTranslation = rawOdometryPose.translation
-        val storedFusedTranslation = fusedOdometryPose.translation
+        val storedRawOdomTranslation = odometryPose.translation
         val storedSingleTagTranslation = singleTagPose.translation
         val storedVisionOdometryTranslation = pose.translation
 
         clearAllBuffers()
 
         val currentTime = Timer.getTimestamp()
-        rawOdometryPoseBuffer.addSample(currentTime, Pose2d(storedRawOdomTranslation, rotation))
-        fusedOdometryBuffer.addSample(currentTime, Pose2d(storedFusedTranslation, rotation))
+        odometryPoseBuffer.addSample(currentTime, Pose2d(storedRawOdomTranslation, rotation))
         singleTagOdometryBuffer.addSample(currentTime, Pose2d(storedSingleTagTranslation, rotation))
         visionOdometryBuffer.addSample(currentTime, Pose2d(storedVisionOdometryTranslation, rotation))
     }
 
     private fun clearAllBuffers() {
-        rawOdometryPoseBuffer.clear()
-        fusedOdometryBuffer.clear()
+        odometryPoseBuffer.clear()
         singleTagOdometryBuffer.clear()
         visionOdometryBuffer.clear()
     }
@@ -180,25 +171,23 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         val startTimestamp = Timer.getFPGATimestamp()
         val currentTime = Timer.getTimestamp()
 
-        val odometryPose = odometryMeasurement.robotPose
+        val odomMeasurementPose = odometryMeasurement.robotPose
         val odometryTimestamp = odometryMeasurement.dataTimestamp
 
-        val poseDelta = odometryPose.minus(rawOdometryPose)
+        val poseDelta = odomMeasurementPose.minus(odometryPose)
 
         // Add odometry pose delta to all buffers that use it
-        val currOdomPose = rawOdometryPose.plus(poseDelta)
-        val currFusedPose = fusedOdometryPose.plus(poseDelta)
+        val currOdomPose = odometryPose.plus(poseDelta)
         val currSingleTagPose = singleTagPose.plus(poseDelta)
         val currVisionPose = pose.plus(poseDelta)
 
-        rawOdometryPoseBuffer.addSample(odometryTimestamp, currOdomPose)
-        fusedOdometryBuffer.addSample(odometryTimestamp, currFusedPose)
+        odometryPoseBuffer.addSample(odometryTimestamp, currOdomPose)
         singleTagOdometryBuffer.addSample(odometryTimestamp, currSingleTagPose)
         visionOdometryBuffer.addSample(odometryTimestamp, currVisionPose)
 
         chassisSpeedsBuffer.addSample(odometryTimestamp, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
 
-        timeToMeasurementMap[odometryTimestamp] = Measurement(currFusedPose) // Using fused pose for the particle filter odometry reference
+        timeToMeasurementMap[odometryTimestamp] = Measurement(currOdomPose) // Using odometry pose for the particle filter odometry reference
 
         LoopLogger.record("After adding odom samples")
 
@@ -223,7 +212,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             // If there is no existing measurement, create a new one by interpolating pose.
             if (existingMeasurement == null) {
 //                println("measurementTime: $measurementTime  lastQuestTimestamp: ${lastQuestMeasurement?.dataTimestamp}")
-                existingMeasurement = Measurement(fusedOdometryBuffer.getSample(measurementTime).get())
+                existingMeasurement = Measurement(odometryPoseBuffer.getSample(measurementTime).get())
                 timeToMeasurementMap[measurementTime] = existingMeasurement
             }
 
@@ -336,14 +325,14 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
             return
         }
-        if (fusedOdometryBuffer.internalBuffer.firstKey() > latestTimestamp) {
+        if (odometryPoseBuffer.internalBuffer.firstKey() > latestTimestamp) {
             Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
 //            println("single tag result is too far in the past")
             return
         }
 
         // Compute single tag pose
-        val interpolatedPose = fusedOdometryBuffer.getSample(latestTimestamp).get()
+        val interpolatedPose = odometryPoseBuffer.getSample(latestTimestamp).get()
         val interpolatedRotation = interpolatedPose.rotation
         val distance = latestTarget.bestCameraToTarget.translation.norm
         val robotToCam = cam.transform
@@ -395,7 +384,6 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         }
     }
 
-    data class QuestNavMeasurement(val robotPose: Pose2d, val dataTimestamp: Double)
     data class OdometryMeasurement(val robotPose: Pose2d, val dataTimestamp: Double)
 
     /**

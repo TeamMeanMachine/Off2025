@@ -204,9 +204,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         Logger.recordOutput("Drive/QuestConnected", questConnected)
 
         // Log all the poses for debugging
-        Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
+        Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/Quest", questPose)
-        Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)

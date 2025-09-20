@@ -130,7 +130,7 @@ fun bargeAlignAndScore(): Command {
     val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
-    val poseSupplier = { if (Drive.questConnected) Drive.localizer.fusedOdometryPose else Drive.localizer.pose }
+    val poseSupplier = { if (Drive.questConnected) Drive.localizer.odometryPose else Drive.localizer.pose }
     return parallelCommand(
         Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
         sequenceCommand(
