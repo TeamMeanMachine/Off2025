@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.toTransform2d
 import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineVisionPacket
@@ -77,6 +78,19 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     // This gives us a chance to associate new vision measurements with past interpolated odometry measurements.
     private val kMutableTimeBuffer = 0.05 // seconds
 
+    private var lastOdometryUpdateTime = 0.0
+
+    val interpolatedOdometryPose: Pose2d
+        get() {
+            val deltaSeconds = Timer.getTimestamp() - lastOdometryUpdateTime
+            val odomPose = odometryPose
+            val transform = (latestChassisSpeeds).toTransform2d(deltaSeconds)
+            Logger.recordOutput("Localizer/OdometryDeltaSeconds", deltaSeconds)
+            Logger.recordOutput("Localizer/OdometryTransform", transform)
+
+            return Pose2d(odomPose.translation.plus(transform.translation), odomPose.rotation.plus(transform.rotation))
+        }
+
     /** Only Swerve odometry */
     val odometryPose: Pose2d
         get() = odometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()
@@ -90,6 +104,9 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
     /** Lastest estimate from the particle filter, before latency compensation. */
     val rawPose: Pose2d
         get() = latestRawEstimate.pose ?: Pose2d()
+
+    val latestChassisSpeeds: ChassisSpeeds
+        get() = chassisSpeedsBuffer.internalBuffer.lastEntry()?.value ?: ChassisSpeeds()
 
 
     fun resetPose(pose: Pose2d) {
@@ -184,6 +201,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         odometryPoseBuffer.addSample(odometryTimestamp, currOdomPose)
         singleTagOdometryBuffer.addSample(odometryTimestamp, currSingleTagPose)
         visionOdometryBuffer.addSample(odometryTimestamp, currVisionPose)
+
+        lastOdometryUpdateTime = odometryTimestamp
 
         chassisSpeedsBuffer.addSample(odometryTimestamp, InterpolatableChassisSpeeds.fromChassisSpeeds(chassisSpeeds))
 

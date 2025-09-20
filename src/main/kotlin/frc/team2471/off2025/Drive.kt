@@ -159,7 +159,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                     questPose = pose
                 }
             } else {
-                addVisionMeasurement(pose, Utils.getCurrentTimeSeconds(), QUEST_STD_DEVS)
+                addVisionMeasurement(pose, stateTimestamp, QUEST_STD_DEVS)
                 questPose = pose
             }
 
@@ -205,6 +205,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
+        Logger.recordOutput("Swerve/InterpolatedOdometry", localizer.interpolatedOdometryPose)
         Logger.recordOutput("Swerve/Quest", questPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
