@@ -249,7 +249,7 @@ abstract class SwerveDriveSubsystem(
     /**
      * MUST be called from the inherited drivetrain object's init. Otherwise, [driveAtAngle] will not work, and I think you want it to work.
      *
-     * Code will crash if this function is called inside this class's init
+     * Code will crash if this function is called inside [SwerveDriveSubsystem]'s init
      */
     fun finalInitialization() {
         driveAtAngleRequest.apply {

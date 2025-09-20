@@ -13,6 +13,8 @@
 package frc.team2471.off2025.util.ctre
 
 import com.ctre.phoenix6.StatusCode
+import com.ctre.phoenix6.Utils
+import com.ctre.phoenix6.Utils.getCurrentTimeSeconds
 import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC
 import com.ctre.phoenix6.controls.PositionVoltage
 import com.ctre.phoenix6.controls.VoltageOut
@@ -22,6 +24,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants
 import com.ctre.phoenix6.swerve.SwerveRequest
 import edu.wpi.first.math.kinematics.SwerveModuleState
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.isSim
 import java.util.function.Supplier
 
@@ -33,6 +36,19 @@ object PhoenixUtil {
             if (error.isOK || isSim) break
             if (i == maxAttempts - 1) DriverStation.reportError("tryUntilOk() reached max attempts of $maxAttempts and failed with error: ${error.description}", true)
         }
+    }
+
+    /**
+     * Converts a timestamp from the [Utils.getCurrentTimeSeconds] timebase
+     * to the FPGA timebase reported by [Timer.getFPGATimestamp].
+     *
+     * @param currentTimeSeconds The timestamp in [Utils.getCurrentTimeSeconds] seconds
+     * @return The equivalent [Timer.getFPGATimestamp] timestamp in seconds
+     *
+     * @see Utils.fpgaToCurrentTime
+     */
+    fun currentToFpgaTime(currentTimeSeconds: Double): Double {
+        return (Timer.getFPGATimestamp() - getCurrentTimeSeconds()) + currentTimeSeconds
     }
 }
 

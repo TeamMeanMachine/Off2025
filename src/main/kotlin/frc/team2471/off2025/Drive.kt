@@ -3,42 +3,45 @@ package frc.team2471.off2025
 import com.ctre.phoenix6.Utils
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.Nat.N1
-import edu.wpi.first.math.Nat.N3
-import edu.wpi.first.math.Nat.N8
+import edu.wpi.first.math.Nat.*
+import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
+import edu.wpi.first.math.numbers.N1
+import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj.Timer
-import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.control.LoopLogger
-import frc.team2471.off2025.util.units.asRotation2d
-import frc.team2471.off2025.util.math.cube
+import frc.team2471.off2025.util.ctre.ApplyModuleStates
+import frc.team2471.off2025.util.ctre.PhoenixUtil
 import frc.team2471.off2025.util.isBlueAlliance
-import frc.team2471.off2025.util.units.degrees
-import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.isReal
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.localization.PoseLocalizer
+import frc.team2471.off2025.util.math.cube
 import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
+import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.inches
+import frc.team2471.off2025.util.units.wrap
 import frc.team2471.off2025.util.vision.Fiducials
-import frc.team2471.off2025.util.vision.limelight.LimelightCamera
-import frc.team2471.off2025.util.vision.photonVision.PhotonVisionCamera
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
-import gg.questnav.questnav.PoseFrame
+import frc.team2471.off2025.util.vision.limelight.LimelightCamera
+import frc.team2471.off2025.util.vision.photonVision.PhotonVisionCamera
 import gg.questnav.questnav.QuestNav
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
-import java.util.Optional
-import kotlin.jvm.optionals.getOrNull
+import java.util.*
+
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
 
@@ -84,30 +87,20 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     )
 
     val quest = QuestNav()
+
     var simulateQuest = true
     val questConnected: Boolean
         get() = if (isReal) quest.isTracking else simulateQuest
-    val robotToQuestTransformMeters = Transform2d(-12.0.inches, 12.0.inches, 180.0.degrees.asRotation2d) // Rotation 2d should be 0
-    var latestQuestResult: PoseFrame = PoseFrame(pose.transformBy(robotToQuestTransformMeters), 0.0, 0.0, 0)
-        get() {
-            val newData = quest.allUnreadPoseFrames
-            if (newData.isNotEmpty()) {
-                newData.sortByDescending { it.dataTimestamp }
-                field = newData.first() ?: field
-            }
-            return field
-        }
+    val robotToQuestTransformMeters = Transform2d(-12.0.inches, 12.0.inches, 180.0.degrees.asRotation2d)
+
+    var questPose: Pose2d = Pose2d()
         private set
 
-    val questPose: Pose2d
-        get() = latestQuestResult.questPose.transformBy(robotToQuestTransformMeters.inverse())
+    // Trust down to 2 cm in XY and 2 degrees in rotational. Units in meters and radians.
+    val QUEST_STD_DEVS: Matrix<N3?, N1?> = VecBuilder.fill(0.02, 0.02, 0.035)
 
     // Class that handles the merging of multiple vision sources and the odometry.
-    val localizer = PoseLocalizer(
-//        Pose2d(),
-        Fiducials.aprilTagFiducials,
-        cameras
-    )
+    val localizer = PoseLocalizer(Fiducials.aprilTagFiducials, cameras)
 
     private val translationRateTimer = Timer()
     private var prevTranslation = Translation2d()
@@ -155,16 +148,37 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     }
 
     override fun periodic() {
+        LoopLogger.record("Inside Drive periodic")
+
+        if (questConnected) {
+            if (isReal) {
+                quest.allUnreadPoseFrames.forEach {
+                    val pose = it.questPose.transformBy(robotToQuestTransformMeters.inverse())
+                    val ctreTimestamp = Utils.fpgaToCurrentTime(it.dataTimestamp)
+                    addVisionMeasurement(pose, ctreTimestamp, QUEST_STD_DEVS)
+                    questPose = pose
+                }
+            } else {
+                addVisionMeasurement(pose, Utils.getCurrentTimeSeconds(), QUEST_STD_DEVS)
+                questPose = pose
+            }
+
+        }
+
         LoopLogger.record("b4 Drive piodc")
-        super.periodic() // Must call this
+        super.periodic() // Must call this, refreshes swerve state
         LoopLogger.record("super Drive piodc")
 
         // Disabled actions
         if (Robot.isDisabled) {
-            setControl(ApplyModuleStates()) //set module setpoints to their current position
+            setControl(ApplyModuleStates()) // Set module setpoints to their current position
             if (isReal) {
                 modules.forEach {
-                    it.steerMotor.setPosition(it.encoder.position.value)
+                    // Set steer motor to encoder position if it is not already there.
+                    val encoderPosition = it.encoder.position.value
+                    if ((it.steerMotor.position.value - encoderPosition).wrap().absoluteValue() > 0.5.degrees ) {
+                        it.steerMotor.setPosition(encoderPosition)
+                    }
                 }
             }
         }
@@ -176,24 +190,13 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             it.updateInputs()
         }
         LoopLogger.record("Drive camera updateInputs")
-        // Get the latest Quest result
-        val questResult = latestQuestResult
-        val questEstimate = if (isReal) {
-            PoseLocalizer.QuestNavMeasurement(questResult.questPose.transformBy(robotToQuestTransformMeters.inverse()), questResult.dataTimestamp)
-        } else {
-            // Simulate a Quest result
-            val trueTimestamp = Timer.getTimestamp() - 0.04
-            val timestamp = Utils.fpgaToCurrentTime(trueTimestamp)
-            val simQuestPose = samplePoseAt(timestamp).getOrNull()
-            if (simQuestPose == null || !simulateQuest) null else PoseLocalizer.QuestNavMeasurement(simQuestPose, trueTimestamp)
-        }
-        LoopLogger.record("Drive get questEstimate")
-        // Update poses from the Particle Filter pose estimate and quest measurements
-        localizer.updateWithLatestPoseEstimate(if (questConnected) questEstimate else null)
+        // Update odometry with vision measurements.
+        localizer.updateWithLatestPoseEstimate()
         LoopLogger.record("Drive updateWithLatestPose")
-        // Publish the latest camera data to NT so Particle Filter can use, also update poses from swerve odometry measurements.
-//        val modifiedPose = Pose2d(pose.translation - (pose.translation - Translation2d(3.0, 3.0)) / 2.0 , pose.rotation)
-        localizer.update(pose, cameras.map { it.latestMeasurement }, speeds)
+        // Timestamp converts from phoenix time to fpga time.
+        val poseMeasurement = PoseLocalizer.OdometryMeasurement(pose, PhoenixUtil.currentToFpgaTime(stateTimestamp))
+        // Publish the latest camera data to NT and also update pose from swerve odometry measurements.
+        localizer.update(poseMeasurement, cameras.map { it.latestMeasurement }, speeds)
         LoopLogger.record("Drive localizer")
 
         quest.commandPeriodic()
@@ -202,12 +205,11 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.rawOdometryPose)
-        Logger.recordOutput("Swerve/Quest", localizer.rawQuestPose ?: Pose2d())
+        Logger.recordOutput("Swerve/Quest", questPose)
         Logger.recordOutput("Swerve/FusedPose", localizer.fusedOdometryPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
-        Logger.recordOutput("Drive/TestOdometry", pose)
 
         LoopLogger.record("Drive pirdc")
     }
