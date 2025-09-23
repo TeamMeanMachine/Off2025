@@ -157,7 +157,7 @@ object FieldManager {
 
 
     fun getHumanStationAlignHeading(pose: Pose2d): Pair<Angle, Boolean> {
-        val goalHeading = (if (isRedAlliance) 60.0 else 120.0).degrees * if (pose.y.meters < fieldCenter.y) -1.0 else 1.0
+        val goalHeading = (if (isRedAlliance) 54.0 else 126.0).degrees * if (pose.y.meters < fieldCenter.y) -1.0 else 1.0
         return if ((pose.rotation.measure - goalHeading).wrap().absoluteValue() > 90.0.degrees) {
             Pair(goalHeading + 180.0.degrees, true)
 

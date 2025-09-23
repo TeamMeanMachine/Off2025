@@ -301,6 +301,7 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
+        Logger.recordOutput("Armavator/noMovement", noMovement)
 
         LoopLogger.record("section 4")
         Logger.recordOutput("Armavator/periodicFeedForward", periodicFeedForward)
@@ -312,7 +313,7 @@ object Armavator: SubsystemBase() {
 
         LoopLogger.record("section 5")
 
-        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && Armavator.noMovement) {
+        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && pivotVelocity.asDegreesPerSecond.absoluteValue < 0.3 && Robot.isCompBot) {
             resetPivot()
         }
 

@@ -68,18 +68,18 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                 quest.setPose(Pose2d(tempQuestPose.translation, value + robotToQuestTransformMeters.rotation))
                 resetQuestTranslation = false
             } else {
-                quest.setPose(questPose.transformBy(robotToQuestTransformMeters))
+                quest.setPose(Pose2d(questPose.transformBy(robotToQuestTransformMeters).translation, value + robotToQuestTransformMeters.rotation))
             }
         }
 
     // Vision
     val cameras: List<QuixVisionCamera> = listOf(
-        LimelightCamera(
-            "limelight-test",
-            Constants.limelightPose,
-            Optional.of(Matrix(N3(), N3(), doubleArrayOf(737.3071162812872,0.0,658.6108346810324,0.0,738.2142014335819,411.36513253891655,0.0,0.0,1.0))),
-            Optional.of(Matrix(N8(), N1(), doubleArrayOf(0.11977275268536702,-0.13935436337469195,-0.000907565402687582,0.0005097193890789445,-0.052047409417428844,0.0,0.0,0.0)))
-            ),
+//        LimelightCamera(
+//            "limelight-test",
+//            Constants.limelightPose,
+//            Optional.of(Matrix(N3(), N3(), doubleArrayOf(737.3071162812872,0.0,658.6108346810324,0.0,738.2142014335819,411.36513253891655,0.0,0.0,1.0))),
+//            Optional.of(Matrix(N8(), N1(), doubleArrayOf(0.11977275268536702,-0.13935436337469195,-0.000907565402687582,0.0005097193890789445,-0.052047409417428844,0.0,0.0,0.0)))
+//            ),
         PhotonVisionCamera("FrontLeft", Constants.frontLeftCamPose, arrayOf(PipelineConfig())),
         PhotonVisionCamera("FrontRight", Constants.frontRightCamPose, arrayOf(PipelineConfig())),
         PhotonVisionCamera("BackLeft", Constants.backLeftCamPose, arrayOf(PipelineConfig())),
@@ -155,6 +155,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                 quest.allUnreadPoseFrames.forEach {
                     val pose = it.questPose.transformBy(robotToQuestTransformMeters.inverse())
                     val ctreTimestamp = Utils.fpgaToCurrentTime(it.dataTimestamp)
+
+                    Logger.recordOutput("Drive/questDataTimestamp", it.dataTimestamp)
+                    Logger.recordOutput("Drive/ctreTimestamp", ctreTimestamp)
                     addVisionMeasurement(pose, ctreTimestamp, QUEST_STD_DEVS)
                     questPose = pose
                 }
@@ -162,7 +165,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                 addVisionMeasurement(pose, stateTimestamp, QUEST_STD_DEVS)
                 questPose = pose
             }
-
         }
 
         LoopLogger.record("b4 Drive piodc")
