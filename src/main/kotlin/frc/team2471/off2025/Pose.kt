@@ -10,7 +10,7 @@ data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngl
     companion object {
         val current: Pose
             get() = Pose(Armavator.currentHeight, Armavator.currentArmAngle, Armavator.pivotEncoderAngle)
-        val DRIVE = Pose(0.0.inches, 0.0.degrees, -90.0.degrees)
+        val DRIVE = Pose(1.0.inches, 0.0.degrees, -90.0.degrees)
         val SCORE_L1 = Pose(0.0.inches, 60.0.degrees, -150.0.degrees)
         val SCORE_L2 = Pose(0.0.inches, 20.2.degrees, 90.0.degrees)
         val SCORE_L3 = Pose(16.75.inches, 20.2.degrees, 90.0.degrees)

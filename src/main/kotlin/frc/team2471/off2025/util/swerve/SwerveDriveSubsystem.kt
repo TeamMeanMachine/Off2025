@@ -502,20 +502,23 @@ abstract class SwerveDriveSubsystem(
      *
      * @param wantedPose The position to drive to
      * @param poseSupplier A function that returns the pose of the robot. The default value is the swerve odometry.
-     * @param entryAngle The angle [Autopilot] will try to enter the wantedPose at. The default value is null.
+     * @param entryAngleSupplier The angle [Autopilot] will try to enter the wantedPose at. The default value is null.
      */
     fun driveToAutopilotPoint(
         wantedPose: Pose2d,
         poseSupplier: () -> Pose2d = { pose },
-        entryAngle: Angle? = null
+        entryAngleSupplier: () -> Angle? = { null }
     ): Command {
-        val target = if (entryAngle != null) {
-            APTarget(wantedPose).withEntryAngle(entryAngle.asRotation2d)
-        } else {
-            APTarget(wantedPose)
-        }
+        var target = APTarget(wantedPose)
         Logger.recordOutput("Drive/AutoPilot/Target", wantedPose)
-        return run {
+        return runOnce {
+            val entryAngle = entryAngleSupplier()
+            target = if (entryAngle != null) {
+                APTarget(wantedPose).withEntryAngle(entryAngle.asRotation2d)
+            } else {
+                APTarget(wantedPose)
+            }
+        }.andThen(run {
             val output = autoPilot.calculate(poseSupplier(), speeds.translation, target)
             val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
             Logger.recordOutput("Drive/AutoPilot/Velocity", velocity.norm)
@@ -531,7 +534,7 @@ abstract class SwerveDriveSubsystem(
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/AutoPilot/Target", Pose2d())
-        }.withName("DriveToAutopilotPoint")
+        }.withName("DriveToAutopilotPoint"))
     }
 
 

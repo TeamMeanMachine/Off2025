@@ -62,7 +62,7 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Co
     val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
 
     return parallelCommand(
-          Drive.driveToAutopilotPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}, getApproachAngle(Drive.pose)),
+          Drive.driveToAutopilotPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}, { getApproachAngle(Drive.localizer.singleTagPose) }),
 //          Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}),
         runCommand(Armavator){
             val poseAndOptimize = when (level){

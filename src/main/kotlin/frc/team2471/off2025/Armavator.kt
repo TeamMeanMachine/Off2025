@@ -251,7 +251,7 @@ object Armavator: SubsystemBase() {
 
         elevatorMotor.addFollower(Falcons.ELEVATOR_1, true)
         elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
-        elevatorMotor.addFollower(Falcons.ELEVATOR_2, false)
+        elevatorMotor.addFollower(Falcons.ELEVATOR_3, true)
 
         armMotor.applyConfiguration {
             p(8.3333)
@@ -308,6 +308,8 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/elevatorFeedforward", elevatorFeedforward)
         Logger.recordOutput("Armavator/armFeedforward", armFeedForward)
         Logger.recordOutput("Armavator/pivotFeedforward", pivotFeedForward)
+
+        Logger.recordOutput("Armavator/isSlowSpeed", isSlowSpeed)
 
 //        Logger.recordOutput("Armavator/elevatorError", elevatorMotor.closedLoopError.valueAsDouble)
 
