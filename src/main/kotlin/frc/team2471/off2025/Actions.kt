@@ -23,7 +23,6 @@ import frc.team2471.off2025.util.math.findClosestPointOnLine
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.feet
-import frc.team2471.off2025.util.units.wrap
 import kotlin.math.absoluteValue
 
 fun groundIntake(isFlipped: Boolean): Command {
@@ -105,6 +104,30 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
     )
 }
 
+fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.Level): Command {
+    var isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
+    val poseAndOptimize = when (level){
+        FieldManager.Level.L1 -> Pose.SCORE_L1 to false
+        FieldManager.Level.L2 -> Pose.SCORE_L2 to true
+        FieldManager.Level.L3 -> Pose.SCORE_L3 to true
+        FieldManager.Level.L4 -> Pose.SCORE_L4 to true
+    }
+    val delayDistanceAndIntermediate = when (level) {
+        FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
+        else -> 0.0.inches to null
+    }
+
+    return sequenceCommand(
+        runOnce {
+            isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
+        },
+        parallelCommand(
+            Drive.driveToPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagPose }),
+            Armavator.goToPose(poseAndOptimize.first, { isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+        )
+    )
+}
+
 fun coralStationIntake(): Command {
     return runCommand(Armavator, Drive) {
 //        println("coral station intake")
@@ -137,7 +160,7 @@ fun bargeAlignAndScore(): Command {
     val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
-    val poseSupplier = { if (Drive.questConnected) Drive.localizer.odometryPose else Drive.localizer.pose }
+    val poseSupplier = { Drive.localizer.pose }
     return parallelCommand(
         Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
         sequenceCommand(

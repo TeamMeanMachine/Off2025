@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
+import frc.team2471.off2025.FieldManager.Level
 import frc.team2471.off2025.FieldManager.rotateAroundField
 import frc.team2471.off2025.tests.elevatorJoystick
 import frc.team2471.off2025.tests.elevatorSetpointTest
@@ -15,10 +16,8 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
-import frc.team2471.off2025.util.control.finallyRun
 import frc.team2471.off2025.util.control.finallyWait
 import frc.team2471.off2025.util.control.parallelCommand
-import frc.team2471.off2025.util.control.runCommand
 import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
@@ -166,8 +165,11 @@ object Autonomous {
                 Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
                 Intake.intakeState = IntakeState.HOLDING
             },
-            alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT),
-            runCommand { Intake.intakeState = IntakeState.SCORING }.finallyWait(2.0),
+            alignToScoreWithDelayDistance({ if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2] }, Level.L4),
+            runOnce {
+                println("Scoring")
+                Intake.intakeState = IntakeState.SCORING
+            }.finallyWait(1.0),
             parallelCommand(
                 Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
                 runOnce {
@@ -176,8 +178,32 @@ object Autonomous {
                     Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                 }
             ),
-            alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT),
-            Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose })
+            alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.RIGHT),
+            runOnce {
+                println("Scoring")
+                Intake.intakeState = IntakeState.SCORING
+            }.finallyWait(1.0),
+            parallelCommand(
+                Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose }),
+                runOnce {
+                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                    Intake.intakeState = IntakeState.INTAKING
+                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                }
+            ),
+            alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.LEFT),
+            runOnce {
+                println("Scoring")
+                Intake.intakeState = IntakeState.SCORING
+            }.finallyWait(1.0),
+            parallelCommand(
+                Drive.driveAlongChoreoPath(path.getSplit(5).get(), poseSupplier = { Drive.localizer.pose }),
+                runOnce {
+                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                    Intake.intakeState = IntakeState.INTAKING
+                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                }
+            ),
 
         )
     }

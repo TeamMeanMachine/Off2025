@@ -3,7 +3,6 @@ package frc.team2471.off2025
 import com.ctre.phoenix6.Utils
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
 import edu.wpi.first.math.Matrix
-import edu.wpi.first.math.Nat.*
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.controller.PIDController
 import edu.wpi.first.math.geometry.Pose2d
@@ -33,14 +32,12 @@ import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
-import frc.team2471.off2025.util.vision.limelight.LimelightCamera
 import frc.team2471.off2025.util.vision.photonVision.PhotonVisionCamera
 import gg.questnav.questnav.QuestNav
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
-import java.util.*
 
 
 object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerConstants.moduleConfigs) {
@@ -117,23 +114,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     override val driveAtAnglePIDController = PhoenixPIDController(7.7, 0.0, 0.072)
 
-    /**
-     * Returns [ChassisSpeeds] with a percentage power from the driver controller.
-     */
-    override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
-        val rawJoystick = OI.rawDriveTranslation
-        // Square drive input and apply demoSpeed
-        val power = rawJoystick.norm.square() * demoSpeed
-        // Apply modified power to joystick vector and flip depending on alliance
-        val joystickTranslation = rawJoystick * power * if (isBlueAlliance) -1.0 else 1.0
-
-        val rawJoystickRotation = OI.driveRotation
-        // Cube rotation input and apply demoSpeed
-        val omega = rawJoystickRotation.cube() * demoSpeed
-
-        return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
-    }
-
     init {
         println("inside Drive init")
 
@@ -150,6 +130,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override fun periodic() {
         LoopLogger.record("Inside Drive periodic")
 
+        // Apply quest measurements
         if (questConnected) {
             if (isReal) {
                 quest.allUnreadPoseFrames.forEach {
@@ -192,10 +173,10 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             it.updateInputs()
         }
         LoopLogger.record("Drive camera updateInputs")
-        // Update odometry with vision measurements.
+        // Update poses with processed particle filter estimates.
         localizer.updateWithLatestPoseEstimate()
         LoopLogger.record("Drive updateWithLatestPose")
-        // Timestamp converts from phoenix time to fpga time.
+        // Create an odom measurement with a timestamp converted from phoenix time to fpga time.
         val poseMeasurement = PoseLocalizer.OdometryMeasurement(pose, PhoenixUtil.currentToFpgaTime(stateTimestamp))
         // Publish the latest camera data to NT and also update pose from swerve odometry measurements.
         localizer.update(poseMeasurement, cameras.map { it.latestMeasurement }, speeds)
@@ -214,6 +195,23 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         Logger.recordOutput("Swerve/SingleTagPose", localizer.singleTagPose)
 
         LoopLogger.record("Drive pirdc")
+    }
+
+    /**
+     * Returns [ChassisSpeeds] with a percentage power from the driver controller.
+     */
+    override fun getJoystickPercentageSpeeds(): ChassisSpeeds {
+        val rawJoystick = OI.rawDriveTranslation
+        // Square drive input and apply demoSpeed
+        val power = rawJoystick.norm.square() * demoSpeed
+        // Apply modified power to joystick vector and flip depending on alliance
+        val joystickTranslation = rawJoystick * power * if (isBlueAlliance) -1.0 else 1.0
+
+        val rawJoystickRotation = OI.driveRotation
+        // Cube rotation input and apply demoSpeed
+        val omega = rawJoystickRotation.cube() * demoSpeed
+
+        return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
     }
 
     fun zeroGyro() {

@@ -18,9 +18,9 @@ class InterpolatableChassisSpeeds(
             return endValue
         }
         return InterpolatableChassisSpeeds(
-            (1 - t) * vxMetersPerSecond + t * endValue.vxMetersPerSecond,
-            (1 - t) * vyMetersPerSecond + t * endValue.vyMetersPerSecond,
-            (1 - t) * omegaRadiansPerSecond + t * endValue.omegaRadiansPerSecond
+            (1.0 - t) * vxMetersPerSecond + t * endValue.vxMetersPerSecond,
+            (1.0 - t) * vyMetersPerSecond + t * endValue.vyMetersPerSecond,
+            (1.0 - t) * omegaRadiansPerSecond + t * endValue.omegaRadiansPerSecond
         )
     }
 

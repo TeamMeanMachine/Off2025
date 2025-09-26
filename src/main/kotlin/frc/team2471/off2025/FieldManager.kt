@@ -52,17 +52,17 @@ object FieldManager {
     val reefCenterRed: Translation2d = (allAprilTags[9].pose.toPose2d().translation + allAprilTags[6].pose.toPose2d().translation) / 2.0
 
     // Align Point Arrays
-    private val alignPositionsRightRed = mutableListOf<Pose2d>()
-    private val alignPositionsLeftRed = mutableListOf<Pose2d>()
+    val alignPositionsRightRed = mutableListOf<Pose2d>()
+    val alignPositionsLeftRed = mutableListOf<Pose2d>()
 
-    private val alignPositionsRightBlue = mutableListOf<Pose2d>()
-    private val alignPositionsLeftBlue = mutableListOf<Pose2d>()
+    val alignPositionsRightBlue = mutableListOf<Pose2d>()
+    val alignPositionsLeftBlue = mutableListOf<Pose2d>()
 
-    private val alignPositionsRightL4Red = mutableListOf<Pose2d>()
-    private val alignPositionsLeftL4Red = mutableListOf<Pose2d>()
+    val alignPositionsRightL4Red = mutableListOf<Pose2d>()
+    val alignPositionsLeftL4Red = mutableListOf<Pose2d>()
 
-    private val alignPositionsRightL4Blue = mutableListOf<Pose2d>()
-    private val alignPositionsLeftL4Blue = mutableListOf<Pose2d>()
+    val alignPositionsRightL4Blue = mutableListOf<Pose2d>()
+    val alignPositionsLeftL4Blue = mutableListOf<Pose2d>()
 
     private val alignPositionsL1Red = mutableListOf<Pose2d>()
     private val alignPositionsL1Blue = mutableListOf<Pose2d>()
