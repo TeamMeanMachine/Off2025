@@ -1,5 +1,6 @@
 package frc.team2471.off2025
 
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.FieldManager.getApproachAngle
@@ -22,6 +23,7 @@ import frc.team2471.off2025.util.math.findClosestPointOnLine
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.feet
+import frc.team2471.off2025.util.units.wrap
 import kotlin.math.absoluteValue
 
 fun groundIntake(isFlipped: Boolean): Command {
@@ -80,7 +82,7 @@ fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Co
 }
 
 fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
-    val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+    var closestAlignPose: Pair<Pose2d, Boolean>? = null
     val poseAndOptimize = when (level){
         FieldManager.Level.L1 -> Pose.SCORE_L1 to false
         FieldManager.Level.L2 -> Pose.SCORE_L2 to true
@@ -92,9 +94,14 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
         else -> 0.0.inches to null
     }
 
-    return parallelCommand(
-        Drive.driveToPoint(closestAlignPose.first, { Drive.localizer.singleTagPose }),
-        Armavator.goToPose(poseAndOptimize.first, closestAlignPose.second, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+    return sequenceCommand(
+        runOnce {
+            closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+        },
+        parallelCommand(
+            Drive.driveToPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
+            Armavator.goToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+        )
     )
 }
 

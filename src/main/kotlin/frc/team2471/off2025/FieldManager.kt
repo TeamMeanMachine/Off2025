@@ -92,7 +92,7 @@ object FieldManager {
     val bargeAlignPoints: Pair<Translation2d, Translation2d> get() = if (isRedAlliance) bargeAlignPointsRed else bargeAlignPointsBlue
 
     // Amp
-    private val ampAlignPointBlue: Pose2d = Pose2d(19.6.feet, 0.75.meters, 90.0.degrees.asRotation2d)
+    private val ampAlignPointBlue: Pose2d = Pose2d(19.6.feet, 0.75.meters + 12.0.inches, 90.0.degrees.asRotation2d)
     private val ampAlignPointRed: Pose2d = ampAlignPointBlue.rotateAround(fieldCenter, 180.0.degrees.asRotation2d)
 
 
@@ -250,12 +250,32 @@ object FieldManager {
     }
 
     /**
+     * Reflects [Pose2d] across the midline of the field. Useful for mirrored field layouts (2023, 2024).
+     * Units must be meters
+     * @param doReflect Supplier to perform reflection. Default: true
+     * @see Pose2d.rotateAroundField
+     */
+    fun Pose2d.reflectAcrossField(doReflect: () -> Boolean = { true }): Pose2d {
+        return if (doReflect()) Pose2d(fieldLength.asMeters - x, y, (rotation - 180.0.degrees.asRotation2d).wrap()) else this
+    }
+
+    /**
      * Rotates the [Translation2d] 180 degrees around the center of the field. Useful for reflected field layouts (2022, 2025).
      * Units must be meters
      * @param doRotate Supplier to perform rotation. Default: true
      * @see Translation2d.reflectAcrossField
      */
     fun Translation2d.rotateAroundField(doRotate: () -> Boolean = { true }): Translation2d {
+        return if (doRotate()) this.rotateAround(fieldCenter, 180.0.degrees.asRotation2d) else this
+    }
+
+    /**
+     * Rotates the [Pose2d] 180 degrees around the center of the field. Useful for reflected field layouts (2022, 2025).
+     * Units must be meters
+     * @param doRotate Supplier to perform rotation. Default: true
+     * @see Pose2d.reflectAcrossField
+     */
+    fun Pose2d.rotateAroundField(doRotate: () -> Boolean = { true }): Pose2d {
         return if (doRotate()) this.rotateAround(fieldCenter, 180.0.degrees.asRotation2d) else this
     }
 

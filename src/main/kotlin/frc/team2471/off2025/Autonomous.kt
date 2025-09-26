@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
+import frc.team2471.off2025.FieldManager.rotateAroundField
 import frc.team2471.off2025.tests.elevatorJoystick
 import frc.team2471.off2025.tests.elevatorSetpointTest
 import frc.team2471.off2025.tests.joystickTest
@@ -14,11 +15,19 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
+import frc.team2471.off2025.util.control.finallyRun
+import frc.team2471.off2025.util.control.finallyWait
+import frc.team2471.off2025.util.control.parallelCommand
+import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.runOnce
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.math.round
 import frc.team2471.off2025.util.control.sequenceCommand
 import frc.team2471.off2025.util.control.toCommand
+import frc.team2471.off2025.util.units.asRotation2d
+import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.meters
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import kotlin.collections.forEach
 import kotlin.io.path.listDirectoryEntries
@@ -132,7 +141,7 @@ object Autonomous {
     private fun squarePathTest (): Command {
         return Drive.driveAlongChoreoPath(paths["square"]!!, resetOdometry = true)
     }
-    private fun threeL4Right(): Command {
+/*    private fun threeL4Right(): Command {
         val path = paths["3 L4 Right"]!!
         return sequenceCommand(
             Drive.driveAlongChoreoPath(path.getSplit(0).get(), poseSupplier = {Drive.localizer.singleTagPose}, resetOdometry = true),
@@ -145,6 +154,31 @@ object Autonomous {
             { println("Intake") }.toCommand(),
             Drive.driveAlongChoreoPath(path.getSplit(4).get(), poseSupplier = {Drive.localizer.singleTagPose}),
             { println("L4 Score 3") }.toCommand(),
+        )
+    }*/
+
+
+    private fun threeL4Right(): Command {
+        var path = paths["3 L4 Right"]!!
+        return sequenceCommand(
+            runOnce {
+                path = paths["3 L4 Right"]!!
+                Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
+                Intake.intakeState = IntakeState.HOLDING
+            },
+            alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.LEFT),
+            runCommand { Intake.intakeState = IntakeState.SCORING }.finallyWait(2.0),
+            parallelCommand(
+                Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
+                runOnce {
+                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                    Intake.intakeState = IntakeState.INTAKING
+                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                }
+            ),
+            alignToScoreWithDelayDistance(FieldManager.Level.L4, FieldManager.ScoringSide.RIGHT),
+            Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose })
+
         )
     }
 }

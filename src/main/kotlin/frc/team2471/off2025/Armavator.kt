@@ -116,7 +116,7 @@ object Armavator: SubsystemBase() {
 
 
     val defaultPivotEncoderOffset =
-        if (Robot.isCompBot)  0.0 else -1.841
+        if (Robot.isCompBot) -1.841 else 0.0
     val defaultArmEncoderOffset =
         if (Robot.isCompBot) -129.9 else 195.8
     val defaultElevatorEncoderOffset =
@@ -315,7 +315,7 @@ object Armavator: SubsystemBase() {
 
         LoopLogger.record("section 5")
 
-        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 3.0.degrees && pivotVelocity.asDegreesPerSecond.absoluteValue < 0.3 && Robot.isCompBot) {
+        if ((pivotMotorAngle.wrap() - pivotEncoderAngle.wrap()).absoluteValue() > 1.0.degrees && pivotVelocity.asDegreesPerSecond.absoluteValue < 0.5 && Robot.isCompBot) {
             resetPivot()
         }
 
@@ -361,7 +361,8 @@ object Armavator: SubsystemBase() {
         pivotAngleSetpoint = targetPose.pivotAngle
     }
 
-    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, minimumHeight: Distance, intermediateArmAngle: Angle? = null): Command {
+    fun goToPose(pose: Pose, isFlipped: Boolean = false, optimizePivot: Boolean = true, minimumHeight: Distance, intermediateArmAngle: Angle? = null) = goToPose(pose, { isFlipped }, optimizePivot, minimumHeight, intermediateArmAngle)
+    fun goToPose(pose: Pose, isFlipped: () -> Boolean = { false }, optimizePivot: Boolean = true, minimumHeight: Distance, intermediateArmAngle: Angle? = null): Command {
         var targetPose = Pose.DRIVE
         var startPose = Pose.current
         return runOnce {
@@ -369,14 +370,14 @@ object Armavator: SubsystemBase() {
             startPose = Pose.current
         }.andThen(runCommand(Armavator) { // Intermediate Pose
             if (intermediateArmAngle != null) {
-                goToPose(Pose(targetPose.elevatorHeight, intermediateArmAngle, targetPose.pivotAngle), isFlipped, optimizePivot)
+                goToPose(Pose(targetPose.elevatorHeight, intermediateArmAngle, targetPose.pivotAngle), isFlipped(), optimizePivot)
             } else {
                 goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
             }
         }.onlyRunWhileFalse {
             currentHeight.asInches.absoluteValue > minimumHeight.asInches
         }).andThen(runOnce { // Final Pose
-            goToPose(targetPose, isFlipped, optimizePivot)
+            goToPose(targetPose, isFlipped(), optimizePivot)
         })
     }
 
@@ -400,6 +401,8 @@ object Armavator: SubsystemBase() {
 
     fun resetPivot() {
         println("resetting pivot")
-        pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
+        if (candi.isConnected) {
+            pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
+        }
     }
 }

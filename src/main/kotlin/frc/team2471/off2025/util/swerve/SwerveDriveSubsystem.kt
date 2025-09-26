@@ -447,6 +447,13 @@ abstract class SwerveDriveSubsystem(
         }
     }
 
+    fun driveToPoint(
+        wantedPose: Pose2d,
+        poseSupplier: () -> Pose2d = { pose },
+        exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.75.inches && headingError < 1.0.degrees },
+        maxVelocity: LinearVelocity = maxSpeed
+    ): Command = driveToPoint({ wantedPose }, poseSupplier, exitSupplier, maxVelocity)
+
     /**
      * Drives the robot to a [wantedPose]. Uses the [autoDriveToPointController] or [teleopDriveToPointController]
      *
@@ -456,7 +463,7 @@ abstract class SwerveDriveSubsystem(
      * @param maxVelocity The maximum velocity of the robot. The default value is [maxSpeed] from constants.
      */
     fun driveToPoint(
-        wantedPose: Pose2d,
+        wantedPose: () -> Pose2d,
         poseSupplier: () -> Pose2d = { pose },
         exitSupplier: (Distance, Angle) -> Boolean = { error, headingError -> error < 0.75.inches && headingError < 1.0.degrees },
         maxVelocity: LinearVelocity = maxSpeed
@@ -464,7 +471,6 @@ abstract class SwerveDriveSubsystem(
         var distanceToPose: Double = Double.POSITIVE_INFINITY
         var translationToPose = Translation2d()
 
-        Logger.recordOutput("Drive/DriveToPoint/Point", wantedPose)
 
 
         return run {
@@ -472,17 +478,18 @@ abstract class SwerveDriveSubsystem(
             val pidController = if (DriverStation.isAutonomous()) autoDriveToPointController else teleopDriveToPointController
             val velocityOutput = min(abs(pidController.calculate(distanceToPose, 0.0)), maxVelocity.asMetersPerSecond)
             val wantedVelocity = translationToPose.normalize() * velocityOutput
-            driveAtAngle(wantedPose.rotation, wantedVelocity)
+            driveAtAngle(wantedPose().rotation, wantedVelocity)
         }.onlyRunWhileFalse {
 //            println("checking exit error ${distanceToPose.meters.asInches}")
-            translationToPose = wantedPose.translation.minus(poseSupplier().translation)
+            translationToPose = wantedPose().translation.minus(poseSupplier().translation)
             distanceToPose = translationToPose.norm
 
             val distanceError = distanceToPose.meters
-            val headingError = (wantedPose.rotation - poseSupplier().rotation).measure.absoluteValue()
+            val headingError = (wantedPose().rotation - poseSupplier().rotation).measure.absoluteValue()
 
             Logger.recordOutput("Drive/DriveToPoint/DistanceError", distanceError)
             Logger.recordOutput("Drive/DriveToPoint/HeadingError", headingError)
+            Logger.recordOutput("Drive/DriveToPoint/Point", wantedPose())
 
             val result = exitSupplier(distanceError, headingError)
             if (result) {
