@@ -37,7 +37,8 @@ fun groundIntake(isFlipped: Boolean): Command {
 
 fun goToDrivePose(optionalPivot: Angle? = null) {
     println("going to drive pose")
-    Armavator.goToPose(Pose.DRIVE.apply { pivotAngle = optionalPivot ?: pivotAngle }, optimizePivot = false)
+    val modifiedDrivePose = Pose(Pose.DRIVE.elevatorHeight, Pose.DRIVE.armAngle, optionalPivot ?: Pose.DRIVE.pivotAngle)
+    Armavator.goToPose(modifiedDrivePose, optimizePivot = false)
     Armavator.resetPivot()
     Intake.intakeState = IntakeState.HOLDING
 }
