@@ -72,6 +72,7 @@ object Autonomous {
         private set
 
     private var prevPathRed: Boolean? = null
+    private var prevAuto: AutoCommand? = null
 
     init {
         val startTime = RobotController.getMeasureFPGATime()
@@ -86,9 +87,17 @@ object Autonomous {
         println("reading ${paths.size} paths took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(6)} seconds.")
     }
 
+    fun setDrivePositionToAutoStartPoseIfAutoChange() {
+        if (prevAuto != selectedAuto) {
+            setDrivePositionToAutoStartPose()
+            prevAuto = selectedAuto
+        }
+    }
+
     fun setDrivePositionToAutoStartPose() {
         val startingPose = selectedAuto?.startingPoseSupplier?.invoke()
         if (startingPose != null) {
+            println("resetting drive pose to auto start pose")
             Drive.pose = startingPose
         }
     }
@@ -114,6 +123,7 @@ object Autonomous {
         paths.replaceAll { _, t -> t.flipped() }
         isPathsRed = !isPathsRed
         prevPathRed = isPathsRed
+        setDrivePositionToAutoStartPose()
         println(paths.map { it.value.sampleAt(0.1, false)?.get()?.pose})
     }
 

@@ -125,7 +125,7 @@ object Robot : LoggedRobot() {
     /** This function is called periodically when disabled.  */
     override fun disabledPeriodic() {
         Autonomous.flipPathsIfAllianceChange()
-        Autonomous.setDrivePositionToAutoStartPose()
+        Autonomous.setDrivePositionToAutoStartPoseIfAutoChange()
         Armavator.goToPose(Pose.current)
         Intake.intakeState = IntakeState.HOLDING
         Intake.afterDisabled = true
@@ -134,6 +134,7 @@ object Robot : LoggedRobot() {
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
         if (isSim) Autonomous.flipPathsIfAllianceChange() // Only needed in sim
+        Autonomous.setDrivePositionToAutoStartPose()
         (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
     }
 
