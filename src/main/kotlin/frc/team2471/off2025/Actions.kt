@@ -177,7 +177,9 @@ fun bargeAlignAndScore(): Command {
             }
         )
     ).finallyRun {
-        goToDrivePose(180.0.degrees)
+        // Make the pivot do a 180 so it doesn't touch the barge on the way down.
+        val pivotAngle = (if (isFlipped) Pose.BARGE_SCORE else Pose.BARGE_SCORE.reflect()).pivotAngle
+        goToDrivePose(pivotAngle)
         Intake.scoreAlgae = false
     }
 }
