@@ -94,7 +94,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         private set
 
     // Trust down to 2 cm in XY and 2 degrees in rotational. Units in meters and radians.
-    val QUEST_STD_DEVS: Matrix<N3?, N1?> = VecBuilder.fill(0.02, 0.02, 0.035)
+    val QUEST_STD_DEVS: Matrix<N3?, N1?> = VecBuilder.fill(0.025, 0.025, 0.052)
 
     // Class that handles the merging of multiple vision sources and the odometry.
     val localizer = PoseLocalizer(Fiducials.aprilTagFiducials, cameras)
