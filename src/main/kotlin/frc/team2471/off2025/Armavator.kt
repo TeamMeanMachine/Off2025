@@ -202,6 +202,7 @@ object Armavator: SubsystemBase() {
     private val pivotControlRequest = MotionMagicVoltage(0.0)
 
     var isSlowSpeed = false
+        private set
 
 
 

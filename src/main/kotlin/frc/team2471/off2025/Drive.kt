@@ -14,21 +14,17 @@ import edu.wpi.first.math.numbers.N1
 import edu.wpi.first.math.numbers.N3
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.control.LoopLogger
-import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.ctre.PhoenixUtil
 import frc.team2471.off2025.util.isBlueAlliance
 import frc.team2471.off2025.util.isReal
-import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.localization.PoseLocalizer
 import frc.team2471.off2025.util.math.cube
 import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
-import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asMetersPerSecondPerSecond
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
-import frc.team2471.off2025.util.units.wrap
 import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
@@ -153,24 +149,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         }
 
         LoopLogger.record("b4 Drive piodc")
-        super.periodic() // Must call this, refreshes swerve state
+        super.periodic() // Must call this
         LoopLogger.record("super Drive piodc")
-
-        // Disabled actions
-        if (Robot.isDisabled) {
-            setControl(ApplyModuleStates()) // Set module setpoints to their current position
-            if (isReal) {
-                modules.forEach {
-                    // Set steer motor to encoder position if it is not already there.
-                    val encoderPosition = it.encoder.position.value
-                    if ((it.steerMotor.position.value - encoderPosition).wrap().absoluteValue() > 0.5.degrees ) {
-                        it.steerMotor.setPosition(encoderPosition)
-                    }
-                }
-            }
-        }
-
-        LoopLogger.record("Drive after steer")
 
         // Update Vision
         cameras.forEach {
@@ -216,13 +196,6 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val omega = rawJoystickRotation.cube() * demoSpeed
 
         return ChassisSpeeds(joystickTranslation.x, joystickTranslation.y, omega)
-    }
-
-    fun zeroGyro() {
-        val wantedAngle = (if (isRedAlliance) 180.0.degrees else 0.0.degrees).asRotation2d
-        println("zero gyro isRedAlliance  $isRedAlliance zeroing to ${wantedAngle.degrees} degrees")
-        heading = wantedAngle
-        println("heading: $heading")
     }
 
     fun resetOdometryToAbsolute() {
