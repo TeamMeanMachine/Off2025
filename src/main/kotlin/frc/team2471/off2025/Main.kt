@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.RobotMode
 import frc.team2471.off2025.util.ctre.loggedTalonFX.MasterMotor
+import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.robotMode
 import frc.team2471.off2025.util.units.asFeet
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -33,6 +34,7 @@ object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
     private var wasDisabled = true
     var beforeFirstEnable = true
+        private set
 
     val commandScheduler = CommandScheduler.getInstance()
 
@@ -88,12 +90,6 @@ object Robot : LoggedRobot() {
         // timing (see the template project documentation for details)
 //         Threads.setCurrentThreadPriority(true, 99);
 
-        // Runs the Scheduler. This is responsible for polling buttons, adding
-        // newly-scheduled commands, running already-scheduled commands, removing
-        // finished or interrupted commands, and running subsystem periodic() methods.
-        // This must be called from the robot's periodic block in order for anything in
-        // the Command-based framework to work.
-
         if (Robot.isEnabled) {
             if (wasDisabled) {
                 beforeFirstEnable = false
@@ -129,6 +125,7 @@ object Robot : LoggedRobot() {
     /** This function is called periodically when disabled.  */
     override fun disabledPeriodic() {
         Autonomous.flipPathsIfAllianceChange()
+        Autonomous.setDrivePositionToAutoStartPose()
         Armavator.goToPose(Pose.current)
         Intake.intakeState = IntakeState.HOLDING
         Intake.afterDisabled = true
@@ -136,7 +133,7 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
-        Autonomous.flipPathsIfAllianceChange() // This line is only needed for a sim edge case (Instantly swapping between Disconnected and Autonomous)
+        if (isSim) Autonomous.flipPathsIfAllianceChange() // Only needed in sim
         (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
     }
 

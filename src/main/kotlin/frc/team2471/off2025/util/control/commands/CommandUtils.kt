@@ -1,4 +1,4 @@
-package frc.team2471.off2025.util.control
+package frc.team2471.off2025.util.control.commands
 
 import edu.wpi.first.units.measure.Time
 import edu.wpi.first.wpilibj2.command.Command
@@ -167,6 +167,15 @@ fun waitCommand(time: Time): Command = Commands.waitTime(time)
  * @see edu.wpi.first.wpilibj2.command.WaitUntilCommand
  */
 fun waitUntilCommand(condition: () -> Boolean): Command = Commands.waitUntil(condition)
+
+/**
+ * Constructs a command that does nothing, finishing once a condition becomes true.
+ * @param condition the condition
+ * @param overrideSeconds the maximum time to wait for the condition to become true
+ * @return the command
+ * @see WaitUntilOrTimeCommand
+ */
+fun waitUntilCommand(overrideSeconds: Double, condition: () -> Boolean): Command = WaitUntilOrTimeCommand(overrideSeconds, condition)
 
 /**
  * Constructs a command that does nothing until interrupted.

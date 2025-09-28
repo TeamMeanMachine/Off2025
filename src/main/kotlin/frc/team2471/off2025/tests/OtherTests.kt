@@ -13,9 +13,9 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.Armavator
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Pose
-import frc.team2471.off2025.util.control.beforeWait
-import frc.team2471.off2025.util.control.finallyRun
-import frc.team2471.off2025.util.control.sequenceCommand
+import frc.team2471.off2025.util.control.commands.beforeWait
+import frc.team2471.off2025.util.control.commands.finallyRun
+import frc.team2471.off2025.util.control.commands.sequenceCommand
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.seconds
 import frc.team2471.off2025.util.units.volts

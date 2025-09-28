@@ -101,6 +101,7 @@ object Intake: SubsystemBase("Intake") {
         } else {
             sideMotor.setControl(DutyCycleOut(SIDE_SPIT_POWER))
         }
+        hasCargo = false
     }
     fun centeringLogic(runSideMotorWhenUnseen: Boolean = false) {
         if (cargoDetectedRight) {

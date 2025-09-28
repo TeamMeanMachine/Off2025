@@ -16,14 +16,15 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
-import frc.team2471.off2025.util.control.finallyWait
-import frc.team2471.off2025.util.control.parallelCommand
-import frc.team2471.off2025.util.control.runOnce
+import frc.team2471.off2025.util.control.commands.finallyWait
+import frc.team2471.off2025.util.control.commands.parallelCommand
+import frc.team2471.off2025.util.control.commands.runOnce
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.math.round
-import frc.team2471.off2025.util.control.sequenceCommand
-import frc.team2471.off2025.util.control.toCommand
+import frc.team2471.off2025.util.control.commands.sequenceCommand
+import frc.team2471.off2025.util.control.commands.toCommand
+import frc.team2471.off2025.util.control.commands.waitUntilCommand
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.meters
@@ -37,10 +38,10 @@ object Autonomous {
     val paths: MutableMap<String, Trajectory<SwerveSample>> = findChoreoPaths()
 
     // Chooser for selecting autonomous commands
-    private val autoChooser: LoggedDashboardChooser<() -> Command> = LoggedDashboardChooser<() -> Command>("Auto Chooser").apply {
-        addOption("8 Foot Straight") { eightFootStraight() }
-        addOption("6x6 Square") { squarePathTest() }
-        addOption("3 L4 Right") { threeL4Right() }
+    private val autoChooser: LoggedDashboardChooser<AutoCommand?> = LoggedDashboardChooser<AutoCommand?>("Auto Chooser").apply {
+        addOption("8 Foot Straight", AutoCommand(::eightFootStraight))
+        addOption("6x6 Square", AutoCommand(::squarePathTest))
+        addOption("3 L4 Right", AutoCommand(::threeL4Right) { Pose2d(7.19158.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
     }
     // Chooser for test commands
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
@@ -58,7 +59,8 @@ object Autonomous {
         addOption("Drive Velocity Volt Test", Drive.velocityVoltTest())
     }
 
-    val autonomousCommand: Command? get() = if (!Drive.demoMode) autoChooser.get()?.invoke() else ({ println("DEMO MODE: I'm not running auto, no killing kids today.") }).toCommand()
+    val selectedAuto: AutoCommand? get() = autoChooser.get()
+    val autonomousCommand: Command? get() = if (!Drive.demoMode) selectedAuto?.commandSupplier?.invoke() else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
     val testCommand: Command? get() = testChooser.get()
 
     /**
@@ -82,6 +84,13 @@ object Autonomous {
         }
         println("paths: $pathNameAndStartPose")
         println("reading ${paths.size} paths took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(6)} seconds.")
+    }
+
+    fun setDrivePositionToAutoStartPose() {
+        val startingPose = selectedAuto?.startingPoseSupplier?.invoke()
+        if (startingPose != null) {
+            Drive.pose = startingPose
+        }
     }
 
     /**
@@ -166,23 +175,27 @@ object Autonomous {
                 Intake.intakeState = IntakeState.HOLDING
             },
             alignToScoreWithDelayDistance({ if (isRedAlliance) FieldManager.alignPositionsLeftRed[2] else FieldManager.alignPositionsLeftBlue[2] }, Level.L3),
+            waitUntilCommand(1.0) { Armavator.atSetpoint },
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
-            }.finallyWait(1.0),
+            }.finallyWait(0.5),
             parallelCommand(
                 Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
                 runOnce {
                     val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                    Intake.hasCargo = false
                     Intake.intakeState = IntakeState.INTAKING
                     Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                 }
             ),
+            waitUntilCommand(2.0) { Intake.hasCargo },
             alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.RIGHT),
+            waitUntilCommand(1.0) { Armavator.atSetpoint },
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
-            }.finallyWait(1.0),
+            }.finallyWait(0.5),
             parallelCommand(
                 Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose }),
                 runOnce {
@@ -191,7 +204,9 @@ object Autonomous {
                     Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                 }
             ),
+            waitUntilCommand(2.0) { Intake.hasCargo },
             alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.LEFT),
+            waitUntilCommand(1.0) { Armavator.atSetpoint },
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
@@ -207,4 +222,6 @@ object Autonomous {
 
         )
     }
+
+    class AutoCommand(val commandSupplier: () -> Command, val startingPoseSupplier: (() -> Pose2d)? = null)
 }

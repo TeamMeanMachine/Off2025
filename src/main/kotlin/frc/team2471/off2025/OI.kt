@@ -7,9 +7,9 @@ import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.control.MeanCommandXboxController
-import frc.team2471.off2025.util.control.finallyRun
-import frc.team2471.off2025.util.control.runCommand
-import frc.team2471.off2025.util.control.toCommand
+import frc.team2471.off2025.util.control.commands.finallyRun
+import frc.team2471.off2025.util.control.commands.runCommand
+import frc.team2471.off2025.util.control.commands.toCommand
 import frc.team2471.off2025.util.math.deadband
 import frc.team2471.off2025.util.math.normalize
 

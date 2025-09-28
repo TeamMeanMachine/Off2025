@@ -16,8 +16,8 @@ import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
-import frc.team2471.off2025.util.control.onlyRunWhileFalse
-import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.ctre.addFollower
 import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
@@ -30,6 +30,7 @@ import frc.team2471.off2025.util.ctre.motionMagic
 import frc.team2471.off2025.util.ctre.p
 import frc.team2471.off2025.util.ctre.remoteCANCoder
 import frc.team2471.off2025.util.ctre.s
+import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.asDegreesPerSecond
@@ -177,6 +178,10 @@ object Armavator: SubsystemBase() {
         get() = elevatorVelocity.asInchesPerSecond.absoluteValue < 0.05 &&
                 armVelocity.asDegreesPerSecond.absoluteValue < 0.2 &&
                 pivotVelocity.asDegreesPerSecond.absoluteValue < 0.2
+    val atSetpoint: Boolean
+        get() = currentHeight.absoluteValue() < 0.5.inches &&
+                currentArmAngle.absoluteValue() < 0.5.degrees &&
+                pivotSetpointError.absoluteValue() < 0.5.degrees
 
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees
@@ -302,6 +307,7 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
         Logger.recordOutput("Armavator/noMovement", noMovement)
+        Logger.recordOutput("Armavator/atSetpoint", atSetpoint)
 
         LoopLogger.record("section 4")
         Logger.recordOutput("Armavator/periodicFeedForward", periodicFeedForward)
@@ -375,7 +381,7 @@ object Armavator: SubsystemBase() {
                 goToPose(Pose(targetPose.elevatorHeight, Pose.current.armAngle, targetPose.pivotAngle))
             }
         }.onlyRunWhileFalse {
-            currentHeight.asInches.absoluteValue > minimumHeight.asInches
+            currentHeight.asInches.absoluteValue > minimumHeight.asInches || isSim
         }).andThen(runOnce { // Final Pose
             goToPose(targetPose, isFlipped(), optimizePivot)
         })

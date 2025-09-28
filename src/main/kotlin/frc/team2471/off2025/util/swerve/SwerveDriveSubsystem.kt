@@ -41,11 +41,11 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Mechanism
 import frc.team2471.off2025.util.*
 import frc.team2471.off2025.util.control.LoopLogger
-import frc.team2471.off2025.util.control.beforeRun
-import frc.team2471.off2025.util.control.beforeWait
-import frc.team2471.off2025.util.control.finallyRun
-import frc.team2471.off2025.util.control.onlyRunWhileFalse
-import frc.team2471.off2025.util.control.sequenceCommand
+import frc.team2471.off2025.util.control.commands.beforeRun
+import frc.team2471.off2025.util.control.commands.beforeWait
+import frc.team2471.off2025.util.control.commands.finallyRun
+import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.commands.sequenceCommand
 import frc.team2471.off2025.util.ctre.setCANCoderAngle
 import frc.team2471.off2025.util.ctre.loggedTalonFX.LoggedTalonFX
 import frc.team2471.off2025.util.math.deadband
@@ -57,6 +57,7 @@ import frc.team2471.off2025.util.units.Gs
 import frc.team2471.off2025.util.units.UTranslation2d
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.asDegrees
+import frc.team2471.off2025.util.units.asDegreesPerSecond
 import frc.team2471.off2025.util.units.asFeetPerSecond
 import frc.team2471.off2025.util.units.asInches
 import frc.team2471.off2025.util.units.asMeters
@@ -237,7 +238,7 @@ abstract class SwerveDriveSubsystem(
         //Register the subsystem into the CommandScheduler so periodic methods can be called.
         CommandScheduler.getInstance().registerSubsystem(this)
 
-        println("drivetrain max speed is ${maxSpeed.asFeetPerSecond} f/s")
+        println("drivetrain max speed is ${maxSpeed.asFeetPerSecond.round(2)} f/s and ${maxAngularSpeed.asDegreesPerSecond.round(2)} deg/s")
 
         if (!SmartDashboard.containsKey("DemoSpeed")) {
             println("DemoSpeed does not exist, setting it to 1.0")
@@ -257,6 +258,7 @@ abstract class SwerveDriveSubsystem(
                 enableContinuousInput(-Math.PI, Math.PI)
             }
             DriveRequestType = SwerveModule.DriveRequestType.Velocity
+            //RotationalDeadband = maxAngularSpeed.asRadiansPerSecond * 0.025
         }
         pathThetaController.enableContinuousInput(-Math.PI, Math.PI)
     }
@@ -381,6 +383,8 @@ abstract class SwerveDriveSubsystem(
      * Uses the [driveAtAnglePIDController] to drive the robot with a specified angle and translation.
      */
     fun driveAtAngle(angle: Rotation2d, translation: Translation2d) {
+        Logger.recordOutput("Drive/DriveAtAngle/Angle", angle)
+        Logger.recordOutput("Drive/DriveAtAngle/Translation", translation)
         setControl(
             driveAtAngleRequest.apply {
                 VelocityX = translation.x
@@ -502,6 +506,12 @@ abstract class SwerveDriveSubsystem(
         }.withName("DriveToPoint")
     }
 
+    fun driveToAutopilotPoint(
+        wantedPose: Pose2d,
+        poseSupplier: () -> Pose2d = { pose },
+        entryAngleSupplier: () -> Angle? = { null }
+    ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier)
+
     /**
      * Drives the robot to a [wantedPose] using Autopilot. Uses [autoPilot] to control the robot.
      *
@@ -512,19 +522,20 @@ abstract class SwerveDriveSubsystem(
      * @param entryAngleSupplier The angle [Autopilot] will try to enter the wantedPose at. The default value is null.
      */
     fun driveToAutopilotPoint(
-        wantedPose: Pose2d,
+        wantedPose: () -> Pose2d,
         poseSupplier: () -> Pose2d = { pose },
         entryAngleSupplier: () -> Angle? = { null }
     ): Command {
-        var target = APTarget(wantedPose)
-        Logger.recordOutput("Drive/AutoPilot/Target", wantedPose)
+        var target: APTarget? = null
         return runOnce {
             val entryAngle = entryAngleSupplier()
+            val targetPose = wantedPose()
             target = if (entryAngle != null) {
-                APTarget(wantedPose).withEntryAngle(entryAngle.asRotation2d)
+                APTarget(targetPose).withEntryAngle(entryAngle.asRotation2d)
             } else {
-                APTarget(wantedPose)
+                APTarget(targetPose)
             }
+            Logger.recordOutput("Drive/AutoPilot/Target", targetPose)
         }.andThen(run {
             val output = autoPilot.calculate(poseSupplier(), speeds.translation, target)
             val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
@@ -535,7 +546,7 @@ abstract class SwerveDriveSubsystem(
             val pose = poseSupplier()
             val result = autoPilot.atTarget(pose, target)
             if (result) {
-                println("Stopping driveToAutopilotPoint error meters/rad: ${pose - target.reference}")
+                println("Stopping driveToAutopilotPoint error meters/rad: ${pose - target?.reference}")
             }
             result
         }.finallyRun {

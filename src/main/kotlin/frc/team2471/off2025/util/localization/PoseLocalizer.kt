@@ -163,7 +163,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
         val visionEstimateTime: Double = idToTimeMap[estimate.id]!!
         if (visionOdometryBuffer.internalBuffer.firstKey() > visionEstimateTime) {
-//            println("vision measurement is too far in the past")
+            println("vision measurement is too far in the past")
             return
         }
         val odometryAtEstimateTime = visionOdometryBuffer.getSample(visionEstimateTime).getOrNull()

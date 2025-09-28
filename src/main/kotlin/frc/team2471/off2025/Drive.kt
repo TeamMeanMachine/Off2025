@@ -24,6 +24,7 @@ import frc.team2471.off2025.util.math.cube
 import frc.team2471.off2025.util.math.square
 import frc.team2471.off2025.util.swerve.SwerveDriveSubsystem
 import frc.team2471.off2025.util.units.absoluteValue
+import frc.team2471.off2025.util.units.asMetersPerSecondPerSecond
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
@@ -52,13 +53,10 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
             localizer.resetPose(value) // Possibly not needed, but good for a quick response.
         }
 
-    var tempQuestPose = Pose2d()
-    var resetQuestTranslation = false
-
     override var heading: Rotation2d
         get() = pose.rotation
         set(value) {
-            println("resting heading to ${value.degrees}")
+//            println("resting heading to ${value.degrees}")
             resetRotation(value)
             localizer.resetRotation(value) // Not needed and redundant but may prevent some heading bugs
             if (resetQuestTranslation) {
@@ -68,6 +66,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                 quest.setPose(Pose2d(questPose.transformBy(robotToQuestTransformMeters).translation, value + robotToQuestTransformMeters.rotation))
             }
         }
+
+    private var tempQuestPose = Pose2d()
+    private var resetQuestTranslation = false
 
     // Vision
     val cameras: List<QuixVisionCamera> = listOf(
@@ -120,7 +121,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         // MUST start inside the field on bootup for accurate heading measurements due to a vision localizer bug.
         pose = Pose2d(3.0, 3.0, heading)
 
-        zeroGyro()
+//        zeroGyro()
+
+        println("max acceleration ${TunerConstants.kMaxAcceleration.asMetersPerSecondPerSecond}")
 
         localizer.trackAllTags()
 
@@ -137,12 +140,13 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
                     val pose = it.questPose.transformBy(robotToQuestTransformMeters.inverse())
                     val ctreTimestamp = Utils.fpgaToCurrentTime(it.dataTimestamp)
 
-                    Logger.recordOutput("Drive/questDataTimestamp", it.dataTimestamp)
-                    Logger.recordOutput("Drive/ctreTimestamp", ctreTimestamp)
+                    Logger.recordOutput("Drive/Quest/DataTimestamp", it.dataTimestamp)
+                    Logger.recordOutput("Drive/Quest/CtreTimestamp", ctreTimestamp)
                     addVisionMeasurement(pose, ctreTimestamp, QUEST_STD_DEVS)
                     questPose = pose
                 }
             } else {
+                // Simulate quest data
                 addVisionMeasurement(pose, stateTimestamp, QUEST_STD_DEVS)
                 questPose = pose
             }
@@ -184,7 +188,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
         quest.commandPeriodic()
 
-        Logger.recordOutput("Drive/QuestConnected", questConnected)
+        Logger.recordOutput("Drive/Quest/isConnected", questConnected)
 
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)

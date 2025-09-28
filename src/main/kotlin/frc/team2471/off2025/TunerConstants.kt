@@ -12,6 +12,7 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.units.measure.Distance
+import edu.wpi.first.units.measure.LinearAcceleration
 import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj.Preferences
@@ -28,6 +29,9 @@ import frc.team2471.off2025.util.units.feetPerSecond
 import frc.team2471.off2025.util.units.inches
 import frc.team2471.off2025.util.units.meters
 import frc.team2471.off2025.util.math.round
+import frc.team2471.off2025.util.units.asKilograms
+import frc.team2471.off2025.util.units.metersPerSecondPerSecond
+import frc.team2471.off2025.util.units.pounds
 import frc.team2471.off2025.util.units.rpm
 import frc.team2471.off2025.util.units.volts
 import kotlin.math.roundToInt
@@ -69,9 +73,12 @@ object TunerConstants {
     // All swerve devices must share the same CAN bus
     val driveCANBus: CANBus = CANBus("rio", "./logs/example.hoot")
 
-    // Theoretical free speed (m/s) at 12 V applied output;
+    // Theoretical free speed at 12 V applied output;
     // This needs to be tuned to your individual robot
-    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / driveGearRatio * 2.0.inches.asFeet).feetPerSecond * 0.9  //4.73.metersPerSecond
+    val kSpeedAt12Volts: LinearVelocity = (driveMotor.freeSpeedRadPerSec / driveGearRatio * wheelRadiusInches.inches.asFeet).feetPerSecond * 0.9  //3.91.metersPerSecond (12.8 fps) -2025
+    val robotWeight = 150.0.pounds
+    // Max linear acceleration (m/s²) = force per amp * (60 amp stator current limit - free current) * gear ratio * 85% drivetrain efficiency / wheel radius / robot mass
+    val kMaxAcceleration: LinearAcceleration = (driveMotor.KtNMPerAmp * (60.0 - driveMotor.freeCurrentAmps) * driveGearRatio * 0.85 / wheelRadiusInches.inches.asMeters / robotWeight.asKilograms).metersPerSecondPerSecond
 
     val drivetrainConstants: SwerveDrivetrainConstants = SwerveDrivetrainConstants().apply {
         CANBusName = driveCANBus.name

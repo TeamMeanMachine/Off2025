@@ -6,19 +6,19 @@ import edu.wpi.first.wpilibj2.command.Command
 import frc.team2471.off2025.FieldManager.getApproachAngle
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import frc.team2471.off2025.util.control.finallyRun
+import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.leftStickButton
-import frc.team2471.off2025.util.control.onlyRunWhileFalse
-import frc.team2471.off2025.util.control.onlyRunWhileTrue
-import frc.team2471.off2025.util.control.parallelCommand
+import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.commands.onlyRunWhileTrue
+import frc.team2471.off2025.util.control.commands.parallelCommand
 import frc.team2471.off2025.util.control.rightStickButton
-import frc.team2471.off2025.util.control.runCommand
-import frc.team2471.off2025.util.control.runOnce
-import frc.team2471.off2025.util.control.sequenceCommand
+import frc.team2471.off2025.util.control.commands.runCommand
+import frc.team2471.off2025.util.control.commands.runOnce
+import frc.team2471.off2025.util.control.commands.sequenceCommand
 import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.inches
-import frc.team2471.off2025.util.control.waitUntilCommand
+import frc.team2471.off2025.util.control.commands.waitUntilCommand
 import frc.team2471.off2025.util.math.findClosestPointOnLine
 import frc.team2471.off2025.util.units.absoluteValue
 import frc.team2471.off2025.util.units.degrees
@@ -98,7 +98,7 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
             closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
         },
         parallelCommand(
-            Drive.driveToPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
+            Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
             Armavator.goToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
         )
     )
@@ -122,7 +122,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
             isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
         },
         parallelCommand(
-            Drive.driveToPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagPose }),
+            Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
             Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
         )
     )

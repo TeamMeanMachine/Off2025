@@ -10,8 +10,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.team2471.off2025.util.control.finallyRun
-import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.commands.finallyRun
+import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.units.asDegrees
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.radians

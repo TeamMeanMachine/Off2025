@@ -9,9 +9,9 @@ import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Drive
 import frc.team2471.off2025.util.control.Direction
-import frc.team2471.off2025.util.control.beforeRun
+import frc.team2471.off2025.util.control.commands.beforeRun
 import frc.team2471.off2025.util.control.dPad
-import frc.team2471.off2025.util.control.runCommand
+import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.ctre.ApplyModuleStatesVoltage
 import frc.team2471.off2025.util.translation
 import frc.team2471.off2025.util.units.asRotation2d
