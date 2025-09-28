@@ -123,7 +123,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
         },
         parallelCommand(
             Drive.driveToPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagPose }),
-            Armavator.goToPose(poseAndOptimize.first, { isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+            Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
         )
     )
 }

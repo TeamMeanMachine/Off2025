@@ -13,7 +13,7 @@ data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngl
         val DRIVE = Pose(1.0.inches, 0.0.degrees, -90.0.degrees)
         val SCORE_L1 = Pose(0.0.inches, 60.0.degrees, -150.0.degrees)
         val SCORE_L2 = Pose(0.0.inches, 20.2.degrees, 90.0.degrees)
-        val SCORE_L3 = Pose(16.75.inches, 20.2.degrees, 90.0.degrees)
+        val SCORE_L3 = Pose(16.25.inches, 20.2.degrees, 90.0.degrees)
         val SCORE_L4 = Pose(58.0.inches, 57.0.degrees, 90.0.degrees)
 
         val ALGAE_DESCORE_LOW = Pose(16.0.inches, 72.0.degrees, -90.0.degrees)

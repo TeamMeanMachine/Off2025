@@ -76,7 +76,7 @@ object Armavator: SubsystemBase() {
         get() = (rawPivotAngle - pivotEncoderOffset.degrees).wrap()
 
     inline val lampreyAlignmentOffset: Angle
-        get() = -abs((kotlin.math.sin(candiAngle.asRadians) * 12.0)).degrees
+        get() = -abs((kotlin.math.sin(candiAngle.asRadians) * 7.0)).degrees
 
     inline val pivotEncoderAngle: Angle
         get() = (candiAngle - lampreyAlignmentOffset).wrap()
@@ -116,7 +116,7 @@ object Armavator: SubsystemBase() {
 
 
     val defaultPivotEncoderOffset =
-        if (Robot.isCompBot) -1.841 else 0.0
+        if (Robot.isCompBot) 0.0 else -1.841
     val defaultArmEncoderOffset =
         if (Robot.isCompBot) -129.9 else 195.8
     val defaultElevatorEncoderOffset =
@@ -400,8 +400,8 @@ object Armavator: SubsystemBase() {
     }
 
     fun resetPivot() {
-        println("resetting pivot")
         if (candi.isConnected) {
+            println("resetting pivot")
             pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
         }
     }

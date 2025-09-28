@@ -165,7 +165,7 @@ object Autonomous {
                 Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
                 Intake.intakeState = IntakeState.HOLDING
             },
-            alignToScoreWithDelayDistance({ if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2] }, Level.L4),
+            alignToScoreWithDelayDistance({ if (isRedAlliance) FieldManager.alignPositionsLeftRed[2] else FieldManager.alignPositionsLeftBlue[2] }, Level.L3),
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
@@ -178,7 +178,7 @@ object Autonomous {
                     Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                 }
             ),
-            alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.RIGHT),
+            alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.RIGHT),
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
@@ -191,7 +191,7 @@ object Autonomous {
                     Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                 }
             ),
-            alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.LEFT),
+            alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.LEFT),
             runOnce {
                 println("Scoring")
                 Intake.intakeState = IntakeState.SCORING
