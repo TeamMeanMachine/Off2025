@@ -9,7 +9,7 @@ object AnalogSensors {
 }
 
 object DigitalSensors {
-//    val CLIMBER = if (frc.team2471.off2025.Robot.isCompBot) 9 else 0
+    val CLIMBER = if (Robot.isCompBot) 9 else 0
 }
 
 object Falcons {

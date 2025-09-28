@@ -45,8 +45,9 @@ object Robot : LoggedRobot() {
     val armavator = Armavator
     val intake = Intake
     val vision = Vision
+    val climb = Climb
 
-    var allSubsystems = arrayOf(drive, oi, armavator, intake, vision)
+    var allSubsystems = arrayOf(drive, oi, armavator, intake, vision, climb)
 
     init {
         // Tells FRC we use Kotlin
