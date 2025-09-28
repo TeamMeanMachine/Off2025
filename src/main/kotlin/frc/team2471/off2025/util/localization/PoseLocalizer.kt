@@ -116,6 +116,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         odometryPoseBuffer.addSample(currentTime, pose)
         singleTagOdometryBuffer.addSample(currentTime, pose)
         visionOdometryBuffer.addSample(currentTime, pose)
+        lastOdometryUpdateTime = currentTime
     }
 
     fun resetRotation(rotation: Rotation2d) {
@@ -129,6 +130,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         odometryPoseBuffer.addSample(currentTime, Pose2d(storedRawOdomTranslation, rotation))
         singleTagOdometryBuffer.addSample(currentTime, Pose2d(storedSingleTagTranslation, rotation))
         visionOdometryBuffer.addSample(currentTime, Pose2d(storedVisionOdometryTranslation, rotation))
+        lastOdometryUpdateTime = currentTime
     }
 
     private fun clearAllBuffers() {
@@ -222,6 +224,11 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             if (!vision.hasTargets) {
                 val array = arrayOfNulls<Translation3d>(0)
                 Logger.recordOutput<Translation3d>("Localizer/detectedTags[$cameraID]", *array)
+                continue
+            }
+
+            if (odometryPoseBuffer.internalBuffer.firstKey() > measurementTime) {
+                println("measurement is too far in the past")
                 continue
             }
 
