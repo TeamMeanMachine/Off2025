@@ -228,7 +228,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             }
 
             if (odometryPoseBuffer.internalBuffer.firstKey() > measurementTime) {
-                println("measurement is too far in the past")
+                println("camera measurement is too far in the past")
                 continue
             }
 
