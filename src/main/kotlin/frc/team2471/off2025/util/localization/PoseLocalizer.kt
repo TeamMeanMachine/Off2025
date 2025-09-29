@@ -87,8 +87,15 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             val transform = (latestChassisSpeeds).toTransform2d(deltaSeconds)
             Logger.recordOutput("Localizer/OdometryDeltaSeconds", deltaSeconds)
             Logger.recordOutput("Localizer/OdometryTransform", transform)
+            Logger.recordOutput("Localizer/OdometryTransformLength m", transform.translation.norm)
 
             return Pose2d(odomPose.translation.plus(transform.translation), odomPose.rotation.plus(transform.rotation))
+        }
+    val interpolatedPose: Pose2d
+        get() {
+            val pose = pose
+            val transform = (latestChassisSpeeds).toTransform2d(Timer.getTimestamp() - lastOdometryUpdateTime)
+            return Pose2d(pose.translation.plus(transform.translation), pose.rotation.plus(transform.rotation))
         }
 
     /** Only Swerve odometry */
@@ -353,7 +360,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         }
         if (odometryPoseBuffer.internalBuffer.firstKey() > latestTimestamp) {
             Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
-//            println("single tag result is too far in the past")
+            println("single tag result is too far in the past")
             return
         }
 

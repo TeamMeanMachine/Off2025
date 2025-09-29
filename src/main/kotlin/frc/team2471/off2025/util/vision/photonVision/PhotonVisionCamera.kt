@@ -30,7 +30,7 @@ class PhotonVisionCamera(
     override val cameraSim: PhotonCameraSim =
         PhotonCameraSim(PhotonCamera(cameraName), pipelineConfigs[0].simCameraProp)
 
-    private val loggingName: String = "Inputs/PhotonVisionCamera [$cameraName]"
+    private val loggingName: String = "Cameras/PhotonVisionCamera [$cameraName]"
     private val camera: PhotonCamera = if (isReal) PhotonCamera(cameraName) else cameraSim.camera
 
     private val inputs = PhotonCameraInputs()

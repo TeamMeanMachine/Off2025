@@ -47,12 +47,12 @@ object Vision : SubsystemBase() {
             if (io[i].mode == LimelightMode.GAMEPIECE) {
                 val targetDimensions = inputs[i].targetDimensions
 
-                Logger.recordOutput("target width", targetDimensions.first)
-                Logger.recordOutput("target height", targetDimensions.second)
-                Logger.recordOutput("wh ratio", targetDimensions.first / targetDimensions.second)
+                Logger.recordOutput("Vision/target width", targetDimensions.first)
+                Logger.recordOutput("Vision/target height", targetDimensions.second)
+                Logger.recordOutput("Vision/wh ratio", targetDimensions.first / targetDimensions.second)
 
                 if (inputs[i].hasTargets) {
-                    Logger.recordOutput("Raw Coral Angle", getCoralAngle(inputs[0].targetCorners, inputs[i].targetCenter))
+                    Logger.recordOutput("Vision/Raw Coral Angle", getCoralAngle(inputs[0].targetCorners, inputs[i].targetCenter))
                 }
             }
 
@@ -94,7 +94,7 @@ object Vision : SubsystemBase() {
 //                }
 
                 val angle = angleFilter.calculate(getCoralAngle(inputs[0].targetCorners, inputs[0].targetCenter).asDegrees).degrees
-                Logger.recordOutput("Filtered Coral Angle", angle)
+                Logger.recordOutput("Vision/Filtered Coral Angle", angle)
 
                 if (angle.asDegrees.absoluteValue > 30) {
                     val pidOutput = rotatePIDController.calculate(angle.asDegrees, 0.0)
@@ -149,8 +149,8 @@ object Vision : SubsystemBase() {
             }
         }
 
-        Logger.recordOutput("Group 1", *group1.toTypedArray())
-        Logger.recordOutput("Group 2", *group2.toTypedArray())
+        Logger.recordOutput("Vision/Group 1", *group1.toTypedArray())
+        Logger.recordOutput("Vision/Group 2", *group2.toTypedArray())
 
 
         val group1Center = Translation2d(group1.map {it.x}.average(), group1.map {it.y}.average())

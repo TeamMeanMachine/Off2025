@@ -173,6 +173,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
         Logger.recordOutput("Swerve/InterpolatedOdometry", localizer.interpolatedOdometryPose)
+        Logger.recordOutput("Swerve/InterpolatedPose", localizer.interpolatedPose)
         Logger.recordOutput("Swerve/Quest", questPose)
         Logger.recordOutput("Swerve/Localizer Raw", localizer.rawPose)
         Logger.recordOutput("Swerve/Localizer", localizer.pose)

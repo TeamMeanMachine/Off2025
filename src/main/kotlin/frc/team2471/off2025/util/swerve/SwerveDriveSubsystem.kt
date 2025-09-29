@@ -125,54 +125,54 @@ abstract class SwerveDriveSubsystem(
     var savedState: SwerveDriveState = stateCopy
         private set
 
-    @get:AutoLogOutput(key = "Drive/Speeds")
+    @get:AutoLogOutput(key = "Drive/State/Speeds")
     val speeds: ChassisSpeeds
         get() = savedState.Speeds.robotToFieldCentric(pose.rotation)
 
-    @get:AutoLogOutput(key = "Drive/Velocity")
+    @get:AutoLogOutput(key = "Drive/State/Velocity")
     val velocity: UTranslation2d<LinearVelocityUnit>
         get() = speeds.translation.metersPerSecond
     private var prevVelocity = velocity
 
-    @get:AutoLogOutput(key = "Drive/Acceleration")
+    @get:AutoLogOutput(key = "Drive/State/Acceleration")
     var acceleration = Translation2d(0.0, 0.0).feetPerSecondPerSecond
         private set
 
-    @get:AutoLogOutput(key = "Drive/Jerk")
+    @get:AutoLogOutput(key = "Drive/State/Jerk")
     var jerk = Translation2d(0.0, 0.0).feetPerSecondPerSecond.perSecond
         private set
 
     private var prevTime = -0.02
 
-    @get:AutoLogOutput(key = "Drive/Modules/ModuleStates")
+    @get:AutoLogOutput(key = "Drive/State/Modules/ModuleStates")
     val moduleStates: Array<SwerveModuleState>
         get() = savedState.ModuleStates
 
-    @get:AutoLogOutput(key = "Drive/Modules/ModuleTargets")
+    @get:AutoLogOutput(key = "Drive/State/Modules/ModuleTargets")
     val moduleTargets: Array<SwerveModuleState>
         get() = savedState.ModuleTargets
 
-    @get:AutoLogOutput(key = "Drive/Modules/ModulePositions")
+    @get:AutoLogOutput(key = "Drive/State/Modules/ModulePositions")
     val modulePositions: Array<SwerveModulePosition>
         get() = savedState.ModulePositions
 
-    @get:AutoLogOutput(key = "Drive/RawHeading")
+    @get:AutoLogOutput(key = "Drive/State/RawHeading")
     val rawHeading: Rotation2d
         get() = savedState.RawHeading.wrap()
 
-    @get:AutoLogOutput(key = "Drive/StateTimestamp")
+    @get:AutoLogOutput(key = "Drive/State/Timestamp")
     val stateTimestamp: Double
         get() = savedState.Timestamp
 
-    @get:AutoLogOutput(key = "Drive/OdometryPeriod")
+    @get:AutoLogOutput(key = "Drive/State/OdometryPeriod")
     val odometryPeriod: Double
         get() = savedState.OdometryPeriod
 
-    @get:AutoLogOutput(key = "Drive/Daqs/SuccessfulDaqs")
+    @get:AutoLogOutput(key = "Drive/State/Daqs/SuccessfulDaqs")
     val successfulDaqs: Int
         get() = savedState.SuccessfulDaqs
 
-    @get:AutoLogOutput(key = "Drive/Daqs/FailedDaqs")
+    @get:AutoLogOutput(key = "Drive/State/Daqs/FailedDaqs")
     val failedDaqs: Int
         get() = savedState.FailedDaqs
 
@@ -309,7 +309,7 @@ abstract class SwerveDriveSubsystem(
         }
 
         prevTime = currTime
-        Logger.recordOutput("Drive/TelemetryLoop", Timer.getFPGATimestamp() - currTime)
+        Logger.recordOutput("Drive/State/TelemetryLoop", Timer.getFPGATimestamp() - currTime)
     }
 
     /**
@@ -720,15 +720,16 @@ abstract class SwerveDriveSubsystem(
             val wantedSpeeds = sample.chassisSpeeds
             val moduleForcesX = sample.moduleForcesX()
             val moduleForcesY = sample.moduleForcesY()
-            val pathErrorMeters = (wantedPose - currentPose).translation.norm
 
             Logger.recordOutput("Drive/Path/Time", t)
             Logger.recordOutput("Drive/Path/Pose", wantedPose)
             Logger.recordOutput("Drive/Path/Speeds", wantedSpeeds)
+            Logger.recordOutput("Drive/Path/Path Acceleration", Translation2d(sample.ax, sample.ay).norm.metersPerSecondPerSecond)
             Logger.recordOutput("Drive/Path/Module Forces X", moduleForcesX)
             Logger.recordOutput("Drive/Path/Module Forces Y", moduleForcesY)
-            Logger.recordOutput("Drive/Path/Pose Error m", pathErrorMeters)
+            Logger.recordOutput("Drive/Path/Pose Error", (wantedPose - currentPose).translation.norm.meters)
 
+            // Add heading and xy error
             wantedSpeeds.apply {
                 vxMetersPerSecond += pathXController.calculate(currentPose.x, wantedPose.x)
                 vyMetersPerSecond += pathYController.calculate(currentPose.y, wantedPose.y)
@@ -764,7 +765,7 @@ abstract class SwerveDriveSubsystem(
             // Tell drivetrain to apply no output
             stop()
 
-            println("Finished driveAlongChoreoPath at ${(t / totalTime * 100.0).round(1)}% done")
+            println("Finished driveAlongChoreoPath at ${(t / totalTime * 100.0).round(2)}% done")
             // Publish empty data to show that the path is done
             Logger.recordOutput("Drive/Path/Pose", Pose2d())
         }.withName("DriveAlongChoreoPath")
