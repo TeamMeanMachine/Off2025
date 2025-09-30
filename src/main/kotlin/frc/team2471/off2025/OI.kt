@@ -108,7 +108,7 @@ object OI: SubsystemBase("OI") {
         driverController.rightBumper().and (coralMode).onTrue(alignToGamepiece(false) {!driverController.rightBumper().and (coralMode).asBoolean } )
 
         // Climb
-        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { climb() })
+        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(climb())
 
 
 
