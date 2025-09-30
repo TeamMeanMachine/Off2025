@@ -48,6 +48,8 @@ import frc.team2471.off2025.util.units.rotations
 import frc.team2471.off2025.util.units.sin
 import frc.team2471.off2025.util.units.unWrap
 import frc.team2471.off2025.util.units.wrap
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
@@ -409,7 +411,9 @@ object Armavator: SubsystemBase() {
     fun resetPivot() {
         if (candi.isConnected) {
             println("resetting pivot")
-            pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
+            GlobalScope.launch {
+                pivotMotor.setPosition((pivotEncoderAngle.unWrap(pivotMotorAngle) * PIVOT_GEAR_RATIO))
+            }
         }
     }
 }

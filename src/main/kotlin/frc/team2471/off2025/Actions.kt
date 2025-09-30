@@ -5,6 +5,7 @@ import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.FieldManager.getApproachAngle
+import frc.team2471.off2025.FieldManager.onFriendlyAllianceSide
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.commands.finallyRun
@@ -162,6 +163,7 @@ fun bargeAlignAndScore(): Command {
     val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.singleTagPose.onOpposingAllianceSide() }
     val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.singleTagPose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
+    val isArmFlipped = isFlipped == Drive.localizer.singleTagPose.onFriendlyAllianceSide()
     val poseSupplier = { Drive.localizer.pose }
     return parallelCommand(
         Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5),
@@ -174,12 +176,12 @@ fun bargeAlignAndScore(): Command {
             runCommand(Armavator) {
                 Intake.scoreAlgae = true
                 Armavator.normalSpeed()
-                Armavator.goToPose(Pose.BARGE_SCORE, isFlipped, optimizePivot = false)
+                Armavator.goToPose(Pose.BARGE_SCORE, isArmFlipped, optimizePivot = false)
             }
         )
     ).finallyRun {
         // Make the pivot do a 180 so it doesn't touch the barge on the way down.
-        val pivotAngle = (if (isFlipped) Pose.BARGE_SCORE else Pose.BARGE_SCORE.reflect()).pivotAngle
+        val pivotAngle = (if (isArmFlipped) Pose.BARGE_SCORE else Pose.BARGE_SCORE.reflect()).pivotAngle
         goToDrivePose(pivotAngle)
         Intake.scoreAlgae = false
     }
