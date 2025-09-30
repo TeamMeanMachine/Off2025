@@ -3,6 +3,7 @@ package frc.team2471.off2025
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.FieldManager.getApproachAngle
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
@@ -207,5 +208,19 @@ fun algaeGroundIntake(isFlipped: Boolean): Command {
         }
     ).finallyRun { // End at drive pose
         goToDrivePose()
+    }
+}
+
+fun prepareClimb(): Command {
+    return Commands.parallel(
+        Climb.deploy(),
+        runOnce { Armavator.goToPose(Pose.INTAKE_GROUND, true, false) }
+    )
+}
+
+fun climb(): Command {
+    return runCommand {
+        Climb.motorPercentOutput = 1.0
+        Armavator.goToPose(Pose.INTAKE_GROUND, true, false)
     }
 }
