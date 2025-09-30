@@ -98,7 +98,7 @@ object OI: SubsystemBase("OI") {
         // Algae Descore
         driverController.x().and (coralMode).whileTrue(defer { algaeDescore() })
         // Climb heading align
-        driverController.x().and (algaeMode).whileTrue( runOnce { println("climb heading align and deploy, does not do anything yet") })
+        driverController.x().and (algaeMode).whileTrue(prepareClimb())
 
 
         // Coral Ground Intake
@@ -108,7 +108,7 @@ object OI: SubsystemBase("OI") {
 //        driverController.rightBumper().and (coralMode).onTrue(alignToGamepiece(false) {!driverController.rightBumper().and (coralMode).asBoolean } )
 
         // Climb
-        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { println("CLIMB, does not do anything yet") })
+        (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(climb())
 
 
 
