@@ -250,12 +250,13 @@ fun runEndCommand(vararg requirements: Subsystem, run: () -> Unit, end: () -> Un
 fun <K> selectCommand(commands: Map<K, Command>, selector: () -> K): Command = Commands.select<K>(commands, selector)
 
 /**
- * Turns the command into a [DeferredCommand], a command that gets constructed at runtime.
+ * Creates [DeferredCommand], a command that gets constructed at runtime.
  *
  * The most similar type of command to 2025 Meanlib's "use" function.
  *
- * Although make sure to
+ * @param supplier a function that returns the command to run
+ * @param requirements the subsystems required by the command
  *
  * @see DeferredCommand
  */
-//fun Command.asDefer(): Command = DeferredCommand({ this }, requirements)
+fun deferCommand(vararg requirements: Subsystem, supplier: () -> Command): Command = Commands.defer(supplier, mutableSetOf(*requirements))

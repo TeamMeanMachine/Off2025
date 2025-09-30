@@ -552,7 +552,7 @@ abstract class SwerveDriveSubsystem(
     ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier)
 
     /**
-     * Drives the robot to a [wantedPose] using Autopilot. Uses [autoPilot] to control the robot.
+     * Drives the robot to a [wantedPose] using [Autopilot]. Uses [autoPilot] to control the robot.
      *
      * Finishes when the [Autopilot.atTarget] method returns true.
      *

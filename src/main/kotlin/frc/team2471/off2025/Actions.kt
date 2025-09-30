@@ -107,6 +107,8 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
     )
 }
 
+fun alignToScoreWithDelayDistance(alignPoint: Pose2d, level: FieldManager.Level) = alignToScoreWithDelayDistance({ alignPoint }, level)
+
 fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.Level): Command {
     var isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
     val poseAndOptimize = when (level){

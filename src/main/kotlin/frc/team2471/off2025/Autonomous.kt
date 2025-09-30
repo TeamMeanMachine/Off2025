@@ -16,6 +16,7 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
+import frc.team2471.off2025.util.control.commands.deferCommand
 import frc.team2471.off2025.util.control.commands.finallyWait
 import frc.team2471.off2025.util.control.commands.parallelCommand
 import frc.team2471.off2025.util.control.commands.runOnce
@@ -177,60 +178,60 @@ object Autonomous {
 
 
     private fun threeL4Right(): Command {
-        var path = paths["3 L4 Right"]!!
-        return sequenceCommand(
-            runOnce {
-                path = paths["3 L4 Right"]!!
-                Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
-                Intake.intakeState = IntakeState.HOLDING
-            },
-            alignToScoreWithDelayDistance({ if (isRedAlliance) FieldManager.alignPositionsLeftRed[2] else FieldManager.alignPositionsLeftBlue[2] }, Level.L3),
-            waitUntilCommand(1.0) { Armavator.atSetpoint },
-            runOnce {
-                println("Scoring")
-                Intake.intakeState = IntakeState.SCORING
-            }.finallyWait(0.5),
-            parallelCommand(
-                Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
+        return deferCommand {
+            val path = paths["3 L4 Right"]!!
+            sequenceCommand(
                 runOnce {
-                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
-                    Intake.hasCargo = false
-                    Intake.intakeState = IntakeState.INTAKING
-                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
-                }
-            ),
-            waitUntilCommand(2.0) { Intake.hasCargo },
-            alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.RIGHT),
-            waitUntilCommand(1.0) { Armavator.atSetpoint },
-            runOnce {
-                println("Scoring")
-                Intake.intakeState = IntakeState.SCORING
-            }.finallyWait(0.5),
-            parallelCommand(
-                Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose }),
+                    Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
+                    Intake.intakeState = IntakeState.HOLDING
+                },
+                alignToScoreWithDelayDistance(if (isRedAlliance) FieldManager.alignPositionsLeftRed[2] else FieldManager.alignPositionsLeftBlue[2], Level.L3),
+                waitUntilCommand(1.0) { Armavator.atSetpoint },
                 runOnce {
-                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
-                    Intake.intakeState = IntakeState.INTAKING
-                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
-                }
-            ),
-            waitUntilCommand(2.0) { Intake.hasCargo },
-            alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.LEFT),
-            waitUntilCommand(1.0) { Armavator.atSetpoint },
-            runOnce {
-                println("Scoring")
-                Intake.intakeState = IntakeState.SCORING
-            }.finallyWait(1.0),
-            parallelCommand(
-                Drive.driveAlongChoreoPath(path.getSplit(5).get(), poseSupplier = { Drive.localizer.pose }),
+                    println("Scoring")
+                    Intake.intakeState = IntakeState.SCORING
+                }.finallyWait(0.5),
+                parallelCommand(
+                    Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
+                    runOnce {
+                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                        Intake.hasCargo = false
+                        Intake.intakeState = IntakeState.INTAKING
+                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                    }
+                ),
+                waitUntilCommand(2.0) { Intake.hasCargo },
+                alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.RIGHT),
+                waitUntilCommand(1.0) { Armavator.atSetpoint },
                 runOnce {
-                    val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
-                    Intake.intakeState = IntakeState.INTAKING
-                    Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
-                }
-            ),
-
-        )
+                    println("Scoring")
+                    Intake.intakeState = IntakeState.SCORING
+                }.finallyWait(0.5),
+                parallelCommand(
+                    Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose }),
+                    runOnce {
+                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                        Intake.intakeState = IntakeState.INTAKING
+                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                    }
+                ),
+                waitUntilCommand(2.0) { Intake.hasCargo },
+                alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.LEFT),
+                waitUntilCommand(1.0) { Armavator.atSetpoint },
+                runOnce {
+                    println("Scoring")
+                    Intake.intakeState = IntakeState.SCORING
+                }.finallyWait(1.0),
+                parallelCommand(
+                    Drive.driveAlongChoreoPath(path.getSplit(5).get(), poseSupplier = { Drive.localizer.pose }),
+                    runOnce {
+                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                        Intake.intakeState = IntakeState.INTAKING
+                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                    }
+                ),
+            )
+        }
     }
 
     class AutoCommand(val commandSupplier: () -> Command, val startingPoseSupplier: (() -> Pose2d)? = null)
