@@ -158,15 +158,15 @@ fun algaeDescore(): Command {
 }
 
 fun bargeAlignAndScore(): Command {
-    val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
-    val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.pose.onOpposingAllianceSide() }
+    val pointOne = FieldManager.bargeAlignPoints.first.reflectAcrossField { Drive.localizer.singleTagPose.onOpposingAllianceSide() }
+    val pointTwo = FieldManager.bargeAlignPoints.second.reflectAcrossField { Drive.localizer.singleTagPose.onOpposingAllianceSide() }
     val isFlipped = Drive.heading.degrees.absoluteValue > 90.0
     val poseSupplier = { Drive.localizer.pose }
     return parallelCommand(
-        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier),
+        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5),
         sequenceCommand(
             waitUntilCommand {
-                Drive.localizer.pose.translation.getDistance(
+                Drive.localizer.singleTagPose.translation.getDistance(
                     findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation)
                 ) < 3.0.feet.asMeters
             },

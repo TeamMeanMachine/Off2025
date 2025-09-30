@@ -649,6 +649,7 @@ abstract class SwerveDriveSubsystem(
         }.finallyRun {
             Logger.recordOutput("Drive/AlongLine/line", *arrayOf<Translation2d>())
             Logger.recordOutput("Drive/AlongLine/closestPoint", Pose2d())
+            stop()
         }.withName("JoystickDriveAlongLine")
     }
 

@@ -36,7 +36,7 @@ object Vision : SubsystemBase() {
             io[i].updateInputs(inputs[i])
 
             if (inputs[i].aprilTagPoseEstimate != Pose2d()) {
-                Drive.addVisionMeasurement(inputs[i].aprilTagPoseEstimate, inputs[i].aprilTagTimestamp, VecBuilder.fill(0.01, 0.01, 1000000000.0))
+//                Drive.addVisionMeasurement(inputs[i].aprilTagPoseEstimate, inputs[i].aprilTagTimestamp, VecBuilder.fill(0.01, 0.01, 1000000000.0))
             }
 
             if (io[i].mode == LimelightMode.GAMEPIECE) {
@@ -59,18 +59,18 @@ object Vision : SubsystemBase() {
     }
 
     // exit supplier needs to return true when the command should end
-    fun alignToGamepiece(isFrontSide: Boolean, exitSupplier: () -> Boolean): Command {
+    fun alignToGamepiece(isFrontSide: Boolean): Command {
 
         val limelightIndex = if (isFrontSide) 0 else 1
 
         //todo tune this
-        val alignPIDController = PIDController(0.10, 0.0, 0.01)
-        val rotatePIDController = PIDController(0.01, 0.0, 0.0)
+        var alignPIDController = PIDController(0.10, 0.0, 0.01)
+        var rotatePIDController = PIDController(0.01, 0.0, 0.0)
 
         val offsetFilter = MedianFilter(5)
         val angleFilter = MedianFilter(11)
 
-        return runCommand(Drive) {
+        return runCommand() {
             io[limelightIndex].mode = LimelightMode.GAMEPIECE
 
             val targetDimensions = inputs[limelightIndex].targetDimensions
@@ -99,14 +99,15 @@ object Vision : SubsystemBase() {
                     rotationChassisSpeeds = ChassisSpeeds(0.0, 0.0, pidOutput)
                 }
 
-                val chassisSpeeds = Drive.getChassisSpeedsFromJoystick().plus(translationChassisSpeeds).plus(rotationChassisSpeeds)
+                val chassisSpeeds = Drive.getChassisSpeedsFromJoystick()/*.plus(translationChassisSpeeds).plus(rotationChassisSpeeds)*/
+                Logger.recordOutput("CoralChassisSpeeds", chassisSpeeds)
 
-                Drive.driveVelocity(chassisSpeeds)
+//                Drive.driveVelocity(chassisSpeeds)
             }
-        }.until {
-            exitSupplier()
         }.finallyRun {
             io[limelightIndex].mode = LimelightMode.APRILTAG
+            alignPIDController = PIDController(0.10, 0.0, 0.01)
+            rotatePIDController = PIDController(0.01, 0.0, 0.0)
         }
     }
 

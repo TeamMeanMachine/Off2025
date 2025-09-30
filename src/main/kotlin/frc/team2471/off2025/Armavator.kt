@@ -195,7 +195,7 @@ object Armavator: SubsystemBase() {
     // (Cruse velocity, acceleration)
     private val defaultPivotMMSpeeds = Pair(DEFAULT_PIVOT_CRUISING_VEL, DEFAULT_PIVOT_ACCEL)
     private val defaultArmMMSpeeds = Pair(360.0 * ARM_GEAR_RATIO / 40.0, 7.0 * 360.0 * ARM_GEAR_RATIO / 40.0)
-    private val defaultElevatorMMSpeeds = Pair(35.0, 150.0)
+    private val defaultElevatorMMSpeeds = Pair(70.0, 300.0)
 
     private val elevatorControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultElevatorMMSpeeds.first, defaultElevatorMMSpeeds.second, 0.0)
     private val armControlRequest = DynamicMotionMagicDutyCycle(0.0, defaultArmMMSpeeds.first, defaultArmMMSpeeds.second, 0.0)
