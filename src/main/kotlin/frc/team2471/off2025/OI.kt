@@ -103,9 +103,9 @@ object OI: SubsystemBase("OI") {
 
         // Coral Ground Intake
         driverController.leftBumper().and (coralMode).whileTrue(groundIntake(false))
-        driverController.leftBumper().and (coralMode).onTrue(alignToGamepiece(true) {!driverController.leftBumper().and (coralMode).asBoolean } )
+//        driverController.leftBumper().and (coralMode).onTrue(alignToGamepiece(true) {!driverController.leftBumper().and (coralMode).asBoolean } )
         driverController.rightBumper().and (coralMode).whileTrue(groundIntake(true))
-        driverController.rightBumper().and (coralMode).onTrue(alignToGamepiece(false) {!driverController.rightBumper().and (coralMode).asBoolean } )
+//        driverController.rightBumper().and (coralMode).onTrue(alignToGamepiece(false) {!driverController.rightBumper().and (coralMode).asBoolean } )
 
         // Climb
         (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { println("CLIMB, does not do anything yet") })
