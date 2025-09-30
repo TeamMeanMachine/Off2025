@@ -179,9 +179,9 @@ object Armavator: SubsystemBase() {
                 armVelocity.asDegreesPerSecond.absoluteValue < 0.2 &&
                 pivotVelocity.asDegreesPerSecond.absoluteValue < 0.2
     val atSetpoint: Boolean
-        get() = currentHeight.absoluteValue() < 0.5.inches &&
-                currentArmAngle.absoluteValue() < 0.5.degrees &&
-                pivotSetpointError.absoluteValue() < 0.5.degrees
+        get() = currentHeight.absoluteValue() - heightSetpoint.absoluteValue() < 0.5.inches &&
+                currentArmAngle.absoluteValue() - armAngleSetpoint.absoluteValue() < 0.5.degrees &&
+                pivotSetpointError.absoluteValue() - pivotAngleSetpoint.absoluteValue() < 0.5.degrees
 
     val isArmFlipped: Boolean
         get() = currentArmAngle < 0.0.degrees
