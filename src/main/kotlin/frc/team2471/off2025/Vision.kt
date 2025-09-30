@@ -25,19 +25,14 @@ import kotlin.math.sign
 
 object Vision : SubsystemBase() {
     val io: Array<VisionIO> = arrayOf(
-        VisionIOLimelight("limelight-test") { Drive.heading.measure }
+        VisionIOLimelight("limelight-front") { Drive.heading.measure },
+        VisionIOLimelight("limelight-back") { Drive.heading.measure }
     )
     
-    val inputs = arrayOf(
-        VisionIO.VisionIOInputs()
-    )
-
-    var mode: LimelightMode = LimelightMode.GAMEPIECE
+    val inputs = Array(io.size) { VisionIO.VisionIOInputs() }
 
     override fun periodic() {
         for (i in io.indices) {
-            if (io[i].mode != mode) io[i].mode = mode
-
             io[i].updateInputs(inputs[i])
 
             if (inputs[i].aprilTagPoseEstimate != Pose2d()) {
@@ -64,7 +59,9 @@ object Vision : SubsystemBase() {
     }
 
     // exit supplier needs to return true when the command should end
-    fun alignToGamepiece(exitSupplier: () -> Boolean): Command {
+    fun alignToGamepiece(isFrontSide: Boolean, exitSupplier: () -> Boolean): Command {
+
+        val limelightIndex = if (isFrontSide) 0 else 1
 
         //todo tune this
         val alignPIDController = PIDController(0.10, 0.0, 0.01)
@@ -74,9 +71,9 @@ object Vision : SubsystemBase() {
         val angleFilter = MedianFilter(11)
 
         return runCommand(Drive) {
-            mode = LimelightMode.GAMEPIECE
+            io[limelightIndex].mode = LimelightMode.GAMEPIECE
 
-            val targetDimensions = inputs[0].targetDimensions
+            val targetDimensions = inputs[limelightIndex].targetDimensions
             if (targetDimensions.second != 0.0) {
                 val whRatio = targetDimensions.first / targetDimensions.second
 
@@ -84,7 +81,7 @@ object Vision : SubsystemBase() {
                 var rotationChassisSpeeds = ChassisSpeeds()
 //                if (whRatio >= 1.2) {
 
-                    val offset = offsetFilter.calculate(-inputs[0].targetCoords.first())
+                    val offset = offsetFilter.calculate(-inputs[limelightIndex].targetCoords.first())
 
                     val pidOutput = alignPIDController.calculate(offset, 0.0)
 
@@ -93,7 +90,7 @@ object Vision : SubsystemBase() {
                     translationChassisSpeeds = ChassisSpeeds(pidOutput * offsetHeading.cos, pidOutput * offsetHeading.sin, 0.0)
 //                }
 
-                val angle = angleFilter.calculate(getCoralAngle(inputs[0].targetCorners, inputs[0].targetCenter).asDegrees).degrees
+                val angle = angleFilter.calculate(getCoralAngle(inputs[limelightIndex].targetCorners, inputs[limelightIndex].targetCenter).asDegrees).degrees
                 Logger.recordOutput("Vision/Filtered Coral Angle", angle)
 
                 if (angle.asDegrees.absoluteValue > 30) {
@@ -109,7 +106,7 @@ object Vision : SubsystemBase() {
         }.until {
             exitSupplier()
         }.finallyRun {
-            mode = LimelightMode.APRILTAG
+            io[limelightIndex].mode = LimelightMode.APRILTAG
         }
     }
 

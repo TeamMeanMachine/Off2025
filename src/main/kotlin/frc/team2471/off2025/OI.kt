@@ -5,11 +5,14 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
+import frc.team2471.off2025.Vision.alignToGamepiece
 import frc.team2471.off2025.util.control.LoopLogger
 import frc.team2471.off2025.util.control.MeanCommandXboxController
 import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.control.commands.toCommand
+import frc.team2471.off2025.util.control.leftBumper
+import frc.team2471.off2025.util.control.rightBumper
 import frc.team2471.off2025.util.math.deadband
 import frc.team2471.off2025.util.math.normalize
 
@@ -100,7 +103,9 @@ object OI: SubsystemBase("OI") {
 
         // Coral Ground Intake
         driverController.leftBumper().and (coralMode).whileTrue(groundIntake(false))
+        driverController.leftBumper().and (coralMode).onTrue(alignToGamepiece(true) {!driverController.leftBumper().and (coralMode).asBoolean } )
         driverController.rightBumper().and (coralMode).whileTrue(groundIntake(true))
+        driverController.rightBumper().and (coralMode).onTrue(alignToGamepiece(false) {!driverController.rightBumper().and (coralMode).asBoolean } )
 
         // Climb
         (driverController.rightBumper().or(driverController.leftBumper())).and (algaeMode).whileTrue(runOnce { println("CLIMB, does not do anything yet") })

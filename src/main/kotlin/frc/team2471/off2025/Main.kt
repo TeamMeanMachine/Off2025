@@ -2,6 +2,9 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.SignalLogger
+import edu.wpi.first.hal.FRCNetComm.tInstances
+import edu.wpi.first.hal.FRCNetComm.tResourceType
+import edu.wpi.first.hal.HAL
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj2.command.CommandScheduler
@@ -51,7 +54,7 @@ object Robot : LoggedRobot() {
 
     init {
         // Tells FRC we use Kotlin
-//        HAL.report(tResourceType.kResourceType_Language, tInstances.kLanguage_Kotlin)
+        HAL.report(tResourceType.kResourceType_Language, tInstances.kLanguage_Kotlin)
 
         // Set up data receivers & replay source
         when (robotMode) {
