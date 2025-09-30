@@ -260,3 +260,15 @@ fun <K> selectCommand(commands: Map<K, Command>, selector: () -> K): Command = C
  * @see DeferredCommand
  */
 fun deferCommand(vararg requirements: Subsystem, supplier: () -> Command): Command = Commands.defer(supplier, mutableSetOf(*requirements))
+
+/**
+ * Creates [DeferredCommand], a command that gets constructed at runtime.
+ *
+ * The most similar type of command to 2025 Meanlib's "use" function.
+ *
+ * @param supplier a function that returns the command to run
+ * @param requirements the subsystems required by the command
+ *
+ * @see DeferredCommand
+ */
+fun use(vararg requirements: Subsystem, supplier: () -> Command): Command = deferCommand(*requirements, supplier = supplier)
