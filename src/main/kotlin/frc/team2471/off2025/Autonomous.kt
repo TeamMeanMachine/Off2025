@@ -178,7 +178,7 @@ object Autonomous {
 
 
     private fun threeL4Right(): Command {
-        return deferCommand {
+        return deferCommand(Drive, Armavator) {
             val path = paths["3 L4 Right"]!!
             sequenceCommand(
                 runOnce {
