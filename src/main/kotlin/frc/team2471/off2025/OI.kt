@@ -98,7 +98,7 @@ object OI: SubsystemBase("OI") {
         // Algae Descore
         driverController.x().and (coralMode).whileTrue(defer { algaeDescore() })
         // Climb heading align
-        driverController.x().and (algaeMode).whileTrue(prepareClimb())
+        driverController.x().and (algaeMode).onTrue(prepareClimb())
 
 
         // Coral Ground Intake
