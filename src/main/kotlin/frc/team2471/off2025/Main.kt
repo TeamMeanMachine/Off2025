@@ -119,7 +119,7 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
-        enabledTimer.reset()
+        enabledTimer.restart()
         println("Enabled init $timeSinceEnabled")
         Drive.brakeMode()
         Vision.onEnable()

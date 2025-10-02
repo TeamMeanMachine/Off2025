@@ -214,6 +214,7 @@ object Autonomous {
                 scoreAuto(),
                 runOnce {
                     Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
+                    println("finished. Seconds since enable: ${Robot.timeSinceEnabled}")
                 }
             )
         }
