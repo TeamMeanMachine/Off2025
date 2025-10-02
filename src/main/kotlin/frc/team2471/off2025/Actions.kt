@@ -134,6 +134,55 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
     )
 }
 
+fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
+    var isFlipped = FieldManager.closestAlignPoint(alignPoint, level).second
+    val poseAndOptimize = when (level){
+        FieldManager.Level.L1 -> Pose.SCORE_L1 to false
+        FieldManager.Level.L2 -> Pose.SCORE_L2 to true
+        FieldManager.Level.L3 -> Pose.SCORE_L3 to true
+        FieldManager.Level.L4 -> Pose.SCORE_L4 to true
+    }
+    val delayDistanceAndIntermediate = when (level) {
+        FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
+        else -> 0.0.inches to null
+    }
+    println("auto score coral ${Robot.timeSinceEnabled}")
+
+    return parallelCommand(
+        Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
+        Armavator.animateToPose(poseAndOptimize.first,{ !isFlipped }, poseAndOptimize.second )
+//            Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+    )
+}
+
+fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
+    var closestAlignPose: Pair<Pose2d, Boolean>? = null
+    val poseAndOptimize = when (level){
+        FieldManager.Level.L1 -> Pose.SCORE_L1 to false
+        FieldManager.Level.L2 -> Pose.SCORE_L2 to true
+        FieldManager.Level.L3 -> Pose.SCORE_L3 to true
+        FieldManager.Level.L4 -> Pose.SCORE_L4 to true
+    }
+    val delayDistanceAndIntermediate = when (level) {
+        FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
+        else -> 0.0.inches to null
+    }
+
+    println("auto score coral ${Robot.timeSinceEnabled}")
+
+
+    return sequenceCommand(
+        runOnce {
+            closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+        },
+        parallelCommand(
+            Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
+            Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second),
+//            Armavator.goToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
+        )
+    )
+}
+
 fun coralStationIntake(): Command {
     return runCommand(Armavator, Drive) {
 //        println("coral station intake")
@@ -234,7 +283,11 @@ fun climb(): Command {
     }
 }
 
-fun scoreAuto(waitTime: Double = 0.5): Command = runOnce {
+fun scoreAuto(waitTime: Double = 0.5): Command =
+    runOnce {
         println("Scoring")
+        Intake.scoreAlgae = false
+        Intake.hasCargo = false
         Intake.intakeState = IntakeState.SCORING
+
     }.finallyWait(waitTime)

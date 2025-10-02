@@ -16,6 +16,7 @@ import edu.wpi.first.units.measure.LinearVelocity
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
 import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.ctre.addFollower
@@ -55,6 +56,7 @@ import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
 import kotlin.math.absoluteValue
+import kotlin.math.sqrt
 
 object Armavator: SubsystemBase() {
     private val table = NetworkTableInstance.getDefault().getTable("Armavator")
@@ -390,12 +392,86 @@ object Armavator: SubsystemBase() {
         })
     }
 
+    fun animateToPose(pose: Pose, isFlipped: () -> Boolean = { false }, optimizePivot: Boolean = true, animateTime: Double? = null): Command {
+        val initialElevatorSpeeds = elevatorControlRequest
+        val initialArmSpeeds = armControlRequest
+        return runOnce {
+            println("animating to pose")
+            val targetPose = if (isFlipped()) pose.reflect() else pose
+            val currentPose = Pose.current
+
+            if (optimizePivot) {
+                if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees > 90.0) {
+                    targetPose.pivotAngle -= 180.0.degrees
+                } else if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees < -90.0) {
+                    targetPose.pivotAngle += 180.0.degrees
+                }
+            }
+
+            val elevatorDelta = targetPose.elevatorHeight - currentPose.elevatorHeight
+            val armDelta = targetPose.armAngle - currentPose.armAngle
+
+
+            val elevatorAnimationTime = calculateAnimationTime(elevatorDelta.asInches, initialElevatorSpeeds.Velocity, initialElevatorSpeeds.Acceleration)
+            val armAnimationTime = calculateAnimationTime(armDelta.asDegrees, initialArmSpeeds.Velocity, initialArmSpeeds.Acceleration)
+            val animationTime = maxOf(elevatorAnimationTime, armAnimationTime, animateTime ?: 0.0)
+
+            val elevatorSpeedFactor = elevatorAnimationTime / animationTime
+            val armSpeedFactor = armAnimationTime / animationTime
+
+            elevatorControlRequest.apply {
+                Velocity /= elevatorSpeedFactor
+                Acceleration /= elevatorSpeedFactor
+            }
+            armControlRequest.apply {
+                Velocity /= armSpeedFactor
+                Acceleration /= armSpeedFactor
+            }
+
+            println("max animation time: $animationTime. Arm: $armSpeedFactor. Elevator: $elevatorSpeedFactor")
+
+        }.andThen(run {
+            goToPose(pose, isFlipped(), optimizePivot)
+        }.until {
+            atSetpoint || isSim
+        }).finallyRun {
+            println("stopping armavator animation")
+            elevatorControlRequest.apply {
+                Velocity = initialElevatorSpeeds.Velocity
+                Acceleration = initialElevatorSpeeds.Acceleration
+            }
+            armControlRequest.apply {
+                Velocity = initialArmSpeeds.Velocity
+                Acceleration = initialArmSpeeds.Acceleration
+            }
+            isSlowSpeed = false
+        }
+    }
+
+    private fun calculateAnimationTime(distance: Double, maxVelocity: Double, maxAcceleration: Double): Double {
+        val minDistanceToReachMaxVelocity = (maxVelocity * maxVelocity) / maxAcceleration
+        return if (distance >= minDistanceToReachMaxVelocity) {
+            val accelTime = maxVelocity / maxAcceleration
+            val accelDistance = 0.5 * maxAcceleration * accelTime * accelTime
+            val cruiseDistance = distance - 2 * accelDistance
+            val cruiseTime = cruiseDistance / maxVelocity
+
+            2 * accelTime + cruiseTime
+        } else {
+            val peakVelocity = sqrt(maxAcceleration * distance)
+            val accelTime = peakVelocity / maxAcceleration
+
+            2 * accelTime
+        }
+    }
+
     fun slowSpeed() {
         if (isSlowSpeed) return // end early
         armControlRequest.apply {
             Velocity = defaultArmMMSpeeds.first * 0.5
             Acceleration = defaultArmMMSpeeds.second * 0.5
         }
+        println("applying slow speed")
         isSlowSpeed = true
     }
 
@@ -405,6 +481,7 @@ object Armavator: SubsystemBase() {
             Velocity = defaultArmMMSpeeds.first
             Acceleration = defaultArmMMSpeeds.second
         }
+        println("applying normal speed")
         isSlowSpeed = false
     }
 

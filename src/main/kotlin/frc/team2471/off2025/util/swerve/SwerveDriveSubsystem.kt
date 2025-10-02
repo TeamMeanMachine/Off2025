@@ -45,6 +45,7 @@ import frc.team2471.off2025.util.control.commands.beforeWait
 import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
 import frc.team2471.off2025.util.control.commands.sequenceCommand
+import frc.team2471.off2025.util.control.commands.use
 import frc.team2471.off2025.util.ctre.ApplyModuleStates
 import frc.team2471.off2025.util.ctre.setCANCoderAngle
 import frc.team2471.off2025.util.ctre.loggedTalonFX.LoggedTalonFX
@@ -548,8 +549,9 @@ abstract class SwerveDriveSubsystem(
     fun driveToAutopilotPoint(
         wantedPose: Pose2d,
         poseSupplier: () -> Pose2d = { pose },
-        entryAngleSupplier: () -> Angle? = { null }
-    ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier)
+        entryAngleSupplier: () -> Angle? = { null },
+        autopilotSupplier: Autopilot = autoPilot,
+    ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier, autopilotSupplier)
 
     /**
      * Drives the robot to a [wantedPose] using [Autopilot]. Uses [autoPilot] to control the robot.
@@ -563,27 +565,29 @@ abstract class SwerveDriveSubsystem(
     fun driveToAutopilotPoint(
         wantedPose: () -> Pose2d,
         poseSupplier: () -> Pose2d = { pose },
-        entryAngleSupplier: () -> Angle? = { null }
-    ): Command {
+        entryAngleSupplier: () -> Angle? = { null },
+        autopilotSupplier: Autopilot = autoPilot,
+    ): Command = use(this) {
         var target: APTarget? = null
-        return runOnce {
-            val entryAngle = entryAngleSupplier()
-            val targetPose = wantedPose()
-            target = if (entryAngle != null) {
-                APTarget(targetPose).withEntryAngle(entryAngle.asRotation2d)
-            } else {
-                APTarget(targetPose)
-            }
-            Logger.recordOutput("Drive/AutoPilot/Target", targetPose)
-        }.andThen(run {
-            val output = autoPilot.calculate(poseSupplier(), speeds.translation, target)
+        val entryAngle = entryAngleSupplier()
+        val targetPose = wantedPose()
+        target = if (entryAngle != null) {
+            APTarget(targetPose).withEntryAngle(entryAngle.asRotation2d)
+        } else {
+            APTarget(targetPose)
+        }
+        Logger.recordOutput("Drive/AutoPilot/Target", targetPose)
+        println("running driveToAutopilotPoint")
+
+        run {
+            val output = autopilotSupplier.calculate(poseSupplier(), speeds.translation, target)
             val velocity = Translation2d(output.vx.asMetersPerSecond, output.vy.asMetersPerSecond)
             Logger.recordOutput("Drive/AutoPilot/Velocity", velocity.norm)
 
             driveAtAngle(output.targetAngle(), velocity)
         }.onlyRunWhileFalse {
             val pose = poseSupplier()
-            val result = autoPilot.atTarget(pose, target)
+            val result = autopilotSupplier.atTarget(pose, target)
             if (result) {
                 println("Stopping driveToAutopilotPoint error meters/rad: ${pose - target?.reference}")
             }
@@ -591,7 +595,7 @@ abstract class SwerveDriveSubsystem(
         }.finallyRun {
             stop()
             Logger.recordOutput("Drive/AutoPilot/Target", Pose2d())
-        }.withName("DriveToAutopilotPoint"))
+        }.withName("DriveToAutopilotPoint")
     }
 
 

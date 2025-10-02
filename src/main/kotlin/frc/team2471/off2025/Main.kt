@@ -7,6 +7,7 @@ import edu.wpi.first.hal.FRCNetComm.tResourceType
 import edu.wpi.first.hal.HAL
 import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj.DriverStation
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.util.control.LoopLogger
@@ -40,6 +41,10 @@ object Robot : LoggedRobot() {
         private set
 
     val commandScheduler = CommandScheduler.getInstance()
+
+    private val enabledTimer = Timer()
+    val timeSinceEnabled get() = enabledTimer.get()
+
 
     // Subsystems:
     // MUST define an individual variable for all subsystems inside this class or else @AutoLogOutput will not work -2025
@@ -114,6 +119,8 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
+        enabledTimer.reset()
+        println("Enabled init $timeSinceEnabled")
         Drive.brakeMode()
         Vision.onEnable()
     }
@@ -137,8 +144,10 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
+        println("Autonomous init $timeSinceEnabled")
         if (isSim) Autonomous.flipPathsIfAllianceChange() // Only needed in sim
         Autonomous.setDrivePositionToAutoStartPose()
+        println("scheduling auto command $timeSinceEnabled")
         (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
     }
 

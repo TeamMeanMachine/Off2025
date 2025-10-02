@@ -179,7 +179,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
         val visionEstimateTime: Double = idToTimeMap[estimate.id]!!
         if (visionOdometryBuffer.internalBuffer.firstKey() > visionEstimateTime) {
-            println("vision measurement is too far in the past")
+//            println("vision measurement is too far in the past")
             return
         }
         val odometryAtEstimateTime = visionOdometryBuffer.getSample(visionEstimateTime).getOrNull()
@@ -242,7 +242,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             }
 
             if (odometryPoseBuffer.internalBuffer.firstKey() > measurementTime) {
-                println("camera measurement is too far in the past")
+//                println("camera measurement is too far in the past")
                 continue
             }
 
@@ -367,7 +367,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         }
         if (odometryPoseBuffer.internalBuffer.firstKey() > latestTimestamp) {
             Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
-            println("single tag result is too far in the past")
+//            println("single tag result is too far in the past")
             return
         }
 
