@@ -207,6 +207,7 @@ fun algaeDescore(): Command {
             }
         )
     ).finallyRun {
+        Armavator.slowSpeed()
         goToDrivePose()
     }
 }
@@ -261,6 +262,7 @@ fun algaeGroundIntake(isFlipped: Boolean): Command {
             Armavator.noMovement || Armavator.pivotSetpointError.absoluteValue() < 20.0.degrees
         }
     ).finallyRun { // End at drive pose
+        Armavator.slowSpeed()
         goToDrivePose()
     }
 }
