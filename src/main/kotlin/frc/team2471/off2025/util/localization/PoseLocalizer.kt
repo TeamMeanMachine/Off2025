@@ -98,6 +98,13 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             return Pose2d(pose.translation.plus(transform.translation), pose.rotation.plus(transform.rotation))
         }
 
+    val singleTagInterpolatedPose: Pose2d
+        get() {
+            val pose = singleTagPose
+            val transform = (latestChassisSpeeds).toTransform2d(Timer.getTimestamp() - lastOdometryUpdateTime)
+            return Pose2d(pose.translation.plus(transform.translation), pose.rotation.plus(transform.rotation))
+        }
+
     /** Only Swerve odometry */
     val odometryPose: Pose2d
         get() = odometryPoseBuffer.internalBuffer.lastEntry()?.value ?: Pose2d()

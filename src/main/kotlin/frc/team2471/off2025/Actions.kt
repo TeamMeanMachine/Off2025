@@ -9,6 +9,7 @@ import frc.team2471.off2025.FieldManager.onFriendlyAllianceSide
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.commands.finallyRun
+import frc.team2471.off2025.util.control.commands.finallyWait
 import frc.team2471.off2025.util.control.leftStickButton
 import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
 import frc.team2471.off2025.util.control.commands.onlyRunWhileTrue
@@ -118,7 +119,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
         FieldManager.Level.L4 -> Pose.SCORE_L4 to true
     }
     val delayDistanceAndIntermediate = when (level) {
-        FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
+        FieldManager.Level.L4 -> 50.0.inches to 0.0.degrees
         else -> 0.0.inches to null
     }
 
@@ -127,7 +128,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
             isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
         },
         parallelCommand(
-            Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
+            Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagInterpolatedPose }/*, { getApproachAngle(alignPoint()) }*/),
             Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
         )
     )
@@ -224,7 +225,16 @@ fun prepareClimb(): Command {
 
 fun climb(): Command {
     return runCommand {
-        Climb.motorPercentOutput = 1.0
-        Armavator.goToPose(Pose.INTAKE_GROUND, true, false)
+        if (Climb.hasDeployed) {
+            Climb.motorPercentOutput = 1.0
+            Armavator.goToPose(Pose.INTAKE_GROUND, true, false)
+        } else {
+            println("DEPLOY CLIMBER BEFORE YOU CLIMB")
+        }
     }
 }
+
+fun scoreAuto(waitTime: Double = 0.5): Command = runOnce {
+        println("Scoring")
+        Intake.intakeState = IntakeState.SCORING
+    }.finallyWait(waitTime)

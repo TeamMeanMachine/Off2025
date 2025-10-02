@@ -2,10 +2,13 @@ package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.hardware.TalonFX
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DigitalInput
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.control.commands.sequenceCommand
+import frc.team2471.off2025.util.control.commands.use
 import frc.team2471.off2025.util.control.commands.waitUntilCommand
 import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.currentLimits
@@ -22,6 +25,8 @@ object Climb: SubsystemBase("Climb") {
     const val FEEDBACK_COEFFICIENT = 1.0/45.0
 
     val relayOn: Boolean get() = !switch.get()
+
+    var hasDeployed = false
 
     val currentMotorPos: Double
         get() = climberMotor.position.valueAsDouble * FEEDBACK_COEFFICIENT
@@ -62,9 +67,9 @@ object Climb: SubsystemBase("Climb") {
     // function that can "deploy" the climber by doing a 180-degree turn (or more) forward. A PID or bang-bang controller should work
     fun deploy(): Command {
         var startingAngle = currentMotorPos
-
         return sequenceCommand(
             runOnce {
+                hasDeployed = true
                 startingAngle = currentMotorPos
                 motorPercentOutput = 1.0
             },

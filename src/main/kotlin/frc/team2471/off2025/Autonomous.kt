@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
+import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.FieldManager.Level
 import frc.team2471.off2025.FieldManager.rotateAroundField
 import frc.team2471.off2025.tests.elevatorJoystick
@@ -16,6 +17,7 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
+import frc.team2471.off2025.util.control.commands.deadlineCommand
 import frc.team2471.off2025.util.control.commands.deferCommand
 import frc.team2471.off2025.util.control.commands.finallyWait
 import frc.team2471.off2025.util.control.commands.parallelCommand
@@ -185,14 +187,16 @@ object Autonomous {
                     Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
                     Intake.intakeState = IntakeState.HOLDING
                 },
-                alignToScoreWithDelayDistance(if (isRedAlliance) FieldManager.alignPositionsLeftRed[2] else FieldManager.alignPositionsLeftBlue[2], Level.L3),
-                waitUntilCommand(1.0) { Armavator.atSetpoint },
+                alignToScoreWithDelayDistance(if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2], Level.L4),
+                waitUntilCommand { Armavator.atSetpoint },
+                scoreAuto(),
                 runOnce {
-                    println("Scoring")
-                    Intake.intakeState = IntakeState.SCORING
-                }.finallyWait(0.5),
+                    Drive.resetOdometryToAbsolute()
+                },
                 parallelCommand(
-                    Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = { Drive.localizer.pose }),
+                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }).until {
+                        Intake.hasCargo
+                    },
                     runOnce {
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
                         Intake.hasCargo = false
@@ -200,32 +204,36 @@ object Autonomous {
                         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                     }
                 ),
-                waitUntilCommand(2.0) { Intake.hasCargo },
-                alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.RIGHT),
-                waitUntilCommand(1.0) { Armavator.atSetpoint },
+                alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.RIGHT),
+                waitUntilCommand { Armavator.atSetpoint },
+                scoreAuto(),
                 runOnce {
-                    println("Scoring")
-                    Intake.intakeState = IntakeState.SCORING
-                }.finallyWait(0.5),
+                    Drive.resetOdometryToAbsolute()
+                },
                 parallelCommand(
-                    Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = { Drive.localizer.pose }),
+                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }).until {
+                        Intake.hasCargo
+                    },
                     runOnce {
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                        Intake.hasCargo = false
                         Intake.intakeState = IntakeState.INTAKING
                         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                     }
                 ),
-                waitUntilCommand(2.0) { Intake.hasCargo },
-                alignToScoreWithDelayDistance(Level.L3, FieldManager.ScoringSide.LEFT),
-                waitUntilCommand(1.0) { Armavator.atSetpoint },
+                alignToScoreWithDelayDistance(Level.L4, FieldManager.ScoringSide.LEFT),
+                waitUntilCommand { Armavator.atSetpoint },
+                scoreAuto(),
                 runOnce {
-                    println("Scoring")
-                    Intake.intakeState = IntakeState.SCORING
-                }.finallyWait(1.0),
+                    Drive.resetOdometryToAbsolute()
+                },
                 parallelCommand(
-                    Drive.driveAlongChoreoPath(path.getSplit(5).get(), poseSupplier = { Drive.localizer.pose }),
+                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }).until {
+                        Intake.hasCargo
+                    },
                     runOnce {
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                        Intake.hasCargo = false
                         Intake.intakeState = IntakeState.INTAKING
                         Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
                     }

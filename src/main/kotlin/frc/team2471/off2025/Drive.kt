@@ -201,7 +201,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     fun resetOdometryToAbsolute() {
         println("resetting odometry to localizer pose")
-        pose = localizer.pose
+        val localizerPose = localizer.pose
+        pose = Pose2d(localizerPose.translation, pose.rotation)
     }
 
     @OptIn(DelicateCoroutinesApi::class)
