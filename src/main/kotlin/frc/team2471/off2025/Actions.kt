@@ -289,7 +289,7 @@ fun scoreAuto(waitTime: Double = 0.5): Command =
     runOnce {
         println("Scoring")
         Intake.scoreAlgae = false
-        Intake.hasCargo = false
         Intake.intakeState = IntakeState.SCORING
+        Intake.hasCargo = false
 
     }.finallyWait(waitTime)

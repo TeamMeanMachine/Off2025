@@ -182,12 +182,13 @@ object Autonomous {
             println("inside L4 right ${Robot.timeSinceEnabled}")
             Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
             val path = paths["3 L4 Right"]!!
+            val coralStationPose = path.getSplit(3).get().getFinalPose(false).get()
             sequenceCommand(
                 autoScoreCoral(if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2], Level.L4),
                 scoreAuto(),
                 deadlineCommand(
                     waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
+                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
                     runOnce {
                         Drive.resetOdometryToAbsolute()
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
@@ -200,7 +201,7 @@ object Autonomous {
                 scoreAuto(),
                 deadlineCommand(
                     waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
+                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
                     runOnce {
                         Drive.resetOdometryToAbsolute()
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
@@ -213,7 +214,7 @@ object Autonomous {
                 scoreAuto(),
                 deadlineCommand(
                     waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(path.getSplit(3).get().getFinalPose(false).get(), { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
+                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
                     runOnce {
                         Drive.resetOdometryToAbsolute()
                         val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
