@@ -212,17 +212,9 @@ object Autonomous {
                 ),
                 autoScoreCoral(Level.L4, FieldManager.ScoringSide.LEFT),
                 scoreAuto(),
-                deadlineCommand(
-                    waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
-                    runOnce {
-                        Drive.resetOdometryToAbsolute()
-                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
-                        Intake.hasCargo = false
-                        Intake.intakeState = IntakeState.INTAKING
-                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
-                    }
-                ),
+                runOnce {
+                    Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
+                }
             )
         }
     }
