@@ -394,8 +394,10 @@ object Armavator: SubsystemBase() {
     }
 
     fun animateToPose(pose: Pose, isFlipped: () -> Boolean = { false }, optimizePivot: Boolean = true, animateTime: Double? = null): Command {
-        val initialElevatorSpeeds = elevatorControlRequest
-        val initialArmSpeeds = armControlRequest
+        val initialElevatorVelocity = elevatorControlRequest.Velocity
+        val initialElevatorAccel = elevatorControlRequest.Acceleration
+        val initialArmVelocity = armControlRequest.Velocity
+        val initialArmAccel = armControlRequest.Acceleration
         return runOnce {
             println("animating to pose")
             val targetPose = if (isFlipped()) pose.reflect() else pose
@@ -413,8 +415,8 @@ object Armavator: SubsystemBase() {
             val armDelta = targetPose.armAngle - currentPose.armAngle
 
 
-            val elevatorAnimationTime = calculateAnimationTime(elevatorDelta.asInches, initialElevatorSpeeds.Velocity, initialElevatorSpeeds.Acceleration)
-            val armAnimationTime = calculateAnimationTime(armDelta.asDegrees, initialArmSpeeds.Velocity, initialArmSpeeds.Acceleration)
+            val elevatorAnimationTime = calculateAnimationTime(elevatorDelta.asInches, initialElevatorVelocity, initialElevatorAccel)
+            val armAnimationTime = calculateAnimationTime(armDelta.asDegrees, initialArmVelocity, initialArmAccel)
             val animationTime = maxOf(elevatorAnimationTime, armAnimationTime, animateTime ?: 0.0)
 
             val elevatorSpeedFactor = min(elevatorAnimationTime / animationTime, 1.0)
@@ -437,13 +439,15 @@ object Armavator: SubsystemBase() {
             atSetpoint || isSim
         }).finallyRun {
             println("stopping armavator animation")
+            println("elevator vel ${initialElevatorVelocity}, accel $initialElevatorAccel")
+            println("current elevator vel ${elevatorControlRequest.Velocity}, accel ${elevatorControlRequest.Acceleration}")
             elevatorControlRequest.apply {
-                Velocity = initialElevatorSpeeds.Velocity
-                Acceleration = initialElevatorSpeeds.Acceleration
+                Velocity = initialElevatorVelocity
+                Acceleration = initialElevatorAccel
             }
             armControlRequest.apply {
-                Velocity = initialArmSpeeds.Velocity
-                Acceleration = initialArmSpeeds.Acceleration
+                Velocity = initialArmVelocity
+                Acceleration = initialArmAccel
             }
             isSlowSpeed = false
         }
