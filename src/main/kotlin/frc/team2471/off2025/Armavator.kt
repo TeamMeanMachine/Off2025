@@ -56,6 +56,7 @@ import org.littletonrobotics.junction.Logger
 import kotlin.math.IEEErem
 import kotlin.math.abs
 import kotlin.math.absoluteValue
+import kotlin.math.min
 import kotlin.math.sqrt
 
 object Armavator: SubsystemBase() {
@@ -416,16 +417,16 @@ object Armavator: SubsystemBase() {
             val armAnimationTime = calculateAnimationTime(armDelta.asDegrees, initialArmSpeeds.Velocity, initialArmSpeeds.Acceleration)
             val animationTime = maxOf(elevatorAnimationTime, armAnimationTime, animateTime ?: 0.0)
 
-            val elevatorSpeedFactor = elevatorAnimationTime / animationTime
-            val armSpeedFactor = armAnimationTime / animationTime
+            val elevatorSpeedFactor = min(elevatorAnimationTime / animationTime, 1.0)
+            val armSpeedFactor = min(armAnimationTime / animationTime, 1.0)
 
             elevatorControlRequest.apply {
-                Velocity /= elevatorSpeedFactor
-                Acceleration /= elevatorSpeedFactor
+                Velocity *= elevatorSpeedFactor
+                Acceleration *= elevatorSpeedFactor
             }
             armControlRequest.apply {
-                Velocity /= armSpeedFactor
-                Acceleration /= armSpeedFactor
+                Velocity *= armSpeedFactor
+                Acceleration *= armSpeedFactor
             }
 
             println("max animation time: $animationTime. Arm: $armSpeedFactor. Elevator: $elevatorSpeedFactor")

@@ -150,7 +150,7 @@ fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
 
     return parallelCommand(
         Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
-        Armavator.animateToPose(poseAndOptimize.first,{ !isFlipped }, poseAndOptimize.second )
+        Armavator.animateToPose(poseAndOptimize.first,{ !isFlipped }, poseAndOptimize.second, 3.0 )
 //            Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
     )
 }
@@ -285,11 +285,18 @@ fun climb(): Command {
     }
 }
 
-fun scoreAuto(waitTime: Double = 0.5): Command =
+fun scoreAuto(doDunk: Boolean = false, waitTime: Double = 0.5): Command =
     runOnce {
         println("Scoring")
         Intake.scoreAlgae = false
         Intake.intakeState = IntakeState.SCORING
         Intake.hasCargo = false
 
-    }.finallyWait(waitTime)
+    }.finallyWait(waitTime).finallyRun {
+        if (doDunk) {
+            Armavator.goToPose(Pose(Pose.current.elevatorHeight - 20.0.inches, Pose.current.armAngle, Pose.current.pivotAngle))
+        } else {
+            Armavator.goToPose(Pose(Pose.current.elevatorHeight, 0.0.degrees, Pose.current.pivotAngle))
+        }
+        Intake.scoredTimer.restart()
+    }

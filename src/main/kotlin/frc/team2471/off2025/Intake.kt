@@ -5,6 +5,7 @@ import com.ctre.phoenix6.controls.VoltageOut
 import com.ctre.phoenix6.hardware.CANrange
 import com.ctre.phoenix6.hardware.TalonFX
 import edu.wpi.first.math.filter.LinearFilter
+import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import frc.team2471.off2025.util.ctre.applyConfiguration
 import frc.team2471.off2025.util.ctre.brakeMode
@@ -38,6 +39,9 @@ object Intake: SubsystemBase("Intake") {
     val ALGAE_INTAKE_POWER = 1.0
     val ALGAE_GROUND_INTAKE_POWER = 0.6
     val SIDE_SPIT_POWER = 0.8
+
+    val scoredTimer = Timer()
+    val timeSinceLastScore get() = scoredTimer.get()
 
     init {
         frontMotor.applyConfiguration {
@@ -93,6 +97,12 @@ object Intake: SubsystemBase("Intake") {
         Logger.recordOutput("Intake/IntakeState", intakeState.name)
         Logger.recordOutput("Intake/FrontOutputV", frontMotor.motorVoltage.valueAsDouble)
         Logger.recordOutput("Intake/SideOutputV", sideMotor.motorVoltage.valueAsDouble)
+        Logger.recordOutput("Intake/hasCargo", hasCargo)
+        Logger.recordOutput("Intake/timeSinceLastScore", timeSinceLastScore)
+        Logger.recordOutput("Intake/cargoDetectedRight", cargoDetectedRight)
+        Logger.recordOutput("Intake/cargoDetectedLeft", cargoDetectedLeft)
+        Logger.recordOutput("Intake/rightDistance", canRangeRightDist)
+        Logger.recordOutput("Intake/leftDistance", canRangeLeftDist)
     }
 
     private fun sideSplit() {

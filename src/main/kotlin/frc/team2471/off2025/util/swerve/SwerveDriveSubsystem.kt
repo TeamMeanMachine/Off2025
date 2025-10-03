@@ -227,7 +227,7 @@ abstract class SwerveDriveSubsystem(
     val demoSpeed: Double
         get() = SmartDashboard.getNumber("DemoSpeed", 1.0).coerceIn(0.0, 1.0)
     val demoMode: Boolean
-        get() = demoSpeed < 1.0
+        get() = false/*demoSpeed < 1.0*/
 
     private val driveAtAngleRequest = FieldCentricFacingAngle()
 
@@ -551,7 +551,8 @@ abstract class SwerveDriveSubsystem(
         poseSupplier: () -> Pose2d = { pose },
         entryAngleSupplier: () -> Angle? = { null },
         autopilotSupplier: Autopilot = autoPilot,
-    ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier, autopilotSupplier)
+        earlyExit: (Pose2d, APTarget) -> Boolean = { robotPose, target -> autopilotSupplier.atTarget(robotPose, target) }
+    ) = driveToAutopilotPoint({ wantedPose }, poseSupplier, entryAngleSupplier, autopilotSupplier, earlyExit)
 
     /**
      * Drives the robot to a [wantedPose] using [Autopilot]. Uses [autoPilot] to control the robot.
@@ -567,6 +568,7 @@ abstract class SwerveDriveSubsystem(
         poseSupplier: () -> Pose2d = { pose },
         entryAngleSupplier: () -> Angle? = { null },
         autopilotSupplier: Autopilot = autoPilot,
+        earlyExit: (Pose2d, APTarget) -> Boolean = { robotPose, target -> autopilotSupplier.atTarget(robotPose, target) }
     ): Command = use(this) {
         var target: APTarget? = null
         val entryAngle = entryAngleSupplier()
@@ -587,9 +589,9 @@ abstract class SwerveDriveSubsystem(
             driveAtAngle(output.targetAngle(), velocity)
         }.onlyRunWhileFalse {
             val pose = poseSupplier()
-            val result = autopilotSupplier.atTarget(pose, target)
+            val result = earlyExit(pose, target)
             if (result) {
-                println("Stopping driveToAutopilotPoint error meters/rad: ${pose - target?.reference}")
+                println("Stopping driveToAutopilotPoint error meters/rad: ${pose - wantedPose()}")
             }
             result
         }.finallyRun {

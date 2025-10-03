@@ -19,12 +19,16 @@ import frc.team2471.off2025.tests.velocityVoltTest
 import frc.team2471.off2025.util.control.commands.beforeWait
 import frc.team2471.off2025.util.control.commands.deadlineCommand
 import frc.team2471.off2025.util.control.commands.deferCommand
+import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
+import frc.team2471.off2025.util.control.commands.parallelCommand
+import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.control.commands.runOnce
 import frc.team2471.off2025.util.units.asSeconds
 import frc.team2471.off2025.util.isRedAlliance
 import frc.team2471.off2025.util.math.round
 import frc.team2471.off2025.util.control.commands.sequenceCommand
 import frc.team2471.off2025.util.control.commands.toCommand
+import frc.team2471.off2025.util.control.commands.waitCommand
 import frc.team2471.off2025.util.control.commands.waitUntilCommand
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
@@ -185,29 +189,45 @@ object Autonomous {
             val coralStationPose = path.getSplit(3).get().getFinalPose(false).get()
             sequenceCommand(
                 autoScoreCoral(if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2], Level.L4),
-                scoreAuto(),
-                deadlineCommand(
-                    waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
-                    runOnce {
-                        Drive.resetOdometryToAbsolute()
-                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                scoreAuto(true),
+                parallelCommand(
+                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }),
+                    sequenceCommand(
+                        runOnce {
+                            Drive.resetOdometryToAbsolute()
+                        },
+                        waitCommand(0.1),
+                        runOnce {
+                            val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                            Intake.intakeState = IntakeState.INTAKING
+                            Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                        },
+                    ),
+                    runCommand {
                         Intake.hasCargo = false
-                        Intake.intakeState = IntakeState.INTAKING
-                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                    }.onlyRunWhileFalse {
+                        Intake.timeSinceLastScore > 1.5
                     }
                 ),
                 autoScoreCoral(Level.L4, FieldManager.ScoringSide.RIGHT),
                 scoreAuto(),
-                deadlineCommand(
-                    waitUntilCommand(2.0) { Intake.hasCargo }.beforeWait(1.0),
-                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot),
-                    runOnce {
-                        Drive.resetOdometryToAbsolute()
-                        val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                parallelCommand(
+                    Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }),
+                    sequenceCommand(
+                        runOnce {
+                            Drive.resetOdometryToAbsolute()
+                        },
+                        waitCommand(0.1),
+                        runOnce {
+                            val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                            Intake.intakeState = IntakeState.INTAKING
+                            Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                        },
+                    ),
+                    runCommand {
                         Intake.hasCargo = false
-                        Intake.intakeState = IntakeState.INTAKING
-                        Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                    }.onlyRunWhileFalse {
+                        Intake.timeSinceLastScore > 1.5
                     }
                 ),
                 autoScoreCoral(Level.L4, FieldManager.ScoringSide.LEFT),
