@@ -117,6 +117,8 @@ abstract class SwerveDriveSubsystem(
     /** [driveAtAngle] pid controller, used in anything that the robot automatically moves heading excluding path following. Error in radians -> applied rotational speed rad/s. */
     abstract val driveAtAnglePIDController: PhoenixPIDController //= PhoenixPIDController(7.7, 0.0, 0.072)
 
+    abstract val isDisabledSupplier: () -> Boolean
+
     @get:AutoLogOutput(key = "Drive/Pose")
     abstract var pose: Pose2d // Abstract to allow for other pose sources (cameras) to also reset when this gets set.
 
@@ -303,6 +305,13 @@ abstract class SwerveDriveSubsystem(
 
         gyroDisconnectedAlert.set(!isGyroConnected)
 
+        // Check if a part of any modules have been disconnected. Save on cycle time by only checking one module every loop.
+        val module = modules[moduleErrorIndex]
+        driveDisconnectAlerts[moduleErrorIndex].set(!module.driveMotor.isConnected)
+        steerDisconnectAlerts[moduleErrorIndex].set(!module.steerMotor.isConnected)
+        encoderDisconnectAlerts[moduleErrorIndex].set(!module.encoder.isConnected)
+        moduleErrorIndex = (moduleErrorIndex + 1) % modules.size
+
         // Calculate heading from swerve odometry when gyro is disconnected.
         if (!isGyroConnected && isReal) {
             val deltaYaw = kinematics.toChassisSpeeds(*moduleStates).omegaRadiansPerSecond * deltaTime
@@ -317,15 +326,8 @@ abstract class SwerveDriveSubsystem(
      * This is responsible for providing disconnect warnings, and more good things.
      */
     override fun periodic() {
-        // Check if a part of any modules have been disconnected. Save on cycle time by only checking one module every loop.
-        val module = modules[moduleErrorIndex]
-        driveDisconnectAlerts[moduleErrorIndex].set(!module.driveMotor.isConnected)
-        steerDisconnectAlerts[moduleErrorIndex].set(!module.steerMotor.isConnected)
-        encoderDisconnectAlerts[moduleErrorIndex].set(!module.encoder.isConnected)
-        moduleErrorIndex = (moduleErrorIndex + 1) % modules.size
-
         // Disabled actions
-        if (DriverStation.isDisabled()) {
+        if (isDisabledSupplier()) {
             // Set module setpoints to their current position.
             setControl(ApplyModuleStates())
             if (isReal) {
@@ -570,10 +572,9 @@ abstract class SwerveDriveSubsystem(
         autopilotSupplier: Autopilot = autoPilot,
         earlyExit: (Pose2d, APTarget) -> Boolean = { robotPose, target -> autopilotSupplier.atTarget(robotPose, target) }
     ): Command = use(this) {
-        var target: APTarget? = null
         val entryAngle = entryAngleSupplier()
         val targetPose = wantedPose()
-        target = if (entryAngle != null) {
+        val target: APTarget = if (entryAngle != null) {
             APTarget(targetPose).withEntryAngle(entryAngle.asRotation2d)
         } else {
             APTarget(targetPose)

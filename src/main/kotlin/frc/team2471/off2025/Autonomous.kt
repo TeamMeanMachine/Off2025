@@ -64,7 +64,8 @@ object Autonomous {
         addOption("Drive Velocity Volt Test", Drive.velocityVoltTest())
     }
 
-    val selectedAuto: AutoCommand? get() = autoChooser.get()
+    var selectedAuto: AutoCommand? = null
+        private set
     val autonomousCommand: Command? get() = if (!Drive.demoMode) selectedAuto?.commandSupplier?.invoke() else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
     val testCommand: Command? get() = testChooser.get()
 
@@ -77,7 +78,6 @@ object Autonomous {
         private set
 
     private var prevPathRed: Boolean? = null
-    private var prevAuto: AutoCommand? = null
 
     init {
         val startTime = RobotController.getMeasureFPGATime()
@@ -92,10 +92,14 @@ object Autonomous {
         println("reading ${paths.size} paths took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(6)} seconds.")
     }
 
-    fun setDrivePositionToAutoStartPoseIfAutoChange() {
-        if (prevAuto != selectedAuto) {
+    fun updateSelectedAuto() {
+        val startTime = RobotController.getMeasureFPGATime()
+        val newAuto = autoChooser.get()
+        if (selectedAuto != newAuto) {
+            selectedAuto = autoChooser.get()
+            println("selected auto changed ${autoChooser.sendableChooser.selected}")
             setDrivePositionToAutoStartPose()
-            prevAuto = selectedAuto
+            println("finished reading auto in ${(RobotController.getMeasureFPGATime() - startTime).asSeconds} seconds")
         }
     }
 
@@ -164,29 +168,14 @@ object Autonomous {
     private fun squarePathTest (): Command {
         return Drive.driveAlongChoreoPath(paths["square"]!!, resetOdometry = true)
     }
-/*    private fun threeL4Right(): Command {
-        val path = paths["3 L4 Right"]!!
-        return sequenceCommand(
-            Drive.driveAlongChoreoPath(path.getSplit(0).get(), poseSupplier = {Drive.localizer.singleTagPose}, resetOdometry = true),
-            { println("L4 Score 1") }.toCommand(),
-            Drive.driveAlongChoreoPath(path.getSplit(1).get(), poseSupplier = {Drive.localizer.pose}),
-            { println("Intake") }.toCommand(),
-            Drive.driveAlongChoreoPath(path.getSplit(2).get(), poseSupplier = {Drive.localizer.singleTagPose}),
-            { println("L4 Score 2") }.toCommand(),
-            Drive.driveAlongChoreoPath(path.getSplit(3).get(), poseSupplier = {Drive.localizer.pose}),
-            { println("Intake") }.toCommand(),
-            Drive.driveAlongChoreoPath(path.getSplit(4).get(), poseSupplier = {Drive.localizer.singleTagPose}),
-            { println("L4 Score 3") }.toCommand(),
-        )
-    }*/
 
 
     private fun threeL4Right(): Command {
         return deferCommand(Drive, Armavator) {
             println("inside L4 right ${Robot.timeSinceEnabled}")
             Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
-            val path = paths["3 L4 Right"]!!
-            val coralStationPose = path.getSplit(3).get().getFinalPose(false).get()
+            val coralStationPose = Pose2d(1.508599042892456.meters, 0.7226448655128479.meters, 54.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }//path.getSplit(3).get().getFinalPose(false).get()
+            println("about to run sequence ${Robot.timeSinceEnabled}")
             sequenceCommand(
                 autoScoreCoral(if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2], Level.L4),
                 scoreAuto(true),

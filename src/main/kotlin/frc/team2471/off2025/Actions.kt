@@ -135,22 +135,23 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
 }
 
 fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
-    var isFlipped = FieldManager.closestAlignPoint(alignPoint, level).second
     val poseAndOptimize = when (level){
         FieldManager.Level.L1 -> Pose.SCORE_L1 to false
         FieldManager.Level.L2 -> Pose.SCORE_L2 to true
         FieldManager.Level.L3 -> Pose.SCORE_L3 to true
         FieldManager.Level.L4 -> Pose.SCORE_L4 to true
     }
-    val delayDistanceAndIntermediate = when (level) {
+/*    val delayDistanceAndIntermediate = when (level) {
         FieldManager.Level.L4 -> 40.0.inches to 20.0.degrees
         else -> 0.0.inches to null
-    }
-    println("auto score coral ${Robot.timeSinceEnabled}")
+    }*/
 
     return parallelCommand(
-        Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
-        Armavator.animateToPose(poseAndOptimize.first,{ !isFlipped }, poseAndOptimize.second, 3.0 )
+        Drive.driveToAutopilotPoint({ Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
+        Armavator.animateToPose(poseAndOptimize.first,{ false }, poseAndOptimize.second, 3.0 ),
+        runOnce {
+            println("auto score coral ${Robot.timeSinceEnabled}")
+        }
 //            Armavator.goToPose(poseAndOptimize.first, { !isFlipped }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
     )
 }
@@ -168,11 +169,11 @@ fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?): 
         else -> 0.0.inches to null
     }
 
-    println("auto score coral ${Robot.timeSinceEnabled}")
 
 
     return sequenceCommand(
         runOnce {
+            println("auto score coral ${Robot.timeSinceEnabled}")
             closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
         },
         parallelCommand(

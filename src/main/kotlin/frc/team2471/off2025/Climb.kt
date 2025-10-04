@@ -56,8 +56,11 @@ object Climb: SubsystemBase("Climb") {
     // Logging periodic and set motor power to 0.0 if the relay is active.
     override fun periodic() {
         Logger.recordOutput("Climb/relayOn", relayOn)
-        Logger.recordOutput("Climb/motorPower", climberMotor.dutyCycle.valueAsDouble)
-        Logger.recordOutput("Climb/motorPositionDeg", climberMotor.position.valueAsDouble.rotations.asDegrees)
+        if (!Robot.isAutonomous) {
+            Logger.recordOutput("Climb/motorPower", climberMotor.dutyCycle.valueAsDouble)
+            Logger.recordOutput("Climb/motorPositionDeg", climberMotor.dutyCycle.valueAsDouble.rotations.asDegrees)
+        }
+
         if (relayOn) {
             motorPercentOutput = 0.0
         }

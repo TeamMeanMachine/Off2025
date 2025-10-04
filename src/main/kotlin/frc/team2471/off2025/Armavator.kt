@@ -299,19 +299,28 @@ object Armavator: SubsystemBase() {
         Logger.recordOutput("Armavator/pivotMotorAngle", pivotMotorAngle.asDegrees)
 
         LoopLogger.record("section 1")
+
         Logger.recordOutput("Armavator/heightSetpoint", heightSetpoint.asInches)
         Logger.recordOutput("Armavator/armAngleSetpoint", armAngleSetpoint.asDegrees)
         Logger.recordOutput("Armavator/pivotAngleSetpoint", pivotAngleSetpoint.asDegrees)
 
         LoopLogger.record("section 2")
+
         Logger.recordOutput("Armavator/elevatorCurrent", elevatorMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/armCurrent", armMotor.supplyCurrent.valueAsDouble)
         Logger.recordOutput("Armavator/pivotCurrent", pivotMotor.supplyCurrent.valueAsDouble)
 
         LoopLogger.record("section 3")
-        Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor.velocity.valueAsDouble)
-        Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
-        Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
+
+        if (!Robot.isAutonomousEnabled) {
+            Logger.recordOutput("Armavator/elevatorVelocity", elevatorMotor.velocity.valueAsDouble)
+            Logger.recordOutput("Armavator/armVelocity", armMotor.velocity.valueAsDouble)
+            Logger.recordOutput("Armavator/pivotVelocity", pivotMotor.velocity.valueAsDouble)
+        }
+
+
+        LoopLogger.record("section 3.5")
+
         Logger.recordOutput("Armavator/noMovement", noMovement)
         Logger.recordOutput("Armavator/atSetpoint", atSetpoint)
 
@@ -403,14 +412,6 @@ object Armavator: SubsystemBase() {
             val targetPose = if (isFlipped()) pose.reflect() else pose
             val currentPose = Pose.current
 
-            if (optimizePivot) {
-                if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees > 90.0) {
-                    targetPose.pivotAngle -= 180.0.degrees
-                } else if ((targetPose.pivotAngle - pivotEncoderAngle).asDegrees < -90.0) {
-                    targetPose.pivotAngle += 180.0.degrees
-                }
-            }
-
             val elevatorDelta = targetPose.elevatorHeight - currentPose.elevatorHeight
             val armDelta = targetPose.armAngle - currentPose.armAngle
 
@@ -439,7 +440,7 @@ object Armavator: SubsystemBase() {
             atSetpoint || isSim
         }).finallyRun {
             println("stopping armavator animation")
-            println("elevator vel ${initialElevatorVelocity}, accel $initialElevatorAccel")
+            println("soon-to-be elevator vel $initialElevatorVelocity, accel $initialElevatorAccel")
             println("current elevator vel ${elevatorControlRequest.Velocity}, accel ${elevatorControlRequest.Acceleration}")
             elevatorControlRequest.apply {
                 Velocity = initialElevatorVelocity
@@ -449,7 +450,6 @@ object Armavator: SubsystemBase() {
                 Velocity = initialArmVelocity
                 Acceleration = initialArmAccel
             }
-            isSlowSpeed = false
         }
     }
 
@@ -458,15 +458,15 @@ object Armavator: SubsystemBase() {
         return if (distance >= minDistanceToReachMaxVelocity) {
             val accelTime = maxVelocity / maxAcceleration
             val accelDistance = 0.5 * maxAcceleration * accelTime * accelTime
-            val cruiseDistance = distance - 2 * accelDistance
+            val cruiseDistance = distance - 2.0 * accelDistance
             val cruiseTime = cruiseDistance / maxVelocity
 
-            2 * accelTime + cruiseTime
+            2.0 * accelTime + cruiseTime
         } else {
             val peakVelocity = sqrt(maxAcceleration * distance)
             val accelTime = peakVelocity / maxAcceleration
 
-            2 * accelTime
+            2.0 * accelTime
         }
     }
 

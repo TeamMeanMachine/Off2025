@@ -82,12 +82,8 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
 
     val interpolatedOdometryPose: Pose2d
         get() {
-            val deltaSeconds = Timer.getTimestamp() - lastOdometryUpdateTime
             val odomPose = odometryPose
-            val transform = (latestChassisSpeeds).toTransform2d(deltaSeconds)
-            Logger.recordOutput("Localizer/OdometryDeltaSeconds", deltaSeconds)
-            Logger.recordOutput("Localizer/OdometryTransform", transform)
-            Logger.recordOutput("Localizer/OdometryTransformLength m", transform.translation.norm)
+            val transform = (latestChassisSpeeds).toTransform2d(Timer.getTimestamp() - lastOdometryUpdateTime)
 
             return Pose2d(odomPose.translation.plus(transform.translation), odomPose.rotation.plus(transform.rotation))
         }

@@ -18,6 +18,7 @@ import frc.team2471.off2025.util.robotMode
 import frc.team2471.off2025.util.units.asFeet
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
@@ -34,6 +35,7 @@ import kotlin.collections.iterator
  * the package after creating this project, you must also update the build.gradle file in the
  * project.
  */
+@OptIn(DelicateCoroutinesApi::class)
 object Robot : LoggedRobot() {
     val isCompBot = getCompBotBoolean()
     private var wasDisabled = true
@@ -44,6 +46,23 @@ object Robot : LoggedRobot() {
 
     private val enabledTimer = Timer()
     val timeSinceEnabled get() = enabledTimer.get()
+
+    @get:JvmName("RobotIsEnabled")
+    var isEnabled = false
+        private set
+    @get:JvmName("RobotIsAutonomous")
+    var isAutonomous = false
+        private set
+    @get:JvmName("RobotIsDisabled")
+    var isDisabled = false
+        private set
+    @get:JvmName("RobotIsAutonomousEnabled")
+    var isAutonomousEnabled = false
+        private set
+    override fun isEnabled(): Boolean = isEnabled
+    override fun isAutonomous(): Boolean = isAutonomous
+    override fun isDisabled(): Boolean = isDisabled
+    override fun isAutonomousEnabled(): Boolean = isAutonomousEnabled
 
 
     // Subsystems:
@@ -90,6 +109,16 @@ object Robot : LoggedRobot() {
         allSubsystems.forEach { println("activating subsystem ${it.name}") }
         println("FieldManager thinks the field is ${FieldManager.fieldDimensions.asFeet} feet big")
         println("We see ${Autonomous.paths.size} paths and they are made on the ${if (Autonomous.isPathsRed) "red" else "blue"} side.")
+
+        GlobalScope.launch {
+            while (true) {
+                isEnabled = DriverStation.isEnabled()
+                isDisabled = !isEnabled
+                isAutonomous = DriverStation.isAutonomous()
+                isAutonomousEnabled = isAutonomous && isEnabled
+                delay(10.toLong())
+            }
+        }
     }
 
     /** This function is called periodically during all modes.  */
@@ -119,7 +148,7 @@ object Robot : LoggedRobot() {
     }
 
     fun enabledInit() {
-        enabledTimer.restart()
+//        enabledTimer.restart()
         println("Enabled init $timeSinceEnabled")
         Drive.brakeMode()
         Vision.onEnable()
@@ -136,7 +165,7 @@ object Robot : LoggedRobot() {
     /** This function is called periodically when disabled.  */
     override fun disabledPeriodic() {
         Autonomous.flipPathsIfAllianceChange()
-        Autonomous.setDrivePositionToAutoStartPoseIfAutoChange()
+        Autonomous.updateSelectedAuto()
         Armavator.goToPose(Pose.current)
         Intake.intakeState = IntakeState.HOLDING
         Intake.afterDisabled = true
@@ -144,11 +173,13 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
+        enabledTimer.restart()
         println("Autonomous init $timeSinceEnabled")
         if (isSim) Autonomous.flipPathsIfAllianceChange() // Only needed in sim
         Autonomous.setDrivePositionToAutoStartPose()
         println("scheduling auto command $timeSinceEnabled")
         (Autonomous.autonomousCommand ?: Commands.runOnce({ println("THE AUTONOMOUS COMMAND IS NULL") })).schedule()
+        println("scheduled auto command $timeSinceEnabled")
     }
 
     /** This function is called periodically during autonomous.  */
@@ -156,6 +187,7 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when teleop is enabled.  */
     override fun teleopInit() {
+        enabledTimer.restart()
 
     }
 
@@ -164,6 +196,7 @@ object Robot : LoggedRobot() {
 
     /** This function is called once when test mode is enabled.  */
     override fun testInit() {
+        enabledTimer.restart()
         CommandScheduler.getInstance().cancelAll() // Cancels all running commands at the start of test mode.
         (Autonomous.testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")})).schedule()
     }

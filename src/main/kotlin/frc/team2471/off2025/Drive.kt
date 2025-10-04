@@ -84,7 +84,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
 
     var simulateQuest = true
     val questConnected: Boolean
-        get() = if (isReal) quest.isTracking else simulateQuest
+        get() = if (isReal) quest.isConnected else simulateQuest
     val robotToQuestTransformMeters = Transform2d(-12.0.inches, 12.0.inches, 180.0.degrees.asRotation2d)
 
     var questPose: Pose2d = Pose2d()
@@ -111,6 +111,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
     override val driveAtAnglePIDController = PhoenixPIDController(7.7, 0.0, 0.072)
+
+    override val isDisabledSupplier: () -> Boolean = { Robot.isDisabled }
 
     init {
         println("inside Drive init")
@@ -168,8 +170,11 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         LoopLogger.record("Drive localizer")
 
         quest.commandPeriodic()
+        LoopLogger.record("Drive quest periodic")
 
         Logger.recordOutput("Drive/Quest/isConnected", questConnected)
+
+        LoopLogger.record("Drive questConnected")
 
         // Log all the poses for debugging
         Logger.recordOutput("Swerve/Odometry", localizer.odometryPose)
