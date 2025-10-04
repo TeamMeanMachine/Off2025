@@ -4,6 +4,7 @@ import choreo.Choreo
 import choreo.trajectory.SwerveSample
 import choreo.trajectory.Trajectory
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
@@ -30,8 +31,10 @@ import frc.team2471.off2025.util.control.commands.sequenceCommand
 import frc.team2471.off2025.util.control.commands.toCommand
 import frc.team2471.off2025.util.control.commands.waitCommand
 import frc.team2471.off2025.util.control.commands.waitUntilCommand
+import frc.team2471.off2025.util.units.asMeters
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.feet
 import frc.team2471.off2025.util.units.meters
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import kotlin.collections.forEach
@@ -47,6 +50,8 @@ object Autonomous {
         addOption("8 Foot Straight", AutoCommand(::eightFootStraight))
         addOption("6x6 Square", AutoCommand(::squarePathTest))
         addOption("3 L4 Right", AutoCommand(::threeL4Right) { Pose2d(7.19158.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
+        addOption("1 L4 Middle", AutoCommand(::singleL4Middle) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
+        addOption("1 L4 ALGAE Middle", AutoCommand(::singleL4AlgaeMiddle) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
     }
     // Chooser for test commands
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
@@ -185,7 +190,7 @@ object Autonomous {
                         runOnce {
                             Drive.resetOdometryToAbsolute()
                         },
-                        waitCommand(0.1),
+                        waitCommand(0.3),
                         runOnce {
                             val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
                             Intake.intakeState = IntakeState.INTAKING
@@ -199,14 +204,14 @@ object Autonomous {
                     }
                 ),
                 autoScoreCoral(Level.L4, FieldManager.ScoringSide.RIGHT),
-                scoreAuto(),
+                scoreAuto(true),
                 parallelCommand(
                     Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }),
                     sequenceCommand(
                         runOnce {
                             Drive.resetOdometryToAbsolute()
                         },
-                        waitCommand(0.1),
+                        waitCommand(0.2),
                         runOnce {
                             val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
                             Intake.intakeState = IntakeState.INTAKING
@@ -225,6 +230,47 @@ object Autonomous {
                     Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
                     println("finished. Seconds since enable: ${Robot.timeSinceEnabled}")
                 }
+            )
+        }
+    }
+
+
+    private fun singleL4Middle(): Command {
+        return deferCommand(Drive, Armavator) {
+            println("inside single L4 middle ${Robot.timeSinceEnabled}")
+            Drive.pose = Pose2d(7.191587924957275.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
+            println("about to run sequence ${Robot.timeSinceEnabled}")
+            sequenceCommand (
+                autoScoreCoral(Level.L4, FieldManager.ScoringSide.RIGHT, true),
+                scoreAuto(waitTime = 1.0),
+                runOnce {
+                    Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
+                    println("finished. Seconds since enable: ${Robot.timeSinceEnabled}")
+                }
+            )
+        }
+    }
+
+    private fun singleL4AlgaeMiddle(): Command {
+        return deferCommand(Drive, Armavator) {
+            println("inside single L4 ALGAE Middle ${Robot.timeSinceEnabled}")
+            Drive.pose = Pose2d(7.191587924957275.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
+            println("about to run sequence ${Robot.timeSinceEnabled}")
+            sequenceCommand (
+                autoScoreCoral(Level.L4, FieldManager.ScoringSide.RIGHT, true),
+                scoreAuto(waitTime = 1.0),
+                runOnce {
+                    Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
+                    println("finished. Seconds since enable: ${Robot.timeSinceEnabled}")
+                },
+                waitCommand(1.0),
+                parallelCommand(
+                    Drive.driveToAutopilotPoint(FieldManager.closestAlignPoint(Drive.localizer.pose, Level.L4, FieldManager.ScoringSide.RIGHT).first.transformBy(Transform2d(-4.0.feet, 0.0.feet, 0.0.degrees.asRotation2d)), autopilotSupplier = Drive.slowAutoPilot),
+                    runOnce {
+                        goToDrivePose()
+                    }
+                ),
+                algaeDescore().withTimeout(4.0)
             )
         }
     }

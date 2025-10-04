@@ -148,7 +148,7 @@ fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
 
     return parallelCommand(
         Drive.driveToAutopilotPoint({ Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
-        Armavator.animateToPose(poseAndOptimize.first,{ false }, poseAndOptimize.second, 3.0 ),
+        Armavator.animateToPose(poseAndOptimize.first,{ false }, poseAndOptimize.second, 2.0 ),
         runOnce {
             println("auto score coral ${Robot.timeSinceEnabled}")
         }
@@ -156,7 +156,7 @@ fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
     )
 }
 
-fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
+fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?, slowMode: Boolean = false): Command {
     var closestAlignPose: Pair<Pose2d, Boolean>? = null
     val poseAndOptimize = when (level){
         FieldManager.Level.L1 -> Pose.SCORE_L1 to false
@@ -176,11 +176,18 @@ fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?): 
             println("auto score coral ${Robot.timeSinceEnabled}")
             closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
         },
-        parallelCommand(
-            Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
-            Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second),
+        if (slowMode) {
+            parallelCommand(
+                Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }, autopilotSupplier = Drive.slowAutoPilot),
+                Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, 3.0)
+            )
+        } else {
+            parallelCommand(
+                Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
+                Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second),
 //            Armavator.goToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
-        )
+            )
+        }
     )
 }
 

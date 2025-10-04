@@ -23,8 +23,8 @@ object Intake: SubsystemBase("Intake") {
     val canRangeRightDistFilter = LinearFilter.movingAverage(5)
     var canRangeLeftDist = 0.0
     var canRangeRightDist = 0.0
-    val cargoDetectedLeft get() = if (canRangeLeftDist != 0.0) canRangeLeftDist < if (Robot.isCompBot) 0.09 else 0.08 else false
-    val cargoDetectedRight get() = if (canRangeRightDist != 0.0) canRangeRightDist < if (Robot.isCompBot) 0.09 else 0.08 else false
+    val cargoDetectedLeft get() = if (canRangeLeftDist != 0.0) canRangeLeftDist < if (Robot.isCompBot) 0.08 else 0.08 else false
+    val cargoDetectedRight get() = if (canRangeRightDist != 0.0) canRangeRightDist < if (Robot.isCompBot) 0.08 else 0.08 else false
     val canRangeLeft = CANrange(CANSensors.RANGE_INTAKE_LEFT, CANivores.ELEVATOR_CAN)
     val canRangeRight = CANrange(CANSensors.RANGE_INTAKE_RIGHT, CANivores.ELEVATOR_CAN)
 

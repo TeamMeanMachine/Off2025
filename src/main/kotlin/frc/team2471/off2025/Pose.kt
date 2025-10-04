@@ -17,7 +17,7 @@ data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngl
         val SCORE_L4 = Pose(58.0.inches, 57.0.degrees, 90.0.degrees)
         val SCORE_L4_DUNK = Pose(48.0.inches, 57.0.degrees, 90.0.degrees)
 
-        val ALGAE_DESCORE_LOW = Pose(16.0.inches, 72.0.degrees, -90.0.degrees)
+        val ALGAE_DESCORE_LOW = Pose(14.0.inches, 72.0.degrees, -90.0.degrees)
         val ALGAE_DESCORE_HIGH = Pose(34.0.inches, 72.0.degrees, -90.0.degrees)
         val ALGAE_DESCORE_HIGH_FLIPPED = Pose(ALGAE_DESCORE_HIGH.elevatorHeight - 7.0.inches, ALGAE_DESCORE_HIGH.armAngle, -ALGAE_DESCORE_HIGH.pivotAngle)
 
