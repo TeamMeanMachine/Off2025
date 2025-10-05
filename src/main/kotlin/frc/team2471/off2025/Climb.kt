@@ -21,7 +21,7 @@ object Climb: SubsystemBase("Climb") {
     val climberMotor = TalonFX(Falcons.CLIMBER_MOTOR)
     val switch = DigitalInput(DigitalSensors.CLIMBER)
 
-    const val DEPLOY_ROTATIONS = 0.5
+    const val DEPLOY_ROTATIONS = 0.21
     const val FEEDBACK_COEFFICIENT = 1.0/45.0
 
     val relayOn: Boolean get() = !switch.get()

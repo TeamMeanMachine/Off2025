@@ -209,7 +209,7 @@ object Armavator: SubsystemBase() {
     var isSlowSpeed = false
         private set
 
-
+    var scoringL4 = false
 
 
     init {

@@ -116,9 +116,7 @@ object OI: SubsystemBase("OI") {
 
 
         // Score
-        driverController.rightTrigger(0.9).whileTrue(
-            runCommand { Intake.intakeState = IntakeState.SCORING }
-                .finallyRun { Intake.intakeState = IntakeState.HOLDING })
+        driverController.rightTrigger(0.9).whileTrue(score())
 
         // Algae Ground Intake
         driverController.leftStick().and (algaeMode).onTrue(algaeGroundIntake(false))

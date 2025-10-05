@@ -34,11 +34,12 @@ object Intake: SubsystemBase("Intake") {
     var afterDisabled = false
     private var prevIntakeState = intakeState
 
-    val INTAKE_POWER = -0.6
-    val SIDE_MOVE_POWER: Double = if (Robot.isCompBot) -0.1 else 0.1
-    val ALGAE_INTAKE_POWER = 1.0
-    val ALGAE_GROUND_INTAKE_POWER = 0.6
-    val SIDE_SPIT_POWER = 0.8
+    const val INTAKE_POWER = -0.6
+    const val AUTO_INTAKE_POWER = -0.9
+    val sideMovePower: Double = if (Robot.isCompBot) -0.1 else 0.1
+    const val ALGAE_INTAKE_POWER = 1.0
+    const val ALGAE_GROUND_INTAKE_POWER = 0.6
+    const val SIDE_SPIT_POWER = 0.8
 
     val scoredTimer = Timer()
     val timeSinceLastScore get() = scoredTimer.get()
@@ -59,7 +60,7 @@ object Intake: SubsystemBase("Intake") {
         canRangeRightDist = canRangeRightDistFilter.calculate(canRangeRight.distance.valueAsDouble)
         when (intakeState) {
             IntakeState.INTAKING -> {
-                frontMotor.setControl(VoltageOut(INTAKE_POWER * 12.0))
+                frontMotor.setControl(VoltageOut((if (Robot.isAutonomous) AUTO_INTAKE_POWER else INTAKE_POWER) * 12.0))
                 centeringLogic(Robot.isAutonomous)
             }
             IntakeState.ALGAE_GROUND -> {
@@ -115,13 +116,13 @@ object Intake: SubsystemBase("Intake") {
     }
     fun centeringLogic(runSideMotorWhenUnseen: Boolean = false) {
         if (cargoDetectedRight) {
-            sideMotor.setControl(DutyCycleOut(-SIDE_MOVE_POWER))
+            sideMotor.setControl(DutyCycleOut(-sideMovePower))
             hasCargo = true
         } else if (cargoDetectedLeft) {
-            sideMotor.setControl(DutyCycleOut(SIDE_MOVE_POWER))
+            sideMotor.setControl(DutyCycleOut(sideMovePower))
             hasCargo = true
         } else {
-            sideMotor.setControl(DutyCycleOut(if (runSideMotorWhenUnseen) -SIDE_MOVE_POWER else 0.0))
+            sideMotor.setControl(DutyCycleOut(if (runSideMotorWhenUnseen) -sideMovePower else 0.0))
         }
     }
     fun score() {

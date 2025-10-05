@@ -1,12 +1,14 @@
 package frc.team2471.off2025
 
 import edu.wpi.first.math.geometry.Pose2d
+import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.FieldManager.getApproachAngle
 import frc.team2471.off2025.FieldManager.onFriendlyAllianceSide
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
+import frc.team2471.off2025.FieldManager.onRedSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
 import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.commands.finallyWait
@@ -44,6 +46,7 @@ fun goToDrivePose(optionalPivot: Angle? = null) {
     Armavator.goToPose(modifiedDrivePose, optimizePivot = false)
     Armavator.resetPivot()
     Intake.intakeState = IntakeState.HOLDING
+    Armavator.scoringL4 = false
 }
 
 fun ampAlign(): Command {
@@ -55,7 +58,7 @@ fun ampAlign(): Command {
             runCommand(Armavator ){
                 Intake.scoreAlgae = true
                 Armavator.slowSpeed()
-                Armavator.goToPose(Pose.INTAKE_GROUND, Drive.heading.degrees > 0.0, false)
+                Armavator.goToPose(Pose.INTAKE_GROUND, if (Drive.localizer.pose.onRedSide()) Drive.heading.degrees < 0.0 else Drive.heading.degrees > 0.0, false)
             }
         )
     ).finallyRun {
@@ -65,6 +68,8 @@ fun ampAlign(): Command {
 fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
 
     val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+
+    Armavator.scoringL4 = level == FieldManager.Level.L4
 
     return parallelCommand(
           Drive.driveToAutopilotPoint(closestAlignPose.first, { Drive.localizer.singleTagPose}, { getApproachAngle(Drive.localizer.singleTagPose) }),
@@ -99,6 +104,7 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
 
     return sequenceCommand(
         runOnce {
+            Armavator.scoringL4 = level == FieldManager.Level.L4
             closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
         },
         parallelCommand(
@@ -126,6 +132,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
     return sequenceCommand(
         runOnce {
             isFlipped = FieldManager.closestAlignPoint(alignPoint(), level).second
+            Armavator.scoringL4 = level == FieldManager.Level.L4
         },
         parallelCommand(
             Drive.driveToAutopilotPoint({ if (isFlipped) Pose2d(alignPoint().translation, alignPoint().rotation.rotateBy(180.0.degrees.asRotation2d)) else alignPoint() }, { Drive.localizer.singleTagInterpolatedPose }/*, { getApproachAngle(alignPoint()) }*/),
@@ -158,6 +165,7 @@ fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
 
 fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?, slowMode: Boolean = false): Command {
     var closestAlignPose: Pair<Pose2d, Boolean>? = null
+    var alignPoint: Pose2d? = null
     val poseAndOptimize = when (level){
         FieldManager.Level.L1 -> Pose.SCORE_L1 to false
         FieldManager.Level.L2 -> Pose.SCORE_L2 to true
@@ -175,15 +183,16 @@ fun autoScoreCoral(level: FieldManager.Level, side: FieldManager.ScoringSide?, s
         runOnce {
             println("auto score coral ${Robot.timeSinceEnabled}")
             closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+            alignPoint = closestAlignPose.first.transformBy(Transform2d(0.0.inches, if (side == FieldManager.ScoringSide.LEFT) -0.75.inches else if (side == FieldManager.ScoringSide.RIGHT) 0.75.inches else 0.0.inches, 0.0.degrees.asRotation2d))
         },
         if (slowMode) {
             parallelCommand(
-                Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }, autopilotSupplier = Drive.slowAutoPilot),
+                Drive.driveToAutopilotPoint({ alignPoint!! }, { Drive.localizer.singleTagPose }, autopilotSupplier = Drive.slowAutoPilot),
                 Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, 3.0)
             )
         } else {
             parallelCommand(
-                Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
+                Drive.driveToAutopilotPoint({ alignPoint!! }, { Drive.localizer.singleTagPose }),
                 Armavator.animateToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second),
 //            Armavator.goToPose(poseAndOptimize.first, { closestAlignPose!!.second }, poseAndOptimize.second, delayDistanceAndIntermediate.first, delayDistanceAndIntermediate.second)
             )
@@ -307,4 +316,19 @@ fun scoreAuto(doDunk: Boolean = false, waitTime: Double = 0.5): Command =
             Armavator.goToPose(Pose(Pose.current.elevatorHeight, 0.0.degrees, Pose.current.pivotAngle))
         }
         Intake.scoredTimer.restart()
+    }
+
+fun score(doDunk: Boolean = Armavator.scoringL4): Command =
+    runCommand {
+        println("Scoring")
+        Intake.scoreAlgae = false
+        Intake.intakeState = IntakeState.SCORING
+        Intake.hasCargo = false
+
+    }.finallyRun {
+        if (doDunk) {
+            println("doing dunk")
+            Armavator.goToPose(Pose(Pose.current.elevatorHeight - 20.0.inches, Pose.current.armAngle, Pose.current.pivotAngle))
+        }
+        Armavator.scoringL4 = false
     }
