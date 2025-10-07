@@ -302,7 +302,7 @@ fun climb(): Command {
     }
 }
 
-fun scoreAuto(doDunk: Boolean = false, waitTime: Double = 0.5): Command =
+fun scoreAuto(doDunk: Boolean = false, waitTime: Double = 0.4): Command =
     runOnce {
         println("Scoring")
         Intake.scoreAlgae = false

@@ -72,9 +72,11 @@ object Climb: SubsystemBase("Climb") {
         var startingAngle = currentMotorPos
         return sequenceCommand(
             runOnce {
-                hasDeployed = true
                 startingAngle = currentMotorPos
-                motorPercentOutput = 1.0
+                if (!hasDeployed) {
+                    motorPercentOutput = 1.0
+                }
+                hasDeployed = true
             },
             waitUntilCommand { abs(currentMotorPos - startingAngle) > DEPLOY_ROTATIONS },
             runOnce {

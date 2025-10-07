@@ -84,7 +84,7 @@ object Robot : LoggedRobot() {
         when (robotMode) {
             RobotMode.REAL -> { // Running on a real robot, log to a USB stick ("/U/logs")
                 Logger.addDataReceiver(WPILOGWriter())
-//                Logger.addDataReceiver(NT4Publisher())
+                Logger.addDataReceiver(NT4Publisher())
             }
             RobotMode.SIM -> {
                 Logger.addDataReceiver(NT4Publisher())
