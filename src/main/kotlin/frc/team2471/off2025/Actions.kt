@@ -10,6 +10,7 @@ import frc.team2471.off2025.FieldManager.onFriendlyAllianceSide
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.onRedSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
+import frc.team2471.off2025.util.addRotation
 import frc.team2471.off2025.util.control.commands.finallyRun
 import frc.team2471.off2025.util.control.commands.finallyWait
 import frc.team2471.off2025.util.control.leftStickButton
@@ -141,7 +142,7 @@ fun alignToScoreWithDelayDistance(alignPoint: () -> Pose2d, level: FieldManager.
     )
 }
 
-fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
+fun autoScoreCoral(alignPoint: () -> Pose2d, level: FieldManager.Level): Command {
     val poseAndOptimize = when (level){
         FieldManager.Level.L1 -> Pose.SCORE_L1 to false
         FieldManager.Level.L2 -> Pose.SCORE_L2 to true
@@ -154,7 +155,7 @@ fun autoScoreCoral(alignPoint: Pose2d, level: FieldManager.Level): Command {
     }*/
 
     return parallelCommand(
-        Drive.driveToAutopilotPoint({ Pose2d(alignPoint.translation, alignPoint.rotation.rotateBy(180.0.degrees.asRotation2d)) }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
+        Drive.driveToAutopilotPoint({ alignPoint().addRotation(180.0.degrees.asRotation2d) }, { Drive.localizer.singleTagPose }/*, { getApproachAngle(alignPoint()) }*/),
         Armavator.animateToPose(poseAndOptimize.first,{ false }, poseAndOptimize.second, 2.0 ),
         runOnce {
             println("auto score coral ${Robot.timeSinceEnabled}")

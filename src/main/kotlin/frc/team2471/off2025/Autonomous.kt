@@ -5,6 +5,7 @@ import choreo.trajectory.SwerveSample
 import choreo.trajectory.Trajectory
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Transform2d
+import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.wpilibj.Filesystem
 import edu.wpi.first.wpilibj.RobotController
 import edu.wpi.first.wpilibj2.command.Command
@@ -17,8 +18,6 @@ import frc.team2471.off2025.tests.leftRightStaticFFTest
 import frc.team2471.off2025.tests.sysIDPivot
 import frc.team2471.off2025.tests.slipCurrentTest
 import frc.team2471.off2025.tests.velocityVoltTest
-import frc.team2471.off2025.util.control.commands.beforeWait
-import frc.team2471.off2025.util.control.commands.deadlineCommand
 import frc.team2471.off2025.util.control.commands.deferCommand
 import frc.team2471.off2025.util.control.commands.onlyRunWhileFalse
 import frc.team2471.off2025.util.control.commands.parallelCommand
@@ -47,11 +46,11 @@ object Autonomous {
 
     // Chooser for selecting autonomous commands
     private val autoChooser: LoggedDashboardChooser<AutoCommand?> = LoggedDashboardChooser<AutoCommand?>("Auto Chooser").apply {
-        addOption("8 Foot Straight", AutoCommand(::eightFootStraight))
-        addOption("6x6 Square", AutoCommand(::squarePathTest))
-        addOption("3 L4 Right", AutoCommand(::threeL4Right) { Pose2d(7.19158.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
-        addOption("1 L4 Middle", AutoCommand(::singleL4Middle) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
-        addOption("1 L4 ALGAE Middle", AutoCommand(::singleL4AlgaeMiddle) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
+        addOption("8 Foot Straight", AutoCommand(eightFootStraight()))
+        addOption("6x6 Square", AutoCommand(squarePathTest()))
+        addOption("3 L4 Right", AutoCommand(threeL4Right()) { Pose2d(7.19158.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
+        addOption("1 L4 Middle", AutoCommand(singleL4Middle()) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
+        addOption("1 L4 ALGAE Middle", AutoCommand(singleL4AlgaeMiddle()) { Pose2d(7.19158.meters, FieldManager.fieldCenter.y.asMeters.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance } })
     }
     // Chooser for test commands
     private val testChooser: LoggedDashboardChooser<Command?> = LoggedDashboardChooser<Command?>("Test Chooser").apply {
@@ -71,7 +70,7 @@ object Autonomous {
 
     var selectedAuto: AutoCommand? = null
         private set
-    val autonomousCommand: Command? get() = if (!Drive.demoMode) selectedAuto?.commandSupplier?.invoke() else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
+    val autonomousCommand: Command? get() = if (!Drive.demoMode) selectedAuto?.command else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
     val testCommand: Command? get() = testChooser.get()
 
     /**
@@ -85,16 +84,7 @@ object Autonomous {
     private var prevPathRed: Boolean? = null
 
     init {
-        val startTime = RobotController.getMeasureFPGATime()
-        val pathNameAndStartPose = mutableListOf<Pair<String, Pose2d>>()
-        paths.forEach {
-            pathNameAndStartPose.add(Pair(
-                it.value.name(),
-                it.value.sampleAt(0.001, false).get().pose
-            ))
-        }
-        println("paths: $pathNameAndStartPose")
-        println("reading ${paths.size} paths took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(6)} seconds.")
+        readAutoPaths()
     }
 
     fun updateSelectedAuto() {
@@ -129,6 +119,24 @@ object Autonomous {
         }
     }
 
+    fun readAutoPaths() {
+        val startTime = RobotController.getMeasureFPGATime()
+        val pathNameAndStartPose = mutableListOf<Pair<String, Pose2d>>()
+        val segments = mutableListOf<ChassisSpeeds?>()
+        paths.forEach {
+            pathNameAndStartPose.add(Pair(
+                it.value.name(),
+                it.value.sampleAt(0.0, false).get().pose
+            ))
+            val pathSegment = it.value.totalTime / 10.0
+            for (i in 0..10) {
+                segments.add(it.value.sampleAt(i * pathSegment, false).getOrNull()?.chassisSpeeds)
+            }
+        }
+        println("paths: $pathNameAndStartPose")
+        println("reading ${paths.size} paths and ${segments.size} samples. Took ${(RobotController.getMeasureFPGATime() - startTime).asSeconds.round(4)} seconds.")
+    }
+
     /**
      * Flip the path so it is correct for the alliance color
      */
@@ -138,7 +146,8 @@ object Autonomous {
         isPathsRed = !isPathsRed
         prevPathRed = isPathsRed
         setDrivePositionToAutoStartPose()
-        println(paths.map { it.value.sampleAt(0.1, false)?.get()?.pose})
+        println(paths.map { it.value.sampleAt(0.0, false)?.get()?.pose})
+        readAutoPaths()
     }
 
     /**
@@ -177,12 +186,19 @@ object Autonomous {
 
     private fun threeL4Right(): Command {
         return deferCommand(Drive, Armavator) {
+            var cycleOne = false
             println("inside L4 right ${Robot.timeSinceEnabled}")
             Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
             val coralStationPose = Pose2d(1.508599042892456.meters, 0.7226448655128479.meters, 54.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }//path.getSplit(3).get().getFinalPose(false).get()
             println("about to run sequence ${Robot.timeSinceEnabled}")
             sequenceCommand(
-                autoScoreCoral(if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2], Level.L4),
+                autoScoreCoral({ if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2] }, Level.L4).alongWith(
+                    runCommand {
+                        if (!cycleOne) {
+                            println("inside sequence ${Robot.timeSinceEnabled}")
+                            cycleOne = true
+                        }
+                    }.onlyRunWhileFalse { cycleOne }),
                 scoreAuto(true),
                 parallelCommand(
                     Drive.driveToAutopilotPoint(coralStationPose, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }),
@@ -275,5 +291,74 @@ object Autonomous {
         }
     }
 
-    class AutoCommand(val commandSupplier: () -> Command, val startingPoseSupplier: (() -> Pose2d)? = null)
+    private fun threeL4RightFast(): Command {
+        var coralStationPose: Pose2d? = null
+        var cycleOne = false
+        return sequenceCommand(
+            runOnce {
+                println("inside L4 right ${Robot.timeSinceEnabled}")
+                Drive.pose = Pose2d(7.191587924957275.meters, 3.0.meters, 180.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }
+                coralStationPose = Pose2d(1.508599042892456.meters, 0.7226448655128479.meters, 54.0.degrees.asRotation2d).rotateAroundField { isRedAlliance }//path.getSplit(3).get().getFinalPose(false).get()
+                println("about to run sequence ${Robot.timeSinceEnabled}")
+            },
+            sequenceCommand(
+                autoScoreCoral({ if (isRedAlliance) FieldManager.alignPositionsLeftL4Red[2] else FieldManager.alignPositionsLeftL4Blue[2] }, Level.L4).alongWith(
+                    runCommand {
+                        if (!cycleOne) {
+                            println("hii ${Robot.timeSinceEnabled}")
+                            cycleOne = true
+                        }
+                    }.onlyRunWhileFalse { cycleOne }),
+                scoreAuto(true),
+                parallelCommand(
+                    Drive.driveToAutopilotPoint({ coralStationPose!! }, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }).alongWith(),
+                    sequenceCommand(
+                        runOnce {
+                            Drive.resetOdometryToAbsolute()
+                        },
+                        waitCommand(0.3),
+                        runOnce {
+                            val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                            Intake.intakeState = IntakeState.INTAKING
+                            Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                        },
+                    ),
+                    runCommand {
+                        Intake.hasCargo = false
+                    }.onlyRunWhileFalse {
+                        Intake.timeSinceLastScore > 1.5
+                    }
+                ),
+                autoScoreCoral(Level.L4, FieldManager.ScoringSide.RIGHT),
+                scoreAuto(true),
+                parallelCommand(
+                    Drive.driveToAutopilotPoint({ coralStationPose!! }, { Drive.localizer.odometryPose }, autopilotSupplier = Drive.fastAutoPilot, earlyExit = {_, _ -> Intake.hasCargo && Intake.timeSinceLastScore > 1.5 }),
+                    sequenceCommand(
+                        runOnce {
+                            Drive.resetOdometryToAbsolute()
+                        },
+                        waitCommand(0.3),
+                        runOnce {
+                            val isFlipped = FieldManager.getHumanStationAlignHeading(Drive.localizer.pose).second
+                            Intake.intakeState = IntakeState.INTAKING
+                            Armavator.goToPose(Pose.INTAKE_CORAL_STATION, isFlipped, false)
+                        },
+                    ),
+                    runCommand {
+                        Intake.hasCargo = false
+                    }.onlyRunWhileFalse {
+                        Intake.timeSinceLastScore > 1.5
+                    }
+                ),
+                autoScoreCoral(Level.L4, FieldManager.ScoringSide.LEFT),
+                scoreAuto(),
+                runOnce {
+                    Armavator.goToPose(Pose(Pose.SCORE_L4.elevatorHeight, 0.0.degrees, Pose.SCORE_L4.pivotAngle))
+                    println("finished. Seconds since enable: ${Robot.timeSinceEnabled}")
+                }
+            )
+        )
+    }
+
+    class AutoCommand(val command: Command, val startingPoseSupplier: (() -> Pose2d)? = null)
 }
