@@ -1,5 +1,6 @@
 package frc.team2471.off2025.tests
 
+import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveModuleState
@@ -10,12 +11,17 @@ import frc.team2471.off2025.OI
 import frc.team2471.off2025.Drive
 import frc.team2471.off2025.util.control.Direction
 import frc.team2471.off2025.util.control.commands.beforeRun
+import frc.team2471.off2025.util.control.commands.beforeWait
 import frc.team2471.off2025.util.control.dPad
 import frc.team2471.off2025.util.control.commands.runCommand
 import frc.team2471.off2025.util.ctre.ApplyModuleStatesVoltage
 import frc.team2471.off2025.util.translation
+import frc.team2471.off2025.util.units.asFeet
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
+import frc.team2471.off2025.util.units.degreesPerSecond
+import frc.team2471.off2025.util.units.feetPerSecond
+import frc.team2471.off2025.util.units.meters
 import org.littletonrobotics.junction.Logger
 
 
@@ -229,4 +235,31 @@ fun Drive.slipCurrentTest(): Command {
     }.beforeRun() {
         timer.restart()
     }
+}
+
+fun Drive.questOffsetTest(): Command {
+    val allPoints = mutableListOf<Pose2d>()
+    return run {
+        val questPose = questPose
+        println(Drive.questPose)
+        allPoints.add(questPose)
+        Drive.driveVelocity(ChassisSpeeds(0.0.feetPerSecond, 0.0.feetPerSecond, 18.0.degreesPerSecond))
+    }.withTimeout(20.0).andThen(runOnce {
+        val sampleSize = allPoints.size
+        var averagePoint = Translation2d()
+        allPoints.forEach {
+            averagePoint += it.translation / sampleSize.toDouble()
+        }
+        var radius = 0.0
+        allPoints.forEach {
+            radius += (it.translation - averagePoint).norm / sampleSize.toDouble()
+        }
+        println("quest distance from center: ${radius.meters.asFeet} feet. averagePoint: $averagePoint")
+        val questTransform = Translation2d(radius, Drive.heading)
+        println("quest transform: (±${questTransform.x.meters.asFeet}, ±${questTransform.y.meters.asFeet}) feet")
+
+
+
+
+    }.beforeWait(2.0))
 }
