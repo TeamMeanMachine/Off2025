@@ -68,7 +68,7 @@ fun ampAlign(): Command {
 }
 fun alignToScore(level: FieldManager.Level, side: FieldManager.ScoringSide?): Command {
 
-    val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+    val closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.singleTagPose, level, side)
 
     Armavator.scoringL4 = level == FieldManager.Level.L4
 
@@ -106,7 +106,7 @@ fun alignToScoreWithDelayDistance(level: FieldManager.Level, side: FieldManager.
     return sequenceCommand(
         runOnce {
             Armavator.scoringL4 = level == FieldManager.Level.L4
-            closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.pose, level, side)
+            closestAlignPose = FieldManager.closestAlignPoint(Drive.localizer.singleTagPose, level, side)
         },
         parallelCommand(
             Drive.driveToAutopilotPoint({ closestAlignPose!!.first }, { Drive.localizer.singleTagPose }),
@@ -213,7 +213,7 @@ fun coralStationIntake(): Command {
 }
 
 fun algaeDescore(): Command {
-    val alignPoseAndLevel = FieldManager.getClosestReefAlgae(Drive.localizer.pose)
+    val alignPoseAndLevel = FieldManager.getClosestReefAlgae(Drive.localizer.singleTagPose)
     return parallelCommand(
         Drive.driveToPoint(alignPoseAndLevel.first, { Drive.localizer.singleTagPose }),
         sequenceCommand(
