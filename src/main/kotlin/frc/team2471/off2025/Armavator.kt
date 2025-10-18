@@ -17,7 +17,7 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import motion_profiling.MotionCurve
+import org.team2471.frc.lib.motion_profiling.MotionCurve
 import org.littletonrobotics.junction.Logger
 import org.team2471.frc.lib.control.LoopLogger
 import org.team2471.frc.lib.control.commands.finallyRun
