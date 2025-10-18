@@ -14,11 +14,12 @@ import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.DriverStation.Alliance
 import edu.wpi.first.wpilibj.Timer
 import frc.team2471.off2025.util.control.LoopLogger
+import frc.team2471.off2025.util.isSim
 import frc.team2471.off2025.util.toTransform2d
 import frc.team2471.off2025.util.vision.Fiducial
-import frc.team2471.off2025.util.vision.Fiducials
 import frc.team2471.off2025.util.vision.PipelineVisionPacket
 import frc.team2471.off2025.util.vision.QuixVisionCamera
+import frc.team2471.off2025.util.vision.QuixVisionSim
 import org.littletonrobotics.junction.Logger
 import org.photonvision.targeting.PhotonTrackedTarget
 import java.util.ArrayList
@@ -40,7 +41,7 @@ import kotlin.math.max
  *
  *  Particle filter and single tag measurements are used as absolute pose sources. They offset the estimated pose by the camera estimate
  */
-class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
+class PoseLocalizer(val allTargets: Array<Fiducial>, val cameras: List<QuixVisionCamera>) {
     private val networkTable = NTManager()
 
     // If empty, uses all tags.
@@ -276,9 +277,9 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
                                 target.getDetectedCorners()[cornerID]
                             )
                         }
-                        if (target.getFiducialId() <= Fiducials.aprilTagFiducials.size) {
+                        if (target.getFiducialId() <= allTargets.size) {
                             detectedTags.add(Pose3d(this.pose).transformBy(cameras[cameraID].transform).translation)
-                            detectedTags.add(Fiducials.aprilTagFiducials[target.getFiducialId() - 1].pose.translation)
+                            detectedTags.add(allTargets[target.getFiducialId() - 1].pose.translation)
                         }
                     }
                 }
@@ -333,7 +334,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             return
         }
 
-        val tagID = Fiducials.determineClosestTagID(this.pose, DriverStation.getAlliance().get() == Alliance.Blue)
+        val tagID = determineClosestTagID(this.pose, DriverStation.getAlliance().get() == Alliance.Blue)
 
         // Get latest measurement from either camera with a target.
         var latestTimestamp = 0.0
@@ -377,7 +378,7 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
             .rotateBy(Rotation3d(robotToCam.rotation.getX(), robotToCam.rotation.getY(), 0.0)).toTranslation2d()
         val camToTagRotation = interpolatedRotation.plus(robotToCam.rotation.toRotation2d().plus(camToTagTranslation.angle))
 
-        val tagPose2d = Fiducials.aprilTagFiducials[latestTarget.fiducialId - 1].pose.toPose2d()
+        val tagPose2d = allTargets[latestTarget.fiducialId - 1].pose.toPose2d()
         if (tagPose2d == null) {
             Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf<Translation2d>())
             return
@@ -405,17 +406,40 @@ class PoseLocalizer(targets: Array<Fiducial>, val cameras: List<QuixVisionCamera
         Logger.recordOutput("Localizer/DetectedSingleTag", *arrayOf(tagPose2d.translation))
     }
 
-    init {
-        println("Created PoseLocalizer with ${targets.size} targets and ${cameras.size} cameras")
+    fun determineClosestTagID(robotPose: Pose2d, isBlue: Boolean): Int {
+        // Define tag indices
+        val tagIndices = if (isBlue) intArrayOf(16, 17, 18, 19, 20, 21) else intArrayOf(5, 6, 7, 8, 9, 10)
 
-        networkTable.publishTargets(targets)
+        // Evaluate each canidate
+        var closestTagIndex = 0 // Is this the right initial value?
+        var closestTagDist = Double.POSITIVE_INFINITY
+        for (tagIndex in tagIndices) {
+            val tag: Pose2d = allTargets[tagIndex].pose.toPose2d()
+            val tagDist: Double = tag.translation.getDistance(robotPose.translation)
+
+            if (tagDist < closestTagDist) {
+                closestTagIndex = tagIndex
+                closestTagDist = tagDist
+            }
+        }
+        return closestTagIndex + 1
+    }
+
+    init {
+        println("Created PoseLocalizer with ${allTargets.size} targets and ${cameras.size} cameras")
+
+        if (isSim) {
+            QuixVisionSim.setTargets(allTargets)
+        }
+
+        networkTable.publishTargets(allTargets)
 
         trackAllTags()
     }
 
     fun trackAllTags() {
         tagsToTrack.clear()
-        for (tag in Fiducials.aprilTagFiducials) {
+        for (tag in allTargets) {
             tagsToTrack.add(tag.id)
         }
     }

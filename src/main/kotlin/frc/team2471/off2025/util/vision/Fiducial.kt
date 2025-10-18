@@ -1,7 +1,10 @@
 package frc.team2471.off2025.util.vision
 
+import edu.wpi.first.apriltag.AprilTag
 import edu.wpi.first.math.geometry.Pose3d
 import edu.wpi.first.util.struct.Struct
+import frc.team2471.off2025.util.units.asMeters
+import frc.team2471.off2025.util.units.inches
 import java.nio.ByteBuffer
 
 // An ID of -1 indicates this is an unlabeled fiducial (e.g. retroreflective tape)
@@ -34,6 +37,20 @@ class Fiducial(val type: Type, val id: Int, val pose: Pose3d, val size: Double) 
     companion object {
         // Struct for serialization.
         val struct: FiducialStruct = FiducialStruct()
+
+        private val aprilTagSize = 6.5.inches.asMeters // m
+
+        fun constructFiducialList(aprilTags: List<AprilTag>): Array<Fiducial>  {
+            return Array(aprilTags.size) {
+                val tag = aprilTags[it]
+                Fiducial(
+                    Type.APRILTAG,
+                    tag.ID,
+                    tag.pose,
+                    aprilTagSize
+                )
+            }
+        }
     }
 }
 

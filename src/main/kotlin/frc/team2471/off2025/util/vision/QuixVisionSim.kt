@@ -10,15 +10,6 @@ import org.photonvision.simulation.VisionTargetSim
 
 object QuixVisionSim {
     private val m_visionSim = VisionSystemSim("main")
-    val aprilTags: Array<Fiducial> = Fiducials.aprilTagFiducials
-
-    init {
-        if (!isReal) {
-            aprilTags.forEach {
-                m_visionSim.addVisionTargets("apriltag", VisionTargetSim(it.pose, TargetModel.kAprilTag36h11, it.id))
-            }
-        }
-    }
 
     fun addCamera(camera: PhotonVisionCamera) {
         m_visionSim.addCamera(camera.cameraSim, camera.transform)
@@ -31,6 +22,14 @@ object QuixVisionSim {
 
     fun updatePose(pose: Pose2d) {
         m_visionSim.update(pose)
+    }
+
+    fun setTargets(tags: Array<Fiducial>) {
+        if (!isReal) {
+            tags.forEach {
+                m_visionSim.addVisionTargets("apriltag", VisionTargetSim(it.pose, TargetModel.kAprilTag36h11, it.id))
+            }
+        }
     }
 
     val simField: Field2d

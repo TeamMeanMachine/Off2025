@@ -25,7 +25,7 @@ import frc.team2471.off2025.util.units.asMetersPerSecondPerSecond
 import frc.team2471.off2025.util.units.asRotation2d
 import frc.team2471.off2025.util.units.degrees
 import frc.team2471.off2025.util.units.inches
-import frc.team2471.off2025.util.vision.Fiducials
+import frc.team2471.off2025.util.vision.Fiducial
 import frc.team2471.off2025.util.vision.PipelineConfig
 import frc.team2471.off2025.util.vision.QuixVisionCamera
 import frc.team2471.off2025.util.vision.QuixVisionSim
@@ -94,7 +94,7 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     val QUEST_STD_DEVS: Matrix<N3?, N1?> = VecBuilder.fill(0.025, 0.025, 0.052)
 
     // Class that handles the merging of multiple vision sources and the odometry.
-    val localizer = PoseLocalizer(Fiducials.aprilTagFiducials, cameras)
+    val localizer = PoseLocalizer(Fiducial.constructFiducialList(FieldManager.allAprilTags), cameras)
 
     private val translationRateTimer = Timer()
     private var prevTranslation = Translation2d()
