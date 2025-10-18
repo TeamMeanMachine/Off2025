@@ -9,19 +9,19 @@ import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands
 import frc.team2471.off2025.OI
 import frc.team2471.off2025.Drive
-import frc.team2471.off2025.util.control.Direction
-import frc.team2471.off2025.util.control.commands.beforeRun
-import frc.team2471.off2025.util.control.commands.beforeWait
-import frc.team2471.off2025.util.control.dPad
-import frc.team2471.off2025.util.control.commands.runCommand
-import frc.team2471.off2025.util.ctre.ApplyModuleStatesVoltage
-import frc.team2471.off2025.util.translation
-import frc.team2471.off2025.util.units.asFeet
-import frc.team2471.off2025.util.units.asRotation2d
-import frc.team2471.off2025.util.units.degrees
-import frc.team2471.off2025.util.units.degreesPerSecond
-import frc.team2471.off2025.util.units.feetPerSecond
-import frc.team2471.off2025.util.units.meters
+import org.team2471.frc.lib.control.Direction
+import org.team2471.frc.lib.control.commands.beforeRun
+import org.team2471.frc.lib.control.commands.beforeWait
+import org.team2471.frc.lib.control.dPad
+import org.team2471.frc.lib.control.commands.runCommand
+import org.team2471.frc.lib.ctre.ApplyModuleStatesVoltage
+import org.team2471.frc.lib.translation
+import org.team2471.frc.lib.units.asFeet
+import org.team2471.frc.lib.units.asRotation2d
+import org.team2471.frc.lib.units.degrees
+import org.team2471.frc.lib.units.degreesPerSecond
+import org.team2471.frc.lib.units.feetPerSecond
+import org.team2471.frc.lib.units.meters
 import org.littletonrobotics.junction.Logger
 
 

@@ -2,18 +2,15 @@ package frc.team2471.off2025
 
 import com.ctre.phoenix6.controls.DutyCycleOut
 import com.ctre.phoenix6.hardware.TalonFX
-import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.wpilibj.DigitalInput
-import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.team2471.off2025.util.control.commands.sequenceCommand
-import frc.team2471.off2025.util.control.commands.use
-import frc.team2471.off2025.util.control.commands.waitUntilCommand
-import frc.team2471.off2025.util.ctre.applyConfiguration
-import frc.team2471.off2025.util.ctre.currentLimits
-import frc.team2471.off2025.util.units.asDegrees
-import frc.team2471.off2025.util.units.rotations
+import org.team2471.frc.lib.control.commands.sequenceCommand
+import org.team2471.frc.lib.control.commands.waitUntilCommand
+import org.team2471.frc.lib.ctre.applyConfiguration
+import org.team2471.frc.lib.ctre.currentLimits
+import org.team2471.frc.lib.units.asDegrees
+import org.team2471.frc.lib.units.rotations
 import org.littletonrobotics.junction.Logger
 import kotlin.math.abs
 

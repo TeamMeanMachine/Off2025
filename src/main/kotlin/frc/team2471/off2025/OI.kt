@@ -5,16 +5,11 @@ import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.wpilibj.Alert
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.team2471.off2025.Vision.alignToGamepiece
-import frc.team2471.off2025.util.control.LoopLogger
-import frc.team2471.off2025.util.control.MeanCommandXboxController
-import frc.team2471.off2025.util.control.commands.finallyRun
-import frc.team2471.off2025.util.control.commands.runCommand
-import frc.team2471.off2025.util.control.commands.toCommand
-import frc.team2471.off2025.util.control.leftBumper
-import frc.team2471.off2025.util.control.rightBumper
-import frc.team2471.off2025.util.math.deadband
-import frc.team2471.off2025.util.math.normalize
+import org.team2471.frc.lib.control.LoopLogger
+import org.team2471.frc.lib.control.MeanCommandXboxController
+import org.team2471.frc.lib.control.commands.toCommand
+import org.team2471.frc.lib.math.deadband
+import org.team2471.frc.lib.math.normalize
 
 object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, false)

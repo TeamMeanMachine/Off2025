@@ -2,9 +2,9 @@ package frc.team2471.off2025
 
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.units.measure.Distance
-import frc.team2471.off2025.util.units.degrees
-import frc.team2471.off2025.util.units.inches
-import frc.team2471.off2025.util.units.wrap
+import org.team2471.frc.lib.units.degrees
+import org.team2471.frc.lib.units.inches
+import org.team2471.frc.lib.units.wrap
 
 data class Pose(var elevatorHeight: Distance, var armAngle: Angle, var pivotAngle: Angle) {
     companion object {

@@ -7,11 +7,11 @@ import com.ctre.phoenix6.hardware.TalonFX
 import edu.wpi.first.math.filter.LinearFilter
 import edu.wpi.first.wpilibj.Timer
 import edu.wpi.first.wpilibj2.command.SubsystemBase
-import frc.team2471.off2025.util.ctre.applyConfiguration
-import frc.team2471.off2025.util.ctre.brakeMode
-import frc.team2471.off2025.util.ctre.currentLimits
-import frc.team2471.off2025.util.ctre.inverted
-import frc.team2471.off2025.util.units.asFahrenheit
+import org.team2471.frc.lib.ctre.applyConfiguration
+import org.team2471.frc.lib.ctre.brakeMode
+import org.team2471.frc.lib.ctre.currentLimits
+import org.team2471.frc.lib.ctre.inverted
+import org.team2471.frc.lib.units.asFahrenheit
 import org.littletonrobotics.junction.Logger
 
 object Intake: SubsystemBase("Intake") {
