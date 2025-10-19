@@ -1,7 +1,13 @@
 package frc.team2471.off2025
 
 import com.ctre.phoenix6.Utils
+import com.ctre.phoenix6.swerve.SwerveRequest
 import com.ctre.phoenix6.swerve.utility.PhoenixPIDController
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.config.PIDConstants
+import com.pathplanner.lib.config.RobotConfig
+import com.pathplanner.lib.controllers.PPHolonomicDriveController
+import com.pathplanner.lib.util.DriveFeedforwards
 import edu.wpi.first.math.Matrix
 import edu.wpi.first.math.VecBuilder
 import edu.wpi.first.math.controller.PIDController
@@ -22,6 +28,7 @@ import org.team2471.frc.lib.control.LoopLogger
 import org.team2471.frc.lib.ctre.PhoenixUtil
 import org.team2471.frc.lib.isBlueAlliance
 import org.team2471.frc.lib.isReal
+import org.team2471.frc.lib.isRedAlliance
 import org.team2471.frc.lib.localization.PoseLocalizer
 import org.team2471.frc.lib.math.cube
 import org.team2471.frc.lib.math.square
@@ -126,6 +133,26 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         println("max acceleration ${TunerConstants.kMaxAcceleration.asMetersPerSecondPerSecond}")
 
         localizer.trackAllTags()
+
+        AutoBuilder.configure(
+            ::pose,
+            ::pose.setter,
+            ::robotRelativeSpeeds,
+            { wantedSpeeds: ChassisSpeeds, feedforwards: DriveFeedforwards ->
+                setControl(SwerveRequest.ApplyRobotSpeeds()
+                    .withSpeeds(wantedSpeeds)
+                    .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons)
+                    .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons)
+                )
+            },
+            PPHolonomicDriveController(
+                PIDConstants(7.0, 0.0),
+                PIDConstants(7.7, 0.072)
+            ),
+            RobotConfig.fromGUISettings(),
+            ::isRedAlliance,
+            this
+        )
 
         finalInitialization()
     }

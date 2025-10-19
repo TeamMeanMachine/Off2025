@@ -3,6 +3,8 @@ package frc.team2471.off2025
 import choreo.Choreo
 import choreo.trajectory.SwerveSample
 import choreo.trajectory.Trajectory
+import com.pathplanner.lib.auto.AutoBuilder
+import com.pathplanner.lib.path.PathPlannerPath
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
@@ -357,6 +359,10 @@ object Autonomous {
                 }
             )
         )
+    }
+
+    private fun pathPlannerPath(): Command {
+        return AutoBuilder.followPath(PathPlannerPath.fromChoreoTrajectory("3 L4 Right", 1))
     }
 
     class AutoCommand(val command: Command, val startingPoseSupplier: (() -> Pose2d)? = null)
