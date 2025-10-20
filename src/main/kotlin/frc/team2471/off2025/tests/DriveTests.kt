@@ -15,7 +15,6 @@ import org.team2471.frc.lib.control.commands.beforeWait
 import org.team2471.frc.lib.control.dPad
 import org.team2471.frc.lib.control.commands.runCommand
 import org.team2471.frc.lib.ctre.ApplyModuleStatesVoltage
-import org.team2471.frc.lib.translation
 import org.team2471.frc.lib.units.asFeet
 import org.team2471.frc.lib.units.asRotation2d
 import org.team2471.frc.lib.units.degrees
@@ -23,6 +22,7 @@ import org.team2471.frc.lib.units.degreesPerSecond
 import org.team2471.frc.lib.units.feetPerSecond
 import org.team2471.frc.lib.units.meters
 import org.littletonrobotics.junction.Logger
+import org.team2471.frc.lib.util.translation
 
 
 fun joystickTest(): Command {

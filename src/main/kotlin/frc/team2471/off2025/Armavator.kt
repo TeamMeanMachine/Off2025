@@ -35,7 +35,6 @@ import org.team2471.frc.lib.ctre.motionMagic
 import org.team2471.frc.lib.ctre.p
 import org.team2471.frc.lib.ctre.remoteCANCoder
 import org.team2471.frc.lib.ctre.s
-import org.team2471.frc.lib.isSim
 import org.team2471.frc.lib.units.absoluteValue
 import org.team2471.frc.lib.units.asDegrees
 import org.team2471.frc.lib.units.asDegreesPerSecond
@@ -53,6 +52,7 @@ import org.team2471.frc.lib.units.rotations
 import org.team2471.frc.lib.units.sin
 import org.team2471.frc.lib.units.unWrap
 import org.team2471.frc.lib.units.wrap
+import org.team2471.frc.lib.util.isSim
 import kotlin.math.IEEErem
 import kotlin.math.abs
 import kotlin.math.absoluteValue

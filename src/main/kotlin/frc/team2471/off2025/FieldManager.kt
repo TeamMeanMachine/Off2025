@@ -8,7 +8,6 @@ import edu.wpi.first.math.geometry.Transform2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.units.measure.Angle
 import edu.wpi.first.wpilibj.Timer
-import org.team2471.frc.lib.isBlueAlliance
 import org.team2471.frc.lib.units.absoluteValue
 import org.team2471.frc.lib.units.asFeet
 import org.team2471.frc.lib.units.asMeters
@@ -16,7 +15,6 @@ import org.team2471.frc.lib.units.asRotation2d
 import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.feet
 import org.team2471.frc.lib.units.inches
-import org.team2471.frc.lib.isRedAlliance
 import org.team2471.frc.lib.units.meters
 import org.team2471.frc.lib.math.mirrorYAxis
 import org.team2471.frc.lib.math.round
@@ -24,6 +22,8 @@ import org.team2471.frc.lib.math.toPose2d
 import org.team2471.frc.lib.units.UTranslation2d
 import org.team2471.frc.lib.units.wrap
 import org.littletonrobotics.junction.Logger
+import org.team2471.frc.lib.util.isBlueAlliance
+import org.team2471.frc.lib.util.isRedAlliance
 import kotlin.math.floor
 
 object FieldManager {

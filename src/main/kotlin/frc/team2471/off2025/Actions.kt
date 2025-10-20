@@ -10,7 +10,6 @@ import frc.team2471.off2025.FieldManager.onFriendlyAllianceSide
 import frc.team2471.off2025.FieldManager.onOpposingAllianceSide
 import frc.team2471.off2025.FieldManager.onRedSide
 import frc.team2471.off2025.FieldManager.reflectAcrossField
-import org.team2471.frc.lib.addRotation
 import org.team2471.frc.lib.control.commands.finallyRun
 import org.team2471.frc.lib.control.commands.finallyWait
 import org.team2471.frc.lib.control.commands.onlyRunWhileFalse
@@ -29,6 +28,7 @@ import org.team2471.frc.lib.units.asRotation2d
 import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.feet
 import org.team2471.frc.lib.units.inches
+import org.team2471.frc.lib.util.addRotation
 import kotlin.math.absoluteValue
 
 fun groundIntake(isFlipped: Boolean): Command {

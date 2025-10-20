@@ -26,9 +26,6 @@ import kotlinx.coroutines.launch
 import org.littletonrobotics.junction.Logger
 import org.team2471.frc.lib.control.LoopLogger
 import org.team2471.frc.lib.ctre.PhoenixUtil
-import org.team2471.frc.lib.isBlueAlliance
-import org.team2471.frc.lib.isReal
-import org.team2471.frc.lib.isRedAlliance
 import org.team2471.frc.lib.localization.PoseLocalizer
 import org.team2471.frc.lib.math.cube
 import org.team2471.frc.lib.math.square
@@ -37,6 +34,9 @@ import org.team2471.frc.lib.units.asMetersPerSecondPerSecond
 import org.team2471.frc.lib.units.asRotation2d
 import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.inches
+import org.team2471.frc.lib.util.isBlueAlliance
+import org.team2471.frc.lib.util.isReal
+import org.team2471.frc.lib.util.isRedAlliance
 import org.team2471.frc.lib.vision.Fiducial
 import org.team2471.frc.lib.vision.PipelineConfig
 import org.team2471.frc.lib.vision.QuixVisionCamera
