@@ -133,6 +133,37 @@ jar {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
+def copyVendordeps = {
+    subprojects {
+        printf("hiiii")
+        def vendordepsDir = file("$projectDir/vendordeps")
+        if (vendordepsDir.exists()) {
+            rootProject.copy {
+                from vendordepsDir
+                into "${rootProject.projectDir}/vendordeps"
+                include '*.json'
+            }
+        }
+    }
+}
+
+gradle.projectsEvaluated {
+    copyVendordeps()
+}
+
+tasks.matching { it.name == "build" }.all {
+    doFirst {
+        copyVendordeps()
+    }
+}
+
+tasks.matching { it.name == "deploy" }.all {
+    doFirst {
+        copyVendordeps()
+    }
+}
+
+
 // Configure jar and deploy tasks
 deployArtifact.jarTask = jar
 wpi.java.configureExecutableTasks(jar)
