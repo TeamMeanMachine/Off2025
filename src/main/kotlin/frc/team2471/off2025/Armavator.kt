@@ -121,8 +121,7 @@ object Armavator: SubsystemBase() {
         get() = armMotor.position.valueAsDouble.rotations
 
 
-    val defaultPivotEncoderOffset =
-        if (Robot.isCompBot) 0.0 else -1.841
+    val defaultPivotEncoderOffset = -5.0
     val defaultArmEncoderOffset =
         if (Robot.isCompBot) -129.9 else 195.8
     val defaultElevatorEncoderOffset =
