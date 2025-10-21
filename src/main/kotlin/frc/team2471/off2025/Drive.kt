@@ -238,14 +238,4 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
         val localizerPose = localizer.pose
         pose = Pose2d(localizerPose.translation, pose.rotation)
     }
-
-    @OptIn(DelicateCoroutinesApi::class)
-    override fun simulationPeriodic() {
-        LoopLogger.record("b4 Drive Sim piodic")
-        GlobalScope.launch {
-            updateSimState(0.02, 12.0)
-            QuixVisionSim.updatePose(pose)
-        }
-        LoopLogger.record("Drive Sim piodic")
-    }
 }
