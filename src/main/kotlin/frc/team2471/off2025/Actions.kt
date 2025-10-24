@@ -237,13 +237,13 @@ fun bargeAlignAndScore(): Command {
     val isArmFlipped = isFlipped == Drive.localizer.singleTagPose.onFriendlyAllianceSide()
     val poseSupplier = { Drive.localizer.pose }
     return parallelCommand(
-        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5),
+        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5).onlyRunWhileFalse { Drive.demoMode },
         sequenceCommand(
             waitUntilCommand {
                 Drive.localizer.singleTagPose.translation.getDistance(
                     findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation)
                 ) < 3.0.feet.asMeters
-            },
+            }.onlyRunWhileFalse { Drive.demoMode },
             runCommand(Armavator) {
                 Intake.scoreAlgae = true
                 Armavator.normalSpeed()
@@ -322,7 +322,6 @@ fun scoreAuto(doDunk: Boolean = false, waitTime: Double = 0.4): Command =
 fun score(doDunk: Boolean = Armavator.scoringL4): Command =
     runCommand {
         println("Scoring")
-        Intake.scoreAlgae = false
         Intake.intakeState = IntakeState.SCORING
         Intake.hasCargo = false
 
@@ -331,5 +330,6 @@ fun score(doDunk: Boolean = Armavator.scoringL4): Command =
             println("doing dunk")
             Armavator.goToPose(Pose(Pose.current.elevatorHeight - 20.0.inches, Pose.current.armAngle, Pose.current.pivotAngle))
         }
+        Intake.scoreAlgae = false
         Armavator.scoringL4 = false
     }

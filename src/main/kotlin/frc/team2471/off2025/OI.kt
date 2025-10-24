@@ -85,7 +85,7 @@ object OI: SubsystemBase("OI") {
         // L1
         driverController.y().and(coralMode).whileTrue(defer { alignToScore(FieldManager.Level.L1, null) })
         // Barge
-        driverController.y().and (algaeMode).whileTrue(defer { if (!Drive.demoMode) bargeAlignAndScore() else runOnce {} })
+        driverController.y().and (algaeMode).whileTrue(defer { bargeAlignAndScore() })
         // Processor Align
         driverController.b().and (algaeMode).whileTrue(defer { if (!Drive.demoMode) ampAlign() else runOnce {} })
         // Coral Station Intake
