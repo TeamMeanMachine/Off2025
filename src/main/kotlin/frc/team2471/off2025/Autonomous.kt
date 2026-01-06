@@ -36,6 +36,7 @@ import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.feet
 import org.team2471.frc.lib.units.meters
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
+import org.team2471.frc.lib.util.demoMode
 import org.team2471.frc.lib.util.isRedAlliance
 import kotlin.collections.forEach
 import kotlin.io.path.listDirectoryEntries
@@ -71,7 +72,7 @@ object Autonomous {
 
     var selectedAuto: AutoCommand? = null
         private set
-    val autonomousCommand: Command? get() = if (!Drive.demoMode) selectedAuto?.command else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
+    val autonomousCommand: Command? get() = if (!demoMode) selectedAuto?.command else ({ println("DEMO MODE: Not running auto, no killing kids today.") }).toCommand()
     val testCommand: Command? get() = testChooser.get()
 
     /**

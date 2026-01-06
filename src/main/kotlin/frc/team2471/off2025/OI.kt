@@ -10,6 +10,7 @@ import org.team2471.frc.lib.control.MeanCommandXboxController
 import org.team2471.frc.lib.control.commands.toCommand
 import org.team2471.frc.lib.math.deadband
 import org.team2471.frc.lib.math.normalize
+import org.team2471.frc.lib.util.demoMode
 
 object OI: SubsystemBase("OI") {
     val driverController = MeanCommandXboxController(0, false)
@@ -87,7 +88,7 @@ object OI: SubsystemBase("OI") {
         // Barge
         driverController.y().and (algaeMode).whileTrue(defer { bargeAlignAndScore() })
         // Processor Align
-        driverController.b().and (algaeMode).whileTrue(defer { if (!Drive.demoMode) ampAlign() else runOnce {} })
+        driverController.b().and (algaeMode).whileTrue(defer { if (!demoMode) ampAlign() else runOnce {} })
         // Coral Station Intake
         driverController.b().and (coralMode).whileTrue(coralStationIntake())
         // Algae Descore

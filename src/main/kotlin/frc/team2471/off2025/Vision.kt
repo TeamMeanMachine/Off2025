@@ -39,14 +39,14 @@ object Vision : SubsystemBase() {
             }
 
             if (io[i].mode == LimelightMode.GAMEPIECE) {
-                val targetDimensions = inputs[i].targetDimensions
+                val targetDimensions = inputs[i].objectDimensions
 
                 Logger.recordOutput("Vision/target width", targetDimensions.first)
                 Logger.recordOutput("Vision/target height", targetDimensions.second)
                 Logger.recordOutput("Vision/wh ratio", targetDimensions.first / targetDimensions.second)
 
-                if (inputs[i].hasTargets) {
-                    Logger.recordOutput("Vision/Raw Coral Angle", getCoralAngle(inputs[0].targetCorners, inputs[i].targetCenter))
+                if (inputs[i].hasObjects) {
+                    Logger.recordOutput("Vision/Raw Coral Angle", getCoralAngle(inputs[0].objectCorners, inputs[i].objectCenter))
                 }
             }
 
@@ -72,7 +72,7 @@ object Vision : SubsystemBase() {
         return runCommand() {
             io[limelightIndex].mode = LimelightMode.GAMEPIECE
 
-            val targetDimensions = inputs[limelightIndex].targetDimensions
+            val targetDimensions = inputs[limelightIndex].objectDimensions
             if (targetDimensions.second != 0.0) {
                 val whRatio = targetDimensions.first / targetDimensions.second
 
@@ -80,7 +80,7 @@ object Vision : SubsystemBase() {
                 var rotationChassisSpeeds = ChassisSpeeds()
 //                if (whRatio >= 1.2) {
 
-                    val offset = offsetFilter.calculate(-inputs[limelightIndex].targetCoords.first())
+                    val offset = offsetFilter.calculate(-inputs[limelightIndex].objectCoords.first())
 
                     val pidOutput = alignPIDController.calculate(offset, 0.0)
 
@@ -89,7 +89,7 @@ object Vision : SubsystemBase() {
                     translationChassisSpeeds = ChassisSpeeds(pidOutput * offsetHeading.cos, pidOutput * offsetHeading.sin, 0.0)
 //                }
 
-                val angle = angleFilter.calculate(getCoralAngle(inputs[limelightIndex].targetCorners, inputs[limelightIndex].targetCenter).asDegrees).degrees
+                val angle = angleFilter.calculate(getCoralAngle(inputs[limelightIndex].objectCorners, inputs[limelightIndex].objectCenter).asDegrees).degrees
                 Logger.recordOutput("Vision/Filtered Coral Angle", angle)
 
                 if (angle.asDegrees.absoluteValue > 30) {

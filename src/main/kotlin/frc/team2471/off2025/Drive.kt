@@ -34,6 +34,11 @@ import org.team2471.frc.lib.units.asMetersPerSecondPerSecond
 import org.team2471.frc.lib.units.asRotation2d
 import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.inches
+import org.team2471.frc.lib.units.meters
+import org.team2471.frc.lib.units.metersPerSecond
+import org.team2471.frc.lib.units.metersPerSecondCubed
+import org.team2471.frc.lib.units.metersPerSecondPerSecond
+import org.team2471.frc.lib.util.demoSpeed
 import org.team2471.frc.lib.util.isBlueAlliance
 import org.team2471.frc.lib.util.isReal
 import org.team2471.frc.lib.util.isRedAlliance
@@ -107,9 +112,9 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     private var prevTranslation = Translation2d()
 
     // Drive Feedback controllers
-    override val autoPilot = createAPObject(Double.POSITIVE_INFINITY, 100.0, 2.0, 0.5.inches, 1.0.degrees)
-    val fastAutoPilot = createAPObject(Double.POSITIVE_INFINITY, 100.0, 5.0, 0.5.inches, 1.0.degrees)
-    val slowAutoPilot = createAPObject(Double.POSITIVE_INFINITY, 100.0, 0.5, 0.25.inches, 1.0.degrees)
+    override val autoPilot = createAPObject(Double.POSITIVE_INFINITY.metersPerSecond, 100.0.metersPerSecondPerSecond, 2.0.metersPerSecondCubed, 0.5.inches, 1.0.degrees)
+    val fastAutoPilot = createAPObject(Double.POSITIVE_INFINITY.metersPerSecond, 100.0.metersPerSecondPerSecond, 5.0.metersPerSecondCubed, 0.5.inches, 1.0.degrees)
+    val slowAutoPilot = createAPObject(Double.POSITIVE_INFINITY.metersPerSecond, 100.0.metersPerSecondPerSecond, 0.5.metersPerSecondCubed, 0.25.inches, 1.0.degrees)
 
     override val pathXController = PIDController(7.0, 0.0, 0.0)
     override val pathYController = PIDController(7.0, 0.0, 0.0)
@@ -119,6 +124,8 @@ object Drive: SwerveDriveSubsystem(TunerConstants.drivetrainConstants, *TunerCon
     override val teleopDriveToPointController = PIDController(3.0, 0.0, 0.1)
 
     override val driveAtAnglePIDController = PhoenixPIDController(7.7, 0.0, 0.072)
+
+    override val choreoPathsStartOnRed: Boolean = false
 
     override val isDisabledSupplier: () -> Boolean = { Robot.isDisabled }
 

@@ -29,6 +29,7 @@ import org.team2471.frc.lib.units.degrees
 import org.team2471.frc.lib.units.feet
 import org.team2471.frc.lib.units.inches
 import org.team2471.frc.lib.util.addRotation
+import org.team2471.frc.lib.util.demoMode
 import kotlin.math.absoluteValue
 
 fun groundIntake(isFlipped: Boolean): Command {
@@ -237,13 +238,13 @@ fun bargeAlignAndScore(): Command {
     val isArmFlipped = isFlipped == Drive.localizer.singleTagPose.onFriendlyAllianceSide()
     val poseSupplier = { Drive.localizer.pose }
     return parallelCommand(
-        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5).onlyRunWhileFalse { Drive.demoMode },
+        Drive.joystickDriveAlongLine(pointOne, pointTwo, (if (isFlipped) 180.0 else 0.0).degrees.asRotation2d, poseSupplier, maxVelocity = Drive.maxSpeed * 0.5).onlyRunWhileFalse { demoMode },
         sequenceCommand(
             waitUntilCommand {
                 Drive.localizer.singleTagPose.translation.getDistance(
                     findClosestPointOnLine(pointOne, pointTwo, poseSupplier().translation)
                 ) < 3.0.feet.asMeters
-            }.onlyRunWhileFalse { Drive.demoMode },
+            }.onlyRunWhileFalse { demoMode },
             runCommand(Armavator) {
                 Intake.scoreAlgae = true
                 Armavator.normalSpeed()
