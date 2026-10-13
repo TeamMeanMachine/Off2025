@@ -3,12 +3,13 @@ import groovy.json.JsonSlurper
 
 plugins {
     id "java"
-
-    id "edu.wpi.first.GradleRIO" version "2025.3.2"
-    id "com.peterabeles.gversion" version "1.10"
-    id "org.jetbrains.kotlin.jvm" version "2.1.10"
-    id "org.jetbrains.kotlin.kapt" version "2.1.10"
+    id "idea"
+    id "edu.wpi.first.GradleRIO" version "2026.2.1"
+    id "org.jetbrains.kotlin.jvm" version "2.3.21"
+    id "org.jetbrains.kotlin.kapt" version "2.3.21"
 }
+// Tell the global WPILib provider to load vendors out of meanlib also
+wpi.vendor.loadFrom(project(":meanlib"))
 
 java {
 }
@@ -58,6 +59,14 @@ deploy {
     }
 }
 
+// Automatically download documentation from libraries
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
 def deployArtifact = deploy.targets.roborio.artifacts.frcJava
 
 // Set to true to use debug for JNI.
@@ -66,15 +75,11 @@ wpi.java.debugJni = false
 // Set this to true to enable desktop support.
 def includeDesktopSupport = true
 
-// Configuration for AdvantageKit
-task(replayWatch, type: JavaExec) {
-    mainClass = "org.littletonrobotics.junction.ReplayWatch"
-    classpath = sourceSets.main.runtimeClasspath
-}
-
 // Defining my dependencies. In this case, WPILib (+ friends), and vendor libraries.
 // Also defines JUnit 4.
 dependencies {
+    implementation(project(":meanlib"))
+
     annotationProcessor wpi.java.deps.wpilibAnnotations()
     implementation wpi.java.deps.wpilib()
     implementation wpi.java.vendor.java()
@@ -93,13 +98,17 @@ dependencies {
     nativeRelease wpi.java.vendor.jniRelease(wpi.platforms.desktop)
     simulationRelease wpi.sim.enableRelease()
 
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0"
+
     testImplementation "org.junit.jupiter:junit-jupiter:5.10.1"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+    implementation group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
 
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
 
-    def akitJson = new JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
+    def akitJson = new JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/meanlib/vendordeps/AdvantageKit.json").text)
     kapt "org.littletonrobotics.akit:akit-autolog:$akitJson.version"
 }
 
@@ -121,11 +130,21 @@ wpi.sim.addDriverstation()
 // in order to make them all available at runtime. Also adding the manifest so WPILib
 // knows where to look for our Robot Class.
 jar {
+    dependsOn(':meanlib:jar')
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     from sourceSets.main.allSource
     manifest GradleRIOPlugin.javaManifest(ROBOT_MAIN_CLASS)
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
+
+// Automatically download library documentation from libraries
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
 
 // Configure jar and deploy tasks
 deployArtifact.jarTask = jar
@@ -136,50 +155,6 @@ wpi.java.configureTestTasks(test)
 tasks.withType(JavaCompile).configureEach {
     options.compilerArgs.add "-XDstringConcat=inline"
 }
-
-// Create version file
-//project.compileJava.dependsOn(createVersionFile)
-gversion {
-    srcDir       = "src/main/java/"
-    classPackage = "frc.robot"
-    className    = "BuildConstants"
-    dateFormat   = "yyyy-MM-dd HH:mm:ss z"
-    timeZone     = "America/New_York"
-    indent       = "  "
-}
-
-// Create commit with working changes on event branches
-tasks.register('eventDeploy') {
-//    doLast {
-//        if (project.gradle.startParameter.taskNames.any({ it.toLowerCase().contains("deploy") })) {
-//            def branchPrefix = "event"
-//            def branch = "git branch --show-current".execute().text.trim()
-//            def commitMessage = "Update at " $ { new Date().toString() } ""
-//
-//            if (branch.startsWith(branchPrefix)) {
-//                exec {
-//                    workingDir(projectDir)
-//                    executable "git"
-//                    args "add", "-A"
-//                }
-//                exec {
-//                    workingDir(projectDir)
-//                    executable "git"
-//                    args "commit", "-m", commitMessage
-//                    ignoreExitValue = true
-//                }
-//
-//                println "Committed to branch: " $branch ""
-//                println "Commit message: " $commitMessage ""
-//            } else {
-//                println "Not on an event branch, skipping commit"
-//            }
-//        } else {
-//            println "Not running deploy task, skipping commit"
-//        }
-//    }
-}
-createVersionFile.dependsOn(eventDeploy)
 
 repositories {
     mavenCentral()
