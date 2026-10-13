@@ -5,8 +5,6 @@ import edu.wpi.first.wpilibj.RobotBase
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.CommandScheduler
 import edu.wpi.first.wpilibj2.command.Commands
-import frc.team2471.off2025.util.RobotMode
-import frc.team2471.off2025.util.robotMode
 import org.littletonrobotics.junction.LogFileUtil
 import org.littletonrobotics.junction.LoggedRobot
 import org.littletonrobotics.junction.Logger
@@ -14,6 +12,8 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser
 import org.littletonrobotics.junction.networktables.NT4Publisher
 import org.littletonrobotics.junction.wpilog.WPILOGReader
 import org.littletonrobotics.junction.wpilog.WPILOGWriter
+import org.team2471.frc.lib.util.RobotMode
+import org.team2471.frc.lib.util.robotMode
 
 
 object Robot : LoggedRobot() {
@@ -86,7 +86,7 @@ object Robot : LoggedRobot() {
     /** This function is called once when auto is enabled.  */
     override fun autonomousInit() {
         // schedule the autonomous command
-        (autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")})).schedule()
+        CommandScheduler.getInstance().schedule(autonomousCommand ?: Commands.runOnce({println("THE AUTONOMOUS COMMAND IS NULL")}))
     }
 
     /** This function is called periodically during autonomous.  */
@@ -105,7 +105,7 @@ object Robot : LoggedRobot() {
     override fun testInit() {
         // Cancels all running commands at the start of test mode.
         CommandScheduler.getInstance().cancelAll()
-        (testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")})).schedule()
+        CommandScheduler.getInstance().schedule(testCommand ?: Commands.runOnce({println("THE TEST COMMAND IS NULL")}))
     }
 
     /** This function is called periodically during test mode.  */
